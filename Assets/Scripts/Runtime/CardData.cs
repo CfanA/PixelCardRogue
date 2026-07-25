@@ -24,7 +24,18 @@ namespace SkyCourier
         HeatCharge,
         MeltdownBurst,
         Scattershot,
-        MissileSwarm
+        MissileSwarm,
+        SignalScrambler,
+        CounterPursuit,
+        AirBrake,
+        InterceptMine,
+        LockCascade,
+        SlipstreamStrike,
+        PrismEcho,
+        ZeroPointCalibration,
+        RedlineIgnition,
+        SwarmBeacon,
+        GhostProtocol
     }
 
     public enum CardFamily
@@ -40,7 +51,20 @@ namespace SkyCourier
         VectorThruster,
         PrismBulkhead,
         CryoHeart,
-        ExecutionChip
+        ExecutionChip,
+        PrecisionMatrix,
+        MomentumFlywheel,
+        AegisCapacitor,
+        ZeroPointReactor,
+        RedlineReactor,
+        SwarmUplink,
+        GhostDecoder
+    }
+
+    public enum UpgradeBranch
+    {
+        Alpha,
+        Beta
     }
 
     [Serializable]
@@ -91,7 +115,7 @@ namespace SkyCourier
                 case CardId.RailPiercer:
                     return new CardSpec(id, "穿甲轨炮", "造成8点伤害；每层锁定额外造成5点伤害并消耗全部锁定。", 1, 2, CardFamily.Weapon);
                 case CardId.VectorDash:
-                    return new CardSpec(id, "矢量突进", "切换1条航道，获得2点护盾与1层动量。", 1, 0, CardFamily.Maneuver);
+                    return new CardSpec(id, "矢量突进", "向下移动1条航道；已在最下方时改为向上。获得2点护盾与1层动量。", 1, 0, CardFamily.Maneuver);
                 case CardId.PursuitShot:
                     return new CardSpec(id, "追猎射击", "造成5点伤害；每层动量额外造成4点伤害并消耗全部动量。", 1, 1, CardFamily.Weapon);
                 case CardId.ReactivePlating:
@@ -110,6 +134,28 @@ namespace SkyCourier
                     return new CardSpec(id, "散射弹幕", "对所有敌人造成2点伤害。", 1, 1, CardFamily.Weapon);
                 case CardId.MissileSwarm:
                     return new CardSpec(id, "蜂群飞弹", "发射4枚飞弹，每枚对随机敌人造成2点伤害。", 2, 2, CardFamily.Weapon);
+                case CardId.SignalScrambler:
+                    return new CardSpec(id, "信号扰频", "清除全部航迹暴露，获得5点护盾。", 0, 1, CardFamily.Utility);
+                case CardId.CounterPursuit:
+                    return new CardSpec(id, "逆向追猎", "追踪最低耐久敌人造成7点伤害；每层航迹暴露额外造成6点，随后清除暴露。", 1, 1, CardFamily.Weapon);
+                case CardId.AirBrake:
+                    return new CardSpec(id, "矢量刹车", "降低1层航迹暴露并获得5点护盾；若成功降低，获得1点能量。", 1, 0, CardFamily.Maneuver);
+                case CardId.InterceptMine:
+                    return new CardSpec(id, "航道雷网", "对所有不同航道的敌人造成6点伤害。", 1, 2, CardFamily.Weapon);
+                case CardId.LockCascade:
+                    return new CardSpec(id, "连锁标定", "获得1层锁定；已有锁定时额外对同航道造成4点伤害。", 1, 1, CardFamily.Utility);
+                case CardId.SlipstreamStrike:
+                    return new CardSpec(id, "尾流收割", "造成5点加每层动量2点的伤害，且不消耗动量。", 1, 1, CardFamily.Weapon);
+                case CardId.PrismEcho:
+                    return new CardSpec(id, "棱镜回响", "获得5点护盾，并对同航道造成当前护盾一半的伤害。", 1, 0, CardFamily.Defense);
+                case CardId.ZeroPointCalibration:
+                    return new CardSpec(id, "零点校准", "降低3点热量；若实际降低3点，使下一次攻击必定暴击。", 0, 0, CardFamily.Utility);
+                case CardId.RedlineIgnition:
+                    return new CardSpec(id, "红线点火", "获得2点能量并增加3点热量；高热时使下一次攻击必定暴击。", 0, 3, CardFamily.Utility);
+                case CardId.SwarmBeacon:
+                    return new CardSpec(id, "蜂群信标", "校准蜂群链路，使下一张齐射或飞弹牌获得额外伤害。", 1, 1, CardFamily.Utility);
+                case CardId.GhostProtocol:
+                    return new CardSpec(id, "幽灵协议", "主动获得1层航迹暴露，追踪最低耐久敌人造成6点加每层暴露5点的伤害。", 1, 1, CardFamily.Weapon);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(id), id, null);
             }
