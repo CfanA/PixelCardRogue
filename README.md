@@ -1,70 +1,70 @@
-# Sky Courier / 云海邮差
+# 云海邮差（Sky Courier）
 
-An original pixel-art aviation deckbuilding roguelite prototype built in Unity 6.
+一款使用 Unity 6 制作的原创像素风航空牌组构筑 Roguelite 原型。
 
-## Prototype goal
+## 原型目标
 
-The first vertical slice tests one design question: can a three-lane air battle make movement cards, weapon cards, heat management, and cargo constraints matter at the same time?
+首个垂直切片聚焦一个设计问题：三航道空战能否让移动牌、武器牌、热量管理与货物限制同时产生有意义的决策？
 
-## Controls
+## 操作与系统说明
 
-- Click cards to play them.
-- Start each run by choosing standard delivery or one of three fixed-seed challenges, then select from five contracts and sign one of three departure clauses.
-- Use maneuver cards to change lanes.
-- Weapon cards primarily hit enemies in the same lane.
-- End the turn before heat reaches the red zone.
-- Deliver the fragile medicine without letting a single hit deal 6 or more damage.
-- Avoid changing lanes on consecutive turns unless the tracking risk is worth it.
-- On the route map, select a connected node; use the mouse wheel, arrow buttons, or scrollbar to inspect the two revealed future columns.
-- Press `Esc` to pause. Press `F1` during a run to open the complete rulebook and glossary.
-- Runs are saved automatically at route decisions and resolved nodes. If you quit during combat, Continue restarts that encounter from its entrance state.
-- Controller: use the left stick to select, `A` to confirm, `B` to go back, `Y` to end the turn, and Menu to pause.
-- Display mode, resolution, VSync, frame-rate, music, SFX, screen-shake, flash intensity, contextual tutorials, and focus highlights are available from the title screen and pause menu.
-- Simplified Chinese / English can be switched immediately in Settings and is saved locally. The v0.52 release validates every integrated static key, all 108 card names and rule texts, the complete tutorial glossary, enemy intentions, and battle feedback.
-- Every run has a visible seed. The route HUD, pause screen, and delivery summary show it so an encounter can be reproduced.
-- Local JSONL diagnostics are stored under the game's persistent data `Diagnostics` folder and are never uploaded.
-- The title-screen Postal Archive keeps challenge records, five-contract mastery, boss dossiers, six endings, achievements, and next-run goals without granting permanent combat bonuses.
-- Defeats are final and now explain raw fatal damage, shield absorption, the key telemetry-backed mistake, the build weakness, and one concrete next strategy. Players can retry the same contract on the same seed, reroll a new seed, or change contracts immediately.
-- Contract selection now uses a pseudo-3D hangar carousel with focused cargo identity, depth-scaled side choices, smooth cycling, and full mouse/keyboard/controller navigation.
-- Route events now form an optional Signal Thread: early choices create an aid promise or salvage debt, later events remember it, and the delivery summary records the resulting ending.
-- The final boss now activates a readable phase-two matrix derived from the active contract, permanent airframe retrofit, and Signal Thread alignment.
-- The last route column now offers two mechanically distinct finales: the Storm Manta marks danger to evade, while the Thunder-Curtain Wyrm marks the only safe corridor to enter.
-- Route altitude is now a real strategic choice: Jetstream Corridor, Static Front, and Wreckage Tide expose different enemy pools and steer post-signature rewards toward different build directions.
-- The penultimate route column now teaches each finale through Curtain Herald and Flux Skimmer prelude encounters before asking the player to master the full boss pattern.
-- Clearing a prelude captures persistent route intel that visibly alters the matching boss's opening lock and survives save/continue.
-- Each finale boss now combines with the Signal Thread alignment to produce three outcomes, creating six discoverable endings recorded by the Postal Archive.
-- The Signal Seed contract and five reserve-energy cards create a fifth build identity around ending card payments with exactly 1 Energy.
-- The card catalog now contains 108 distinct card types: 16 shared cards plus 17-19 cards for each of the five contracts.
-- New runs use a fixed 13-card deck. Combat rewards and shops offer seeded three-card selections, while acquired cards may appear in multiple copies in the run deck.
-- Repair docks now offer repair, contract-core A/B recalibration, or removal of any one card copy. Deck size and damage-card count are player-controlled with no deletion floor.
-- If an opening hand has no direct-damage card but the draw pile contains one, one support card is swapped for it; the game never creates a card that is absent from the deck.
-- Runs now have three visible acts: an opening clause before departure, an irreversible airframe retrofit at the midpoint, and a final-approach preparation before the prelude column.
-- Final-approach preparation offers a paid Hull patch, removal of any one card copy, a Cargo-for-module overclock, or holding the current course.
-- Route details now show act progress, risk, and expected rewards. Altitude labels stay pinned to the map viewport while nodes move under scrollbar drag.
-- Signal Thread events now offer cooperative, opportunist, and Silent routes. Silent choices remove a real card copy and carry a neutral thread through all three event chapters.
-- Supply stops now include a route workshop for paid card removal and A/B branch rewrites on any owned card type, with each service limited to once per stop.
-- Runs capture versioned build snapshots at departure, retrofit, events, rewards, service stops, final approach, and boss approach. Completed and failed runs retain those snapshots in the local Postal Archive for the next debrief iteration.
-- The Postal Archive now tracks resolved-attempt win rates by contract, build profile, route profile, and reached boss. Automated 72-run simulation remains a deterministic regression tool rather than a target win rate.
-- v0.50 makes two evidence-bounded card changes: Frost Lance loses 1 low-heat bonus damage, while Reserve Shot gains 1 base damage. Enemy, boss, economy, and route values remain unchanged until more complete human runs include v0.49+ snapshots.
-- Contextual tutorials now trigger from actual player behavior and appear once per topic. They cover intentions, same-lane attacks, heat, cargo, lane shifts, tracking, retrofit, chronicles, outposts, and Boss rules; every topic remains available from the rulebook.
-- First-run players go directly to a standard dispatch. Fixed-seed challenges appear after the first resolved run so the opening flow does not introduce unrelated goals.
-- Important combat rules combine color with persistent symbols and text: `[>]` marks the current lane, `X` marks tracking danger, `[O]` marks safety, `[X]` marks danger, and `!!` marks Boss counters.
+- 点击卡牌即可打出。
+- 每局开始时选择标准配送或三个固定种子挑战之一，再从五份合同中选择一份，并签署三条离港条款之一。
+- 使用机动牌切换航道；武器牌主要攻击同航道敌人。
+- 在热量进入红区前结束回合。
+- 配送易碎药品时，避免单次受到 6 点或更多伤害。
+- 除非值得承担追踪风险，否则不要连续回合换道。
+- 在路线图上选择相连节点；可用鼠标滚轮、方向按钮或滚动条查看已揭示的后续两列。
+- 按 `Esc` 暂停；局内按 `F1` 可随时打开完整规则书与术语词典。
+- 游戏会在路线决策和节点结算时自动保存。若在战斗中退出，“继续游戏”会从该场遭遇的入口状态重新开始。
+- 手柄操作：左摇杆或方向键选择，`A` 确认，`B` 返回，`Y` 结束回合，Menu 键暂停。
+- 标题与暂停菜单提供显示模式、分辨率、VSync、帧率上限、音乐、音效、震屏、闪光强度、情境教学和焦点高亮设置。
+- 设置中可即时切换简体中文与英文，并保存到本地。v0.52 会验证全部静态文本键、108 张卡牌的名称与规则、完整教学词典、敌方意图和战斗反馈。
+- 每局都有可见种子；路线 HUD、暂停界面和配送总结都会显示种子，便于复现遭遇。
+- 本地 JSONL 诊断数据保存在游戏持久化目录下的 `Diagnostics` 文件夹中，绝不会上传。
+- 标题界面的“邮差档案”记录挑战成绩、五类合同熟练度、Boss 档案、六种结局、成就和下局目标，但不提供永久战斗数值加成。
+- 失败结算会解释致命原始伤害、护盾吸收、由遥测支持的关键失误、构筑短板和一条明确的新策略。玩家可立即用同合同同种子重试、刷新种子或更换合同。
+- 合同选择使用拟 3D 机库轮盘，突出货物身份，并支持完整的鼠标、键盘与手柄导航。
+- 路线事件组成可选的“信标纪事”：早期选择会形成援助承诺或打捞债务，后续事件会记住它，配送总结会记录最终结果。
+- 最终 Boss 会根据当前合同、永久机体改装与信标纪事立场，启用可读的第二阶段矩阵。
+- 路线末列提供两种机制不同的终局：风暴蝠鲼标记需要躲避的危险区，雷幕螭龙标记必须进入的唯一安全走廊。
+- 航线高度是实际战略选择：急流航道、静电锋面和残骸潮拥有不同敌人池，并让标志战后的奖励偏向不同构筑方向。
+- 倒数第二列通过雷幕先驱和磁暴掠影两场前哨战预演终局规则，再要求玩家掌握完整 Boss 模式。
+- 击败前哨战会获得永久路线情报，明确改变对应 Boss 的开局航道锁定，并能随存档继续保留。
+- 两个终局 Boss 会与信标纪事立场组合出三种结果，共形成六种可被邮差档案记录的结局。
+- “信号种子”合同和五张储能卡形成第五种构筑身份，核心是结束出牌时精确保留 1 点能量。
+- 卡牌目录包含 108 种不同卡牌：16 张通用牌，以及五份合同各自的 17 至 19 张牌。
+- 新局使用固定 13 张初始牌组。战斗奖励与商店提供由种子决定的三选一，已获得卡牌可在本局牌组中重复出现。
+- 维修坞提供修理、合同核心 A/B 重校或删除任意一张卡牌。牌组大小与伤害牌数量由玩家自行控制，没有删牌下限。
+- 若起手没有直接伤害牌但抽牌堆中存在，系统会用一张辅助牌与其交换，不会凭空创建牌组外卡牌。
+- 每局有三个明确幕次：出发前的离港条款、中段不可逆机体改装，以及前哨列之前的终局进场准备。
+- 终局进场准备可选择付费修补机体、删除任意一张牌、用货物换取模块超频，或保持当前航向。
+- 路线详情显示幕次进度、风险和预期收益；拖动滚动条时，高度标签固定在地图视口内。
+- 信标纪事事件提供协作、投机与静默三条路线。静默选择会实际删除一张牌，并让中立立场贯穿三章事件。
+- 补给站包含路线工坊，可付费删牌或对任意已拥有卡牌类型进行 A/B 分支改写，每项服务在单个补给站限用一次。
+- 系统会在离港、改装、事件、奖励、服务站、终局准备和 Boss 进场时保存版本化构筑快照；成功或失败后，快照会保留在本地邮差档案中供复盘使用。
+- 邮差档案按合同、构筑、路线和到达的 Boss 统计已结算局胜率。72 局自动模拟仅用于确定性回归，不作为目标胜率。
+- v0.50 只做两项有证据支持的卡牌调整：冰霜长矛降低 1 点低热量奖励伤害，储能射击增加 1 点基础伤害。在收集更多包含 v0.49+ 快照的真人完整局前，敌人、Boss、经济和路线数值保持不变。
+- 情境教学由玩家实际行为触发，每个主题只弹出一次，覆盖意图、同航道攻击、热量、货物、换道、追踪、改装、纪事、前哨和 Boss 规则；所有主题始终可在规则书中查看。
+- 首局玩家直接进入标准派遣；完成第一局结算后才显示固定种子挑战，避免开局承载无关信息。
+- 重要战斗规则同时使用颜色、符号与文字：`[>]` 表示当前航道，`X` 表示追踪危险，`[O]` 表示安全，`[X]` 表示危险，`!!` 表示 Boss 反制。
 
-## Route map
+## 路线图
 
-The route contains 8 columns and 20 connected nodes. Its tactical map uses compact node icons, stage markers, highlighted route links, three color-coded airspace bands, and a separate rule/detail panel. Branches include skirmishes, elite fights, hunts, shops, contract events, repair docks, and two final bosses. Only the next two columns are revealed, so each choice preserves uncertainty without hiding the immediate consequences.
+路线包含 8 列、20 个相连节点。战术地图使用紧凑节点图标、阶段标记、高亮连线、三条颜色区分的空域带，以及独立规则/详情面板。分支包括遭遇战、精英战、追猎、商店、合同事件、维修坞和两个最终 Boss。地图只揭示后续两列，在不隐藏眼前后果的前提下保留不确定性。
 
-## Open
+## 打开项目
 
-Open this folder with Unity `6000.5.3f1`, then open `Assets/Scenes/Prototype.unity` and press Play.
+使用 Unity `6000.5.3f1` 打开本文件夹，再打开 `Assets/Scenes/Prototype.unity` 并按 Play。
 
-## Windows build
+## Windows 构建
 
-Run `Tools > Sky Courier > Build Windows Prototype` in Unity. The playable build is written to
-`Builds/SkyCourierPrototype_v0.52/Sky Courier Prototype.exe`.
+在 Unity 中运行 `Tools > Sky Courier > Build Windows Prototype`。可执行版本会输出到：
 
-## Localization
+`Builds/SkyCourierPrototype_v0.52/Sky Courier Prototype.exe`
 
-Runtime text lives in `Assets/Resources/Localization/localization.txt` as a three-column TSV table. Every integrated static key, all dynamic card names and rules, enemy intentions, tutorial entries, and glossary definitions are checked before a release build.
+## 本地化
 
-The complete v0.47.1 card-pool partition and run-deck rules are documented in `Docs/Card_Pool_v0.47.1.md`.
+运行时文本位于 `Assets/Resources/Localization/localization.txt`，格式为三列 TSV。每次发布构建前都会检查全部已接入的静态文本键、动态卡牌名称与规则、敌方意图、教学条目和词典定义。
+
+v0.47.1 的完整卡池分区与单局牌组规则记录在 `Docs/Card_Pool_v0.47.1.md`。
