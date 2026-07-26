@@ -39,7 +39,86 @@ namespace SkyCourier
         ReactiveSeal,
         PhaseExchange,
         EyeTransit,
-        FalseTelemetry
+        FalseTelemetry,
+        ReserveShot,
+        StandbyField,
+        TightSchedule,
+        RelayStep,
+        ReserveRouting,
+
+        ThermalBarrier,
+        CapacitorDump,
+        KineticBroadside,
+        TracerSwarm,
+        QueueDirective,
+        EmergencySort,
+        HoldFormation,
+        ArmorySearch,
+
+        AblativeFoam,
+        PrecisionSeal,
+        LockBastion,
+        MirrorPlating,
+        BulkheadPulse,
+        CompressionRam,
+        CargoScreen,
+        ImpactLedger,
+        SealantRecycle,
+        BraceForImpact,
+        ParcelAegis,
+        LastStandCourier,
+
+        FlashFreeze,
+        ThermalBattery,
+        SuperheatedCoolant,
+        HeatSinkLance,
+        QuenchVolley,
+        BoiloffArmor,
+        ColdStart,
+        IgnitionLoop,
+        ReactorPurge,
+        WhiteoutProtocol,
+        FurnaceWake,
+        AbsoluteZero,
+
+        CrosswindCut,
+        MomentumGuard,
+        DriftFire,
+        VectorLoop,
+        TailwindCharge,
+        SpiralBarrage,
+        SnapRoll,
+        WakeMine,
+        PursuitVector,
+        GaleBreak,
+        StormOrbit,
+        TerminalDive,
+
+        TraceHarvest,
+        ShadowLock,
+        DecoyPacket,
+        SilentBurst,
+        BroadcastMine,
+        GhostShield,
+        SignalLeech,
+        BlindSpot,
+        CounterSignal,
+        BlackoutVolley,
+        DeadDrop,
+        ZeroSignature,
+
+        OnePointPlan,
+        ReserveCapacitor,
+        ScheduledShot,
+        DispatchLoop,
+        LockVoucher,
+        DeferredVolley,
+        BudgetThruster,
+        SpareChannel,
+        ExactChange,
+        QueueCollapse,
+        FinalAllocation,
+        PostalOverdrive
     }
 
     public enum CardFamily
@@ -85,7 +164,7 @@ namespace SkyCourier
         {
             Id = id;
             Name = LocalizationService.Text($"card.{id}.name", name);
-            Rules = rules;
+            Rules = LocalizationService.Text($"card.{id}.rules", rules);
             Cost = cost;
             Heat = heat;
             Family = family;
@@ -96,6 +175,9 @@ namespace SkyCourier
     {
         public static CardSpec Get(CardId id)
         {
+            if (ExpandedCardCatalog.TryGet(id, out CardSpec expanded))
+                return expanded;
+
             switch (id)
             {
                 case CardId.BurstFire:
@@ -129,7 +211,7 @@ namespace SkyCourier
                 case CardId.CryoPump:
                     return new CardSpec(id, "低温泵", "降低4点热量；若实际降低至少3点，获得1点能量。", 0, 0, CardFamily.Utility);
                 case CardId.FrostLance:
-                    return new CardSpec(id, "霜脉长枪", "造成7点伤害；出牌前热量不高于2时额外造成6点。", 1, 1, CardFamily.Weapon);
+                    return new CardSpec(id, "霜脉长枪", "造成7点伤害；出牌前热量不高于2时额外造成5点。", 1, 1, CardFamily.Weapon);
                 case CardId.HeatCharge:
                     return new CardSpec(id, "热能充注", "获得2点能量，同时增加3点热量。", 0, 3, CardFamily.Utility);
                 case CardId.MeltdownBurst:
@@ -168,6 +250,21 @@ namespace SkyCourier
                     return new CardSpec(id, "风眼穿越", "直接穿越至另一侧外航道；每跨越1条航道获得1层动量。", 1, 1, CardFamily.Maneuver);
                 case CardId.FalseTelemetry:
                     return new CardSpec(id, "伪造遥测", "主动获得2层航迹暴露，然后抽2张牌。", 0, 1, CardFamily.Utility);
+                case CardId.ReserveShot:
+                    return new CardSpec(id, "余量点射", "对同航道造成8点伤害；支付费用后恰好剩1点能量时额外造成4点。", 1, 1,
+                        CardFamily.Weapon);
+                case CardId.StandbyField:
+                    return new CardSpec(id, "待机力场", "获得6点护盾；支付费用后恰好剩1点能量时再获得4点。", 1, 0,
+                        CardFamily.Defense);
+                case CardId.TightSchedule:
+                    return new CardSpec(id, "紧凑班次", "抽2张牌；支付费用后恰好剩1点能量时获得1层锁定。", 2, 1,
+                        CardFamily.Utility);
+                case CardId.RelayStep:
+                    return new CardSpec(id, "中继变轨", "切换至对侧外航道并获得1层动量；保留1点能量时清除1层航迹暴露。", 1, 0,
+                        CardFamily.Maneuver);
+                case CardId.ReserveRouting:
+                    return new CardSpec(id, "余量调度", "获得4点护盾；支付费用后恰好剩1点能量时抽2张牌。", 1, 0,
+                        CardFamily.Utility);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(id), id, null);
             }
@@ -195,13 +292,14 @@ namespace SkyCourier
                 CargoContract.CryoSerum => CardId.PhaseExchange,
                 CargoContract.StormCore => CardId.EyeTransit,
                 CargoContract.BlackBoxRelay => CardId.FalseTelemetry,
+                CargoContract.SignalSeed => CardId.ReserveRouting,
                 _ => throw new ArgumentOutOfRangeException(nameof(contract), contract, null)
             };
         }
 
         public static bool BelongsTo(CardId card, CargoContract contract)
         {
-            return card == SignatureCard(contract);
+            return CardPoolCatalog.BelongsToContract(card, contract);
         }
     }
 }

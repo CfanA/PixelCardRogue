@@ -10,6 +10,7 @@ namespace SkyCourier
     public sealed class ArchivedRunRecord
     {
         public string RecordedAtUtc;
+        public string AttemptId;
         public int RunSeed;
         public int Contract;
         public string Outcome;
@@ -24,8 +25,39 @@ namespace SkyCourier
         public int ModuleCount;
         public int RouteIntel;
         public int FinaleEnding;
+        public int Challenge;
+        public int BossKind = -1;
         public int DefeatSource = -1;
         public string DefeatDealer;
+        public int DefeatDamage;
+        public int DefeatRawDamage;
+        public int DefeatShieldAbsorbed;
+        public int DefeatHullBefore;
+        public int DefeatTurn;
+        public int DamageTaken;
+        public int Overheats;
+        public int CalamityInterrupts;
+        public int CalamityEvades;
+        public int CalamityHits;
+        public int TrackingHits;
+        public int ContractProcs;
+        public int ContractBonusCredits;
+        public int AirframeModification;
+        public int RouteStoryState;
+        public int DepartureDirective;
+        public int FinalApproachPlan;
+        public string BuildProfile;
+        public string RouteProfile;
+        public List<RunBuildSnapshot> BuildSnapshots = new List<RunBuildSnapshot>();
+    }
+
+    [Serializable]
+    public sealed class RunWinRateRecord
+    {
+        public string Dimension;
+        public string Key;
+        public int Attempts;
+        public int Wins;
     }
 
     [Serializable]
@@ -46,13 +78,22 @@ namespace SkyCourier
         public List<int> DiscoveredModules = new List<int>();
         public List<int> DiscoveredEnemies = new List<int>();
         public List<int> DiscoveredEndings = new List<int>();
+        public List<ChallengeProgressRecord> ChallengeProgress = new List<ChallengeProgressRecord>();
+        public List<ContractMasteryRecord> ContractMastery = new List<ContractMasteryRecord>();
+        public List<BossDossierRecord> BossDossiers = new List<BossDossierRecord>();
         public List<ArchivedRunRecord> RecentRuns = new List<ArchivedRunRecord>();
+        public List<RunWinRateRecord> PerformanceStats = new List<RunWinRateRecord>();
+        public List<string> ResolvedAttemptIds = new List<string>();
     }
 
     public static class DeliveryArchiveService
     {
-        public const int CurrentVersion = 3;
-        public const int MaximumRecentRuns = 8;
+        public const int CurrentVersion = 6;
+        public const int MaximumRecentRuns = 24;
+        public const string ContractDimension = "contract";
+        public const string BuildDimension = "build";
+        public const string RouteDimension = "route";
+        public const string BossDimension = "boss";
         private const string ArchiveFileName = "archive.json";
         private const string BackupFileName = "archive_backup.json";
         private const string TempFileName = "archive.tmp";
@@ -127,11 +168,16 @@ namespace SkyCourier
             File.Move(tempPath, archivePath);
         }
 
-        public static void RegisterRunStarted(DeliveryArchiveData data, int contract, IEnumerable<int> deck)
+        public static void RegisterRunStarted(DeliveryArchiveData data, int contract, IEnumerable<int> deck,
+            int challenge = (int)ChallengeId.Standard)
         {
             data.RunsStarted++;
             AddUnique(data.DiscoveredContracts, contract);
             AddUnique(data.DiscoveredCards, deck);
+            ContractMasteryRecord mastery = FindOrCreateContractMastery(data, contract);
+            mastery.Runs++;
+            if (Enum.IsDefined(typeof(ChallengeId), challenge) && challenge != (int)ChallengeId.Standard)
+                FindOrCreateChallengeProgress(data, challenge).Attempts++;
             Normalize(data);
         }
 
@@ -163,6 +209,13 @@ namespace SkyCourier
             if (record == null)
                 throw new ArgumentNullException(nameof(record));
 
+            data.ResolvedAttemptIds ??= new List<string>();
+            string attemptId = record.AttemptId?.Trim() ?? string.Empty;
+            if (attemptId.Length > 0 && data.ResolvedAttemptIds.Contains(attemptId))
+                return;
+            if (attemptId.Length > 0)
+                data.ResolvedAttemptIds.Insert(0, attemptId);
+
             record.RecordedAtUtc = DateTime.UtcNow.ToString("O");
             record.Outcome = completed ? "DELIVERED" : "LOST";
             if (completed)
@@ -180,6 +233,49 @@ namespace SkyCourier
             {
                 data.EncountersLost++;
             }
+
+            ContractMasteryRecord mastery = FindOrCreateContractMastery(data, record.Contract);
+            if (completed)
+            {
+                mastery.Deliveries++;
+                mastery.BossVictories++;
+                if (record.CargoIntegrity >= 3)
+                    mastery.PristineDeliveries++;
+                if (Enum.IsDefined(typeof(ChallengeId), record.Challenge) &&
+                    record.Challenge != (int)ChallengeId.Standard)
+                {
+                    mastery.ChallengeDeliveries++;
+                    ChallengeProgressRecord challenge = FindOrCreateChallengeProgress(data, record.Challenge);
+                    challenge.Completions++;
+                    challenge.BestHull = Math.Max(challenge.BestHull, record.Hull);
+                    challenge.BestCargo = Math.Max(challenge.BestCargo, record.CargoIntegrity);
+                    if (record.Turns > 0 && (challenge.BestTurns <= 0 || record.Turns < challenge.BestTurns))
+                        challenge.BestTurns = record.Turns;
+                }
+            }
+
+            if (Enum.IsDefined(typeof(EnemyKind), record.BossKind) &&
+                ((EnemyKind)record.BossKind == EnemyKind.StormManta ||
+                 (EnemyKind)record.BossKind == EnemyKind.CloudWyrm))
+            {
+                BossDossierRecord dossier = FindOrCreateBossDossier(data, record.BossKind);
+                dossier.Encounters++;
+                if (completed)
+                {
+                    dossier.Victories++;
+                    if (Enum.IsDefined(typeof(FinaleEnding), record.FinaleEnding) &&
+                        record.FinaleEnding != (int)FinaleEnding.None)
+                        AddUnique(dossier.Endings, record.FinaleEnding);
+                }
+            }
+
+            AccumulateWinRate(data, ContractDimension, record.Contract.ToString(), completed);
+            if (!string.IsNullOrWhiteSpace(record.BuildProfile))
+                AccumulateWinRate(data, BuildDimension, record.BuildProfile, completed);
+            if (!string.IsNullOrWhiteSpace(record.RouteProfile))
+                AccumulateWinRate(data, RouteDimension, record.RouteProfile, completed);
+            if (record.BossKind >= 0)
+                AccumulateWinRate(data, BossDimension, record.BossKind.ToString(), completed);
 
             data.RecentRuns.Insert(0, record);
             Normalize(data);
@@ -213,6 +309,50 @@ namespace SkyCourier
             data.DiscoveredEnemies = NormalizeIds(data.DiscoveredEnemies, typeof(EnemyKind));
             data.DiscoveredEndings = NormalizeIds(data.DiscoveredEndings, typeof(FinaleEnding))
                 .Where(value => value != (int)FinaleEnding.None).ToList();
+            data.ChallengeProgress ??= new List<ChallengeProgressRecord>();
+            data.ChallengeProgress = data.ChallengeProgress
+                .Where(record => record != null && Enum.IsDefined(typeof(ChallengeId), record.Challenge) &&
+                    record.Challenge != (int)ChallengeId.Standard)
+                .GroupBy(record => record.Challenge).Select(group =>
+                {
+                    ChallengeProgressRecord first = group.First();
+                    first.Attempts = Math.Max(0, group.Sum(record => record.Attempts));
+                    first.Completions = Math.Max(0, group.Sum(record => record.Completions));
+                    first.BestHull = Math.Max(0, group.Max(record => record.BestHull));
+                    first.BestCargo = Math.Max(-1, Math.Min(3, group.Max(record => record.BestCargo)));
+                    int[] turns = group.Select(record => record.BestTurns).Where(value => value > 0).ToArray();
+                    first.BestTurns = turns.Length == 0 ? 0 : turns.Min();
+                    return first;
+                }).OrderBy(record => record.Challenge).ToList();
+            data.ContractMastery ??= new List<ContractMasteryRecord>();
+            data.ContractMastery = data.ContractMastery
+                .Where(record => record != null && Enum.IsDefined(typeof(CargoContract), record.Contract))
+                .GroupBy(record => record.Contract).Select(group =>
+                {
+                    ContractMasteryRecord first = group.First();
+                    first.Runs = Math.Max(0, group.Sum(record => record.Runs));
+                    first.Deliveries = Math.Max(0, group.Sum(record => record.Deliveries));
+                    first.PristineDeliveries = Math.Max(0, group.Sum(record => record.PristineDeliveries));
+                    first.ChallengeDeliveries = Math.Max(0, group.Sum(record => record.ChallengeDeliveries));
+                    first.BossVictories = Math.Max(0, group.Sum(record => record.BossVictories));
+                    return first;
+                }).OrderBy(record => record.Contract).ToList();
+            data.BossDossiers ??= new List<BossDossierRecord>();
+            data.BossDossiers = data.BossDossiers
+                .Where(record => record != null && Enum.IsDefined(typeof(EnemyKind), record.Boss) &&
+                    ((EnemyKind)record.Boss == EnemyKind.StormManta ||
+                     (EnemyKind)record.Boss == EnemyKind.CloudWyrm))
+                .GroupBy(record => record.Boss).Select(group =>
+                {
+                    BossDossierRecord first = group.First();
+                    first.Encounters = Math.Max(0, group.Sum(record => record.Encounters));
+                    first.Victories = Math.Max(0, group.Sum(record => record.Victories));
+                    first.Endings = group.SelectMany(record => record.Endings ?? new List<int>())
+                        .Where(value => Enum.IsDefined(typeof(FinaleEnding), value) &&
+                            value != (int)FinaleEnding.None)
+                        .Distinct().OrderBy(value => value).ToList();
+                    return first;
+                }).OrderBy(record => record.Boss).ToList();
             data.RecentRuns ??= new List<ArchivedRunRecord>();
             data.RecentRuns = data.RecentRuns.Where(record => record != null).Take(MaximumRecentRuns).ToList();
             foreach (ArchivedRunRecord record in data.RecentRuns)
@@ -220,12 +360,64 @@ namespace SkyCourier
                 if (record.Outcome != "LOST" ||
                     !Enum.IsDefined(typeof(PlayerDamageSource), record.DefeatSource))
                     record.DefeatSource = -1;
+                record.AttemptId ??= string.Empty;
                 record.DefeatDealer ??= string.Empty;
+                record.DefeatDamage = Math.Max(0, record.DefeatDamage);
+                record.DefeatRawDamage = Math.Max(0, record.DefeatRawDamage);
+                record.DefeatShieldAbsorbed = Math.Max(0, record.DefeatShieldAbsorbed);
+                record.DefeatHullBefore = Math.Max(0, record.DefeatHullBefore);
+                record.DefeatTurn = Math.Max(0, record.DefeatTurn);
+                record.DamageTaken = Math.Max(0, record.DamageTaken);
+                record.Overheats = Math.Max(0, record.Overheats);
+                record.CalamityInterrupts = Math.Max(0, record.CalamityInterrupts);
+                record.CalamityEvades = Math.Max(0, record.CalamityEvades);
+                record.CalamityHits = Math.Max(0, record.CalamityHits);
+                record.TrackingHits = Math.Max(0, record.TrackingHits);
+                record.ContractProcs = Math.Max(0, record.ContractProcs);
+                record.ContractBonusCredits = Math.Max(0, record.ContractBonusCredits);
+                record.BuildProfile ??= string.Empty;
+                record.RouteProfile ??= string.Empty;
                 if (!Enum.IsDefined(typeof(RouteIntel), record.RouteIntel))
                     record.RouteIntel = (int)RouteIntel.None;
                 if (!Enum.IsDefined(typeof(FinaleEnding), record.FinaleEnding))
                     record.FinaleEnding = (int)FinaleEnding.None;
+                if (!Enum.IsDefined(typeof(ChallengeId), record.Challenge))
+                    record.Challenge = (int)ChallengeId.Standard;
+                if (!Enum.IsDefined(typeof(EnemyKind), record.BossKind) ||
+                    ((EnemyKind)record.BossKind != EnemyKind.StormManta &&
+                     (EnemyKind)record.BossKind != EnemyKind.CloudWyrm))
+                    record.BossKind = -1;
+                record.BuildSnapshots ??= new List<RunBuildSnapshot>();
+                record.BuildSnapshots = record.BuildSnapshots
+                    .Where(snapshot => snapshot != null)
+                    .TakeLast(RunBuildSnapshotRules.MaximumSnapshots)
+                    .ToList();
+                foreach (RunBuildSnapshot snapshot in record.BuildSnapshots)
+                    RunBuildSnapshotRules.Normalize(snapshot);
             }
+            data.PerformanceStats ??= new List<RunWinRateRecord>();
+            data.PerformanceStats = data.PerformanceStats
+                .Where(record => record != null && !string.IsNullOrWhiteSpace(record.Dimension) &&
+                    !string.IsNullOrWhiteSpace(record.Key))
+                .GroupBy(record => new { Dimension = record.Dimension.Trim(), Key = record.Key.Trim() })
+                .Select(group =>
+                {
+                    int attempts = Math.Max(0, group.Sum(record => Math.Max(0, record.Attempts)));
+                    return new RunWinRateRecord
+                    {
+                        Dimension = group.Key.Dimension,
+                        Key = group.Key.Key,
+                        Attempts = attempts,
+                        Wins = Math.Min(attempts, Math.Max(0, group.Sum(record => Math.Max(0, record.Wins))))
+                    };
+                }).OrderBy(record => record.Dimension).ThenBy(record => record.Key).ToList();
+            data.ResolvedAttemptIds ??= new List<string>();
+            data.ResolvedAttemptIds = data.ResolvedAttemptIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct()
+                .Take(128)
+                .ToList();
         }
 
         private static bool TryRead(string path, out DeliveryArchiveData data, out string error)
@@ -276,8 +468,96 @@ namespace SkyCourier
             if (data.Version == 2)
             {
                 data.DiscoveredEndings ??= new List<int>();
+                data.Version = 3;
+            }
+
+            if (data.Version == 3)
+            {
+                data.ChallengeProgress ??= new List<ChallengeProgressRecord>();
+                data.ContractMastery ??= new List<ContractMasteryRecord>();
+                data.BossDossiers ??= new List<BossDossierRecord>();
+                data.RecentRuns ??= new List<ArchivedRunRecord>();
+                foreach (ArchivedRunRecord record in data.RecentRuns.Where(record => record != null))
+                {
+                    record.Challenge = (int)ChallengeId.Standard;
+                    record.BossKind = -1;
+                }
+                data.Version = 4;
+            }
+
+            if (data.Version == 4)
+            {
+                data.RecentRuns ??= new List<ArchivedRunRecord>();
+                foreach (ArchivedRunRecord record in data.RecentRuns.Where(record => record != null))
+                    record.BuildSnapshots ??= new List<RunBuildSnapshot>();
+                data.Version = 5;
+            }
+
+            if (data.Version == 5)
+            {
+                data.PerformanceStats ??= new List<RunWinRateRecord>();
+                data.ResolvedAttemptIds ??= new List<string>();
+                data.RecentRuns ??= new List<ArchivedRunRecord>();
+                foreach (ArchivedRunRecord record in data.RecentRuns.Where(record => record != null))
+                {
+                    bool completed = record.Outcome == "DELIVERED";
+                    AccumulateWinRate(data, ContractDimension, record.Contract.ToString(), completed);
+                    if (record.BossKind >= 0)
+                        AccumulateWinRate(data, BossDimension, record.BossKind.ToString(), completed);
+                }
                 data.Version = CurrentVersion;
             }
+        }
+
+        private static void AccumulateWinRate(DeliveryArchiveData data, string dimension, string key, bool won)
+        {
+            if (data == null || string.IsNullOrWhiteSpace(dimension) || string.IsNullOrWhiteSpace(key))
+                return;
+            data.PerformanceStats ??= new List<RunWinRateRecord>();
+            RunWinRateRecord stat = data.PerformanceStats.FirstOrDefault(record => record != null &&
+                record.Dimension == dimension && record.Key == key);
+            if (stat == null)
+            {
+                stat = new RunWinRateRecord { Dimension = dimension, Key = key };
+                data.PerformanceStats.Add(stat);
+            }
+            stat.Attempts++;
+            if (won)
+                stat.Wins++;
+        }
+
+        private static ChallengeProgressRecord FindOrCreateChallengeProgress(DeliveryArchiveData data, int challenge)
+        {
+            data.ChallengeProgress ??= new List<ChallengeProgressRecord>();
+            ChallengeProgressRecord record =
+                data.ChallengeProgress.FirstOrDefault(item => item.Challenge == challenge);
+            if (record != null)
+                return record;
+            record = new ChallengeProgressRecord { Challenge = challenge };
+            data.ChallengeProgress.Add(record);
+            return record;
+        }
+
+        private static ContractMasteryRecord FindOrCreateContractMastery(DeliveryArchiveData data, int contract)
+        {
+            data.ContractMastery ??= new List<ContractMasteryRecord>();
+            ContractMasteryRecord record = data.ContractMastery.FirstOrDefault(item => item.Contract == contract);
+            if (record != null)
+                return record;
+            record = new ContractMasteryRecord { Contract = contract };
+            data.ContractMastery.Add(record);
+            return record;
+        }
+
+        private static BossDossierRecord FindOrCreateBossDossier(DeliveryArchiveData data, int boss)
+        {
+            data.BossDossiers ??= new List<BossDossierRecord>();
+            BossDossierRecord record = data.BossDossiers.FirstOrDefault(item => item.Boss == boss);
+            if (record != null)
+                return record;
+            record = new BossDossierRecord { Boss = boss };
+            data.BossDossiers.Add(record);
+            return record;
         }
 
         private static void AddUnique(List<int> target, int value)

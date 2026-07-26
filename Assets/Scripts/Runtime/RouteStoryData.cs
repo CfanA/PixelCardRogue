@@ -17,7 +17,10 @@ namespace SkyCourier
         PromiseFulfilled,
         PromiseBetrayed,
         DebtRepaid,
-        DebtDefied
+        DebtDefied,
+        SignalSevered,
+        SilenceMaintained,
+        SilentRouteSecured
     }
 
     public static class RouteStoryRules
@@ -34,9 +37,15 @@ namespace SkyCourier
                 state == RouteStoryState.DebtDeepened;
         }
 
+        public static bool IsSilent(RouteStoryState state)
+        {
+            return state == RouteStoryState.SignalSevered ||
+                state == RouteStoryState.SilenceMaintained;
+        }
+
         public static bool IsPending(RouteStoryState state)
         {
-            return IsPromise(state) || IsDebt(state);
+            return IsPromise(state) || IsDebt(state) || IsSilent(state);
         }
 
         public static BossStoryAlignment BossAlignment(RouteStoryState state)
@@ -61,6 +70,8 @@ namespace SkyCourier
                 return cooperativeChoice ? RouteStoryState.PromiseStrengthened : RouteStoryState.SalvageDebt;
             if (IsDebt(current))
                 return cooperativeChoice ? RouteStoryState.BeaconPromise : RouteStoryState.DebtDeepened;
+            if (IsSilent(current))
+                return cooperativeChoice ? RouteStoryState.BeaconPromise : RouteStoryState.SalvageDebt;
             return Begin(cooperativeChoice);
         }
 
@@ -70,7 +81,18 @@ namespace SkyCourier
                 return cooperativeChoice ? RouteStoryState.PromiseFulfilled : RouteStoryState.PromiseBetrayed;
             if (IsDebt(current))
                 return cooperativeChoice ? RouteStoryState.DebtRepaid : RouteStoryState.DebtDefied;
+            if (IsSilent(current))
+                return cooperativeChoice ? RouteStoryState.PromiseFulfilled : RouteStoryState.DebtDefied;
             return current;
+        }
+
+        public static RouteStoryState ChooseIndependent(RouteStoryState current, int routeNodeId)
+        {
+            if (routeNodeId >= 12)
+                return RouteStoryState.SilentRouteSecured;
+            if (routeNodeId >= 7)
+                return RouteStoryState.SilenceMaintained;
+            return RouteStoryState.SignalSevered;
         }
     }
 }

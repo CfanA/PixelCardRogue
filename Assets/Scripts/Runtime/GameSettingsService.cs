@@ -17,13 +17,16 @@ namespace SkyCourier
         public float ShakeIntensity = 1f;
         public float FlashIntensity = 1f;
         public int Language = (int)GameLanguage.SimplifiedChinese;
+        public bool ContextualTutorials = true;
+        public bool FocusHints = true;
     }
 
     public static class GameSettingsService
     {
-        public const int CurrentVersion = 2;
-        private const string SettingsKey = "SkyCourier.Settings.v2";
-        private const string PreviousSettingsKey = "SkyCourier.Settings.v1";
+        public const int CurrentVersion = 3;
+        private const string SettingsKey = "SkyCourier.Settings.v3";
+        private const string PreviousSettingsKey = "SkyCourier.Settings.v2";
+        private const string LegacySettingsKey = "SkyCourier.Settings.v1";
         private const string LegacyMusicKey = "SkyCourier.MusicVolume";
         private const string LegacySfxKey = "SkyCourier.SfxVolume";
 
@@ -31,12 +34,18 @@ namespace SkyCourier
         {
             GameSettingsData settings = null;
             string storedKey = PlayerPrefs.HasKey(SettingsKey) ? SettingsKey :
-                PlayerPrefs.HasKey(PreviousSettingsKey) ? PreviousSettingsKey : null;
+                PlayerPrefs.HasKey(PreviousSettingsKey) ? PreviousSettingsKey :
+                PlayerPrefs.HasKey(LegacySettingsKey) ? LegacySettingsKey : null;
             if (!string.IsNullOrEmpty(storedKey))
             {
                 try
                 {
                     settings = JsonUtility.FromJson<GameSettingsData>(PlayerPrefs.GetString(storedKey));
+                    if (settings != null && settings.Version < 3)
+                    {
+                        settings.ContextualTutorials = true;
+                        settings.FocusHints = true;
+                    }
                 }
                 catch (Exception exception)
                 {

@@ -33,7 +33,8 @@ namespace SkyCourier
         FragileMedicine,
         CryoSerum,
         StormCore,
-        BlackBoxRelay
+        BlackBoxRelay,
+        SignalSeed
     }
 
     public enum AirframeModification
@@ -68,7 +69,8 @@ namespace SkyCourier
         SealMirror,
         CryoInversion,
         VectorIntercept,
-        GhostTrace
+        GhostTrace,
+        ReserveSiphon
     }
 
     public enum BossAirframeProtocol
@@ -114,7 +116,7 @@ namespace SkyCourier
         }
     }
 
-    public sealed class BattleState
+    public sealed partial class BattleState
     {
         public const int MaxPlayerHealth = 36;
         public const int MaxHeat = 8;
@@ -138,6 +140,7 @@ namespace SkyCourier
         private Random random = new Random(RunSeedUtility.LegacySeed);
         private readonly List<CardId> drawPile = new List<CardId>();
         private readonly List<CardId> discardPile = new List<CardId>();
+        private readonly List<CardId> exhaustPile = new List<CardId>();
         private readonly HashSet<CardId> upgradedCards = new HashSet<CardId>();
         private readonly Dictionary<CardId, UpgradeBranch> upgradeBranches = new Dictionary<CardId, UpgradeBranch>();
         private readonly HashSet<ModuleId> installedModules = new HashSet<ModuleId>();
@@ -172,12 +175,17 @@ namespace SkyCourier
         public int Momentum { get; private set; }
         public int EvasionExposure { get; private set; }
         public int TrackingHits { get; private set; }
+        public bool ChangedLaneThisTurn => changedLaneThisTurn;
         public PlayerDamageSource LastDamageSource { get; private set; }
         public string LastDamageDealer { get; private set; }
         public int LastHullDamage { get; private set; }
         public PlayerDamageSource DefeatSource { get; private set; }
         public string DefeatDealer { get; private set; }
         public int DefeatDamage { get; private set; }
+        public int DefeatRawDamage { get; private set; }
+        public int DefeatShieldAbsorbed { get; private set; }
+        public int DefeatHullBefore { get; private set; }
+        public int DefeatTurn { get; private set; }
         public bool HasDefeatCause { get; private set; }
         public string LastModuleProc { get; private set; }
         public bool LastAttackCritical { get; private set; }
@@ -191,6 +199,7 @@ namespace SkyCourier
         private bool changedLaneThisTurn;
         private int armorAtEnemyPhase;
         private int heatAtEnemyPhase;
+        private int energyAtEnemyPhase;
         private int lockOnAtEnemyPhase;
         private int momentumAtEnemyPhase;
         private int exposureAtEnemyPhase;
@@ -206,14 +215,16 @@ namespace SkyCourier
         private bool redlineReactorUsedThisTurn;
         private bool ghostDecoderUsedThisTurn;
         private bool currentCardCritical;
+        private bool retainHandThisTurn;
         private bool currentAttackIgnoresArmor;
 
         public int DrawCount => drawPile.Count;
         public int DiscardCount => discardPile.Count;
+        public int ExhaustCount => exhaustPile.Count;
         public int HandTarget => Modification == AirframeModification.OpenAvionics ? 6 :
             Modification == AirframeModification.SealedBulkhead ? 4 : 5;
         public int TurnEnergy => Modification == AirframeModification.RedlineTurbine ? 4 : 3;
-        public BossContractProtocol ActiveBossContractProtocol => (BossContractProtocol)Cargo;
+        public BossContractProtocol ActiveBossContractProtocol => ContractCatalog.BossProtocol(Cargo);
         public BossAirframeProtocol ActiveBossAirframeProtocol => Modification switch
         {
             AirframeModification.SealedBulkhead => BossAirframeProtocol.ShieldCrack,
@@ -239,7 +250,9 @@ namespace SkyCourier
                 BossContractProtocol.SealMirror => LockOn > 0,
                 BossContractProtocol.CryoInversion => Heat <= 1,
                 BossContractProtocol.VectorIntercept => Momentum > 0,
-                _ => EvasionExposure > 0
+                BossContractProtocol.GhostTrace => EvasionExposure > 0,
+                BossContractProtocol.ReserveSiphon => Energy == 1,
+                _ => false
             };
         }
 
@@ -256,15 +269,7 @@ namespace SkyCourier
 
         public void Reset()
         {
-            var starterDeck = new List<CardId>
-            {
-                CardId.BurstFire, CardId.BurstFire,
-                CardId.BankUp, CardId.BankUp,
-                CardId.BankDown, CardId.BankDown,
-                CardId.WindGuard, CardId.WindGuard,
-                CardId.EmergencyCoolant, CardId.BroadsideVolley,
-                CardId.OverloadAim, CardId.EngineOverclock
-            };
+            var starterDeck = CardPoolCatalog.CreateStarterDeck(CargoContract.FragileMedicine);
             StartEncounter(EncounterId.Skirmish, starterDeck, MaxPlayerHealth, 3);
         }
 
@@ -284,7 +289,8 @@ namespace SkyCourier
             IReadOnlyDictionary<CardId, UpgradeBranch> branches = null, int? seed = null,
             AirframeModification modification = AirframeModification.None,
             RouteStoryState storyState = RouteStoryState.None,
-            RouteIntel intel = RouteIntel.None)
+            RouteIntel intel = RouteIntel.None,
+            int startingHeat = 0)
         {
             if (seed.HasValue)
             {
@@ -312,7 +318,7 @@ namespace SkyCourier
             PlayerHealth = Math.Max(1, Math.Min(MaxPlayerHealth, startingHealth));
             Armor = StartingArmor();
             Energy = TurnEnergy;
-            Heat = 0;
+            Heat = Math.Max(0, Math.Min(HeatLimit - 1, startingHeat));
             PlayerLane = 1;
             Turn = 1;
             CargoIntegrity = Math.Max(0, Math.Min(3, cargoIntegrity));
@@ -344,6 +350,10 @@ namespace SkyCourier
             DefeatSource = PlayerDamageSource.DirectAttack;
             DefeatDealer = string.Empty;
             DefeatDamage = 0;
+            DefeatRawDamage = 0;
+            DefeatShieldAbsorbed = 0;
+            DefeatHullBefore = 0;
+            DefeatTurn = 0;
             HasDefeatCause = false;
             trackingShotResolvedThisTurn = false;
             criticalArmed = false;
@@ -369,10 +379,13 @@ namespace SkyCourier
 
             drawPile.Clear();
             discardPile.Clear();
+            exhaustPile.Clear();
             Hand.Clear();
+            retainHandThisTurn = false;
             drawPile.AddRange(deck);
             Shuffle(drawPile);
             DrawToTarget();
+            EnsureOpeningDamageCard();
         }
 
         public bool CanPlay(int handIndex)
@@ -383,6 +396,20 @@ namespace SkyCourier
             CardSpec card = CardLibrary.Get(Hand[handIndex]);
             if (Energy < card.Cost)
                 return false;
+
+            if (ExpandedCardCatalog.Contains(card.Id))
+            {
+                CardTargetRequirement requirement = ExpandedCardCatalog.TargetRequirement(card.Id);
+                if (requirement == CardTargetRequirement.SameLane &&
+                    !Enemies.Any(enemy => enemy.Alive && enemy.Lane == PlayerLane))
+                    return false;
+                if (requirement == CardTargetRequirement.AnyEnemy && !Enemies.Any(enemy => enemy.Alive))
+                    return false;
+                if (requirement == CardTargetRequirement.OtherLane &&
+                    !Enemies.Any(enemy => enemy.Alive && enemy.Lane != PlayerLane))
+                    return false;
+                return MeetsExpandedCardRequirement(card.Id);
+            }
 
             switch (card.Id)
             {
@@ -397,6 +424,7 @@ namespace SkyCourier
                 case CardId.FrostLance:
                 case CardId.SlipstreamStrike:
                 case CardId.PrismEcho:
+                case CardId.ReserveShot:
                     return Enemies.Any(enemy => enemy.Alive && enemy.Lane == PlayerLane);
                 default: return true;
             }
@@ -416,6 +444,8 @@ namespace SkyCourier
             damagingCard = damagingCard || id == CardId.CounterPursuit || id == CardId.InterceptMine ||
                 id == CardId.SlipstreamStrike || id == CardId.PrismEcho;
             damagingCard = damagingCard || id == CardId.GhostProtocol;
+            damagingCard = damagingCard || id == CardId.ReserveShot;
+            damagingCard = damagingCard || ExpandedCardCatalog.IsDamaging(id);
             bool executionBoost = damagingCard && HasModule(ModuleId.ExecutionChip) && !executionChipUsedThisTurn;
             int heatBefore = Heat;
             LastModuleProc = string.Empty;
@@ -449,8 +479,13 @@ namespace SkyCourier
             }
             CardsPlayed++;
             Energy -= card.Cost;
+            TriggerSignalSeedPassive();
 
-            switch (id)
+            if (ExpandedCardCatalog.Contains(id))
+            {
+                ResolveExpandedCard(id, executionBoost, heatBefore, handIndex);
+            }
+            else switch (id)
             {
                 case CardId.BurstFire:
                     DamageFirstInLane(6 + (upgraded ? 3 : 0) + (executionBoost ? 4 : 0));
@@ -602,7 +637,7 @@ namespace SkyCourier
                     Log = cooled >= 3 ? "低温泵回收废热并返还能量。" : "低温泵排出了剩余热量。";
                     break;
                 case CardId.FrostLance:
-                    int frostDamage = (upgraded ? 9 : 7) + (heatBefore <= 2 ? (upgraded ? 8 : 6) : 0) + (executionBoost ? 4 : 0);
+                    int frostDamage = (upgraded ? 9 : 7) + (heatBefore <= 2 ? (upgraded ? 7 : 5) : 0) + (executionBoost ? 4 : 0);
                     DamageFirstInLane(frostDamage);
                     break;
                 case CardId.HeatCharge:
@@ -743,6 +778,59 @@ namespace SkyCourier
                     DrawCards(2);
                     LastStatusTrigger = $"伪造遥测：航迹暴露 {EvasionExposure}，抽取2张牌";
                     break;
+                case CardId.ReserveShot:
+                    DamageFirstInLane((upgraded ? 11 : 8) + (Energy == 1 ? 4 : 0) +
+                        (executionBoost ? 4 : 0));
+                    if (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta && Energy == 1)
+                    {
+                        LockOn = Math.Min(3, LockOn + 1);
+                        LastStatusTrigger = "余量校准：锁定 +1";
+                    }
+                    break;
+                case CardId.StandbyField:
+                    GainArmor((upgraded && UpgradeBranchFor(id) == UpgradeBranch.Alpha ? 9 : 6) +
+                        (Energy == 1 ? 4 : 0));
+                    if (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta && Energy == 1)
+                        ApplyCooling(1);
+                    Log = Energy == 1 ? "待机力场接入保留回路，护盾增幅。" : "待机力场展开。";
+                    break;
+                case CardId.TightSchedule:
+                    DrawCards(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Alpha ? 3 : 2);
+                    if (Energy == 1)
+                    {
+                        LockOn = Math.Min(3, LockOn + 1);
+                        LastStatusTrigger = "紧凑班次：锁定 +1";
+                    }
+                    if (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta && Energy == 1)
+                        ApplyCooling(2);
+                    Log = "班次压缩完成，新的指令已经入列。";
+                    break;
+                case CardId.RelayStep:
+                    int relayLaneBefore = PlayerLane;
+                    PlayerLane = PlayerLane == 0 ? 2 : 0;
+                    changedLaneThisTurn = PlayerLane != relayLaneBefore;
+                    TriggerStormCorePassive();
+                    Momentum = Math.Min(3, Momentum + (upgraded ? 2 : 1));
+                    GainArmor(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Alpha ? 4 : 2);
+                    if (Energy == 1)
+                        ReduceExposure(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta ? 2 : 1);
+                    if (HasModule(ModuleId.VectorThruster) && !vectorThrusterUsedThisTurn)
+                    {
+                        Energy++;
+                        vectorThrusterUsedThisTurn = true;
+                        LastModuleProc = "矢量回流器";
+                    }
+                    Log = $"中继变轨完成，当前航道：{PlayerLane + 1}。";
+                    break;
+                case CardId.ReserveRouting:
+                    GainArmor(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Alpha ? 7 : 4);
+                    if (Energy == 1)
+                    {
+                        DrawCards(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta ? 3 : 2);
+                        LastStatusTrigger = "余量调度：指令已补充";
+                    }
+                    Log = "保留回路重新分配了本回合余量。";
+                    break;
             }
 
             if (executionBoost)
@@ -752,8 +840,13 @@ namespace SkyCourier
             }
 
             Heat += card.Heat;
-            discardPile.Add(id);
             Hand.RemoveAt(handIndex);
+            if (ExpandedCardCatalog.ExhaustsOnPlay(id))
+                exhaustPile.Add(id);
+            else
+                discardPile.Add(id);
+            if (ExpandedCardCatalog.CyclesRemainingHand(id))
+                CycleRemainingHand();
             ResolveOverheat();
             LastAttackCritical = currentCardCritical;
             currentCardCritical = false;
@@ -773,13 +866,22 @@ namespace SkyCourier
             CardsHeldAtEndTurn = Hand.Count;
             armorAtEnemyPhase = Armor;
             heatAtEnemyPhase = Heat;
+            energyAtEnemyPhase = Energy;
             lockOnAtEnemyPhase = LockOn;
             momentumAtEnemyPhase = Momentum;
             exposureAtEnemyPhase = EvasionExposure;
 
-            foreach (CardId card in Hand)
-                discardPile.Add(card);
-            Hand.Clear();
+            if (!retainHandThisTurn)
+            {
+                foreach (CardId card in Hand)
+                    discardPile.Add(card);
+                Hand.Clear();
+            }
+            else
+            {
+                LastStatusTrigger = $"保持编队：保留{Hand.Count}张手牌";
+            }
+            retainHandThisTurn = false;
 
             EvasionExposure = changedLaneThisTurn
                 ? Math.Min(3, EvasionExposure + 1)
@@ -828,103 +930,120 @@ namespace SkyCourier
         public string IntentFor(EnemyState enemy)
         {
             if (!enemy.Alive)
-                return "已击落";
+                return LocalizationService.Text("intent.destroyed", "已击落");
 
             if (enemy.Kind == EnemyKind.CalamityDrone)
             {
                 if (enemy.ChargeTargetLane < 0)
-                    return "重新校准 / 跳过行动";
+                    return LocalizationService.Text("intent.calamity.recalibrate", "重新校准 / 跳过行动");
                 if (enemy.ChargeInterrupted)
-                    return "系统失衡 / 跳过行动";
-                return $"灾变 {CalamityStrikeDamage} / 航道 {enemy.ChargeTargetLane + 1} · 打断 {enemy.ChargeDamageTaken}/{CalamityBreakDamage}";
+                    return LocalizationService.Text("intent.calamity.staggered", "系统失衡 / 跳过行动");
+                return LocalizationService.Text("intent.calamity.charge",
+                    "灾变 {0} / 航道 {1} · 打断 {2}/{3}", CalamityStrikeDamage,
+                    enemy.ChargeTargetLane + 1, enemy.ChargeDamageTaken, CalamityBreakDamage);
             }
 
             if (enemy.Kind == EnemyKind.StormManta)
             {
                 if (enemy.PhaseTransitionPending)
-                    return "阶段转换 / 磁暴甲壳重构";
+                    return LocalizationService.Text("intent.manta.transition", "阶段转换 / 磁暴甲壳重构");
                 if (enemy.ChargeTargetLane < 0)
-                    return $"阶段 {enemy.Phase} / 重新锁定航道";
+                    return LocalizationService.Text("intent.manta.retarget", "阶段 {0} / 重新锁定航道", enemy.Phase);
                 if (enemy.ChargeInterrupted)
-                    return "核心过载 / 大招已打断";
+                    return LocalizationService.Text("intent.manta.interrupted", "核心过载 / 大招已打断");
                 int strike = enemy.Phase == 1 ? BossPhaseOneStrikeDamage : BossPhaseTwoStrikeDamage;
                 int threshold = enemy.Phase == 1 ? BossPhaseOneBreakDamage : BossPhaseTwoBreakDamage;
                 return enemy.Phase == 1
-                    ? $"磁暴俯冲 {strike} / 航道 {enemy.ChargeTargetLane + 1} · 打断 {enemy.ChargeDamageTaken}/{threshold}"
-                    : $"吞界磁暴 {strike}+邻道{BossPhaseTwoSplashDamage} / 航道 {enemy.ChargeTargetLane + 1} · 打断 {enemy.ChargeDamageTaken}/{threshold}";
+                    ? LocalizationService.Text("intent.manta.dive",
+                        "磁暴俯冲 {0} / 航道 {1} · 打断 {2}/{3}", strike,
+                        enemy.ChargeTargetLane + 1, enemy.ChargeDamageTaken, threshold)
+                    : LocalizationService.Text("intent.manta.devour",
+                        "吞界磁暴 {0}+邻道{1} / 航道 {2} · 打断 {3}/{4}", strike,
+                        BossPhaseTwoSplashDamage, enemy.ChargeTargetLane + 1, enemy.ChargeDamageTaken, threshold);
             }
 
             if (enemy.Kind == EnemyKind.CloudWyrm)
             {
                 if (enemy.PhaseTransitionPending)
-                    return "阶段转换 / 雷幕天穹展开";
+                    return LocalizationService.Text("intent.wyrm.transition", "阶段转换 / 雷幕天穹展开");
                 if (enemy.ChargeTargetLane < 0)
-                    return $"阶段 {enemy.Phase} / 重绘安全航道";
+                    return LocalizationService.Text("intent.wyrm.retarget", "阶段 {0} / 重绘安全航道", enemy.Phase);
                 if (enemy.ChargeInterrupted)
-                    return "雷幕短路 / 大招已打断";
+                    return LocalizationService.Text("intent.wyrm.interrupted", "雷幕短路 / 大招已打断");
                 int strike = enemy.Phase == 1 ? CloudWyrmPhaseOneStrikeDamage : CloudWyrmPhaseTwoStrikeDamage;
                 int threshold = enemy.Phase == 1 ? CloudWyrmPhaseOneBreakDamage : CloudWyrmPhaseTwoBreakDamage;
                 return enemy.Phase == 1
-                    ? $"双翼雷幕 {strike} / 仅航道 {enemy.ChargeTargetLane + 1} 安全 · 打断 {enemy.ChargeDamageTaken}/{threshold}"
-                    : $"天穹覆写 {strike} / 仅航道 {enemy.ChargeTargetLane + 1} 安全 · 打断 {enemy.ChargeDamageTaken}/{threshold}";
+                    ? LocalizationService.Text("intent.wyrm.curtain",
+                        "双翼雷幕 {0} / 仅航道 {1} 安全 · 打断 {2}/{3}", strike,
+                        enemy.ChargeTargetLane + 1, enemy.ChargeDamageTaken, threshold)
+                    : LocalizationService.Text("intent.wyrm.overwrite",
+                        "天穹覆写 {0} / 仅航道 {1} 安全 · 打断 {2}/{3}", strike,
+                        enemy.ChargeTargetLane + 1, enemy.ChargeDamageTaken, threshold);
             }
 
             if (enemy.Kind == EnemyKind.CurtainHerald)
             {
                 if (enemy.ChargeTargetLane < 0)
-                    return "重绘雷幕 / 跳过行动";
+                    return LocalizationService.Text("intent.herald.recalibrate", "重绘雷幕 / 跳过行动");
                 if (enemy.ChargeInterrupted)
-                    return "雷幕短路 / 跳过行动";
-                return $"先导雷幕 {enemy.Damage} / 仅航道 {enemy.ChargeTargetLane + 1} 安全 · 打断 {enemy.ChargeDamageTaken}/{PreludeBreakDamage}";
+                    return LocalizationService.Text("intent.herald.interrupted", "雷幕短路 / 跳过行动");
+                return LocalizationService.Text("intent.herald.curtain",
+                    "先导雷幕 {0} / 仅航道 {1} 安全 · 打断 {2}/{3}", enemy.Damage,
+                    enemy.ChargeTargetLane + 1, enemy.ChargeDamageTaken, PreludeBreakDamage);
             }
 
             if (enemy.Kind == EnemyKind.FluxSkimmer)
             {
                 if (enemy.ChargeTargetLane < 0)
-                    return "磁针校准 / 跳过行动";
+                    return LocalizationService.Text("intent.skimmer.recalibrate", "磁针校准 / 跳过行动");
                 if (enemy.ChargeInterrupted)
-                    return "磁针失衡 / 跳过行动";
-                return $"磁针扫掠 {enemy.Damage} / 航道 {enemy.ChargeTargetLane + 1}+邻道危险 · 打断 {enemy.ChargeDamageTaken}/{PreludeBreakDamage}";
+                    return LocalizationService.Text("intent.skimmer.interrupted", "磁针失衡 / 跳过行动");
+                return LocalizationService.Text("intent.skimmer.sweep",
+                    "磁针扫掠 {0} / 航道 {1}+邻道危险 · 打断 {2}/{3}", enemy.Damage,
+                    enemy.ChargeTargetLane + 1, enemy.ChargeDamageTaken, PreludeBreakDamage);
             }
 
             if (enemy.Kind == EnemyKind.StormBalloon)
-                return $"风暴 {enemy.Damage} / 全航道";
+                return LocalizationService.Text("intent.storm", "风暴 {0} / 全航道", enemy.Damage);
 
             if (enemy.Kind == EnemyKind.ShieldLeech && Armor >= 5)
-                return $"盾蚀 / 清空当前{Armor}点护盾";
+                return LocalizationService.Text("intent.shield_leech", "盾蚀 / 清空当前{0}点护盾", Armor);
 
             if (enemy.Kind == EnemyKind.HandJammer)
                 return Hand.Count >= 5
-                    ? $"手牌干扰 {enemy.Damage} / 保留5+张触发"
-                    : "监听手牌 / 少于5张安全";
+                    ? LocalizationService.Text("intent.hand_jam", "手牌干扰 {0} / 保留5+张触发", enemy.Damage)
+                    : LocalizationService.Text("intent.hand_safe", "监听手牌 / 少于5张安全");
 
             if (enemy.Kind == EnemyKind.HeatSeeker && Heat >= 4)
-                return $"热寻 {enemy.Damage} / 当前热量4+";
+                return LocalizationService.Text("intent.heat_seek", "热寻 {0} / 当前热量4+", enemy.Damage);
 
             if (enemy.Kind == EnemyKind.SignalHijacker)
             {
                 if (LockOn > 0)
-                    return "劫持锁定 / 锁定-1，敌装甲+3";
+                    return LocalizationService.Text("intent.hijack.lock", "劫持锁定 / 锁定-1，敌装甲+3");
                 if (Momentum > 0)
-                    return "劫持动量 / 动量-1，敌装甲+3";
+                    return LocalizationService.Text("intent.hijack.momentum", "劫持动量 / 动量-1，敌装甲+3");
                 if (EvasionExposure > 0)
-                    return "污染航迹 / 暴露+1，敌装甲+3";
-                return "协议扫描 / 无资源可劫持";
+                    return LocalizationService.Text("intent.hijack.trace", "污染航迹 / 暴露+1，敌装甲+3");
+                return LocalizationService.Text("intent.hijack.scan", "协议扫描 / 无资源可劫持");
             }
 
             if (enemy.Kind == EnemyKind.RustKite &&
                 changedLaneThisTurn && EvasionExposure >= 1)
-                return $"追踪 {TrackingShotDamage} / 继续换道将暴露航迹";
+                return LocalizationService.Text("intent.tracking", "追踪 {0} / 继续换道将暴露航迹", TrackingShotDamage);
 
             if (enemy.Kind == EnemyKind.MailEater)
                 return enemy.Lane == PlayerLane
-                    ? $"封锁 {enemy.Damage + 2} / 换道可规避"
-                    : $"封锁航道 {enemy.Lane + 1} / 进入将受{enemy.Damage + 2}伤害";
+                    ? LocalizationService.Text("intent.block.hit", "封锁 {0} / 换道可规避", enemy.Damage + 2)
+                    : LocalizationService.Text("intent.block.lane", "封锁航道 {0} / 进入将受{1}伤害",
+                        enemy.Lane + 1, enemy.Damage + 2);
 
             if (enemy.Lane == PlayerLane)
-                return $"攻击 {enemy.Damage}";
+                return LocalizationService.Text("intent.attack", "攻击 {0}", enemy.Damage);
 
-            return enemy.Lane < PlayerLane ? "下降1条航道" : "上升1条航道";
+            return enemy.Lane < PlayerLane
+                ? LocalizationService.Text("intent.move.down", "下降1条航道")
+                : LocalizationService.Text("intent.move.up", "上升1条航道");
         }
 
         private void ResolveEnemy(EnemyState enemy)
@@ -1193,6 +1312,12 @@ namespace SkyCourier
                     AddBossAdaptiveArmor(enemy);
                     AppendStatusTrigger("幽灵追迹：航迹暴露+1，首领装甲+3");
                     break;
+                case BossContractProtocol.ReserveSiphon:
+                    if (energyAtEnemyPhase != 1)
+                        return;
+                    AddBossAdaptiveArmor(enemy);
+                    AppendStatusTrigger("余量虹吸：保留1点能量，首领装甲+3");
+                    break;
             }
         }
 
@@ -1256,6 +1381,10 @@ namespace SkyCourier
                 DefeatSource = source;
                 DefeatDealer = dealer ?? string.Empty;
                 DefeatDamage = healthBefore - PlayerHealth;
+                DefeatRawDamage = Math.Max(0, amount);
+                DefeatShieldAbsorbed = absorbed;
+                DefeatHullBefore = healthBefore;
+                DefeatTurn = Turn;
                 HasDefeatCause = true;
             }
             LastShieldAbsorbed += absorbed;
@@ -1290,6 +1419,10 @@ namespace SkyCourier
                 case CargoContract.BlackBoxRelay:
                     if (EvasionExposure >= 2)
                         DamageCargo("回合结束时航迹暴露达到2层");
+                    break;
+                case CargoContract.SignalSeed:
+                    if (Energy <= 0)
+                        DamageCargo("回合结束时没有保留能量");
                     break;
             }
         }
@@ -1450,6 +1583,14 @@ namespace SkyCourier
                 return;
             Momentum++;
             TriggerContractPassive("矢量电荷：动量 +1");
+        }
+
+        private void TriggerSignalSeedPassive()
+        {
+            if (Cargo != CargoContract.SignalSeed || Energy != 1 || contractPassiveUsedThisTurn)
+                return;
+            DrawCards(1);
+            TriggerContractPassive("余量回授：保留1点能量，抽1张牌");
         }
 
         private void TriggerContractPassiveLock(string status)

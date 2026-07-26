@@ -10,6 +10,7 @@ namespace SkyCourier
     {
         public int Version = RunSaveService.CurrentVersion;
         public string SavedAtUtc;
+        public string AttemptId;
         public int RunSeed;
         public int EncounterSeed;
         public string Screen;
@@ -18,11 +19,16 @@ namespace SkyCourier
         public int AirframeModification;
         public int RouteStoryState;
         public int RouteIntel;
+        public int Challenge;
+        public int DepartureDirective;
+        public int FinalApproachPlan;
+        public int WorkshopCard = -1;
         public List<int> Deck = new List<int>();
         public List<int> Upgrades = new List<int>();
         public List<int> UpgradeBranchCards = new List<int>();
         public List<int> UpgradeBranches = new List<int>();
         public List<int> Modules = new List<int>();
+        public List<RunBuildSnapshot> BuildSnapshots = new List<RunBuildSnapshot>();
         public List<int> CompletedRouteNodes = new List<int>();
         public int RouteIndex;
         public int SelectedRouteNodeId;
@@ -36,7 +42,10 @@ namespace SkyCourier
         public int Hull;
         public int CargoIntegrity;
         public int ContractBonus;
+        public int ContractProcs;
         public bool RepairBought;
+        public bool ShopPurgeBought;
+        public bool ShopCalibrationBought;
         public bool[] ShopBought = new bool[3];
         public int Turns;
         public int CardsPlayed;
@@ -52,7 +61,7 @@ namespace SkyCourier
 
     public static class RunSaveService
     {
-        public const int CurrentVersion = 5;
+        public const int CurrentVersion = 9;
         private const string SaveFileName = "run.json";
         private const string BackupFileName = "run_backup.json";
         private const string TempFileName = "run.tmp";
@@ -158,7 +167,7 @@ namespace SkyCourier
                 Migrate(data);
                 if (data.Version != CurrentVersion)
                     throw new InvalidDataException($"不支持的存档版本 {data.Version}");
-                if (data.Deck == null || data.Deck.Count == 0)
+                if (data.Deck == null)
                     throw new InvalidDataException("牌组数据缺失");
                 error = null;
                 return true;
@@ -195,6 +204,33 @@ namespace SkyCourier
             if (data.Version == 4)
             {
                 data.RouteIntel = (int)SkyCourier.RouteIntel.None;
+                data.Version = 5;
+            }
+
+            if (data.Version == 5)
+            {
+                data.Challenge = (int)ChallengeId.Standard;
+                data.Version = 6;
+            }
+
+            if (data.Version == 6)
+            {
+                data.DepartureDirective = (int)SkyCourier.DepartureDirective.LegacyManifest;
+                data.FinalApproachPlan = (int)SkyCourier.FinalApproachPlan.HoldCourse;
+                data.Version = 7;
+            }
+
+            if (data.Version == 7)
+            {
+                data.WorkshopCard = -1;
+                data.BuildSnapshots ??= new List<RunBuildSnapshot>();
+                data.Version = 8;
+            }
+
+            if (data.Version == 8)
+            {
+                data.AttemptId = Guid.NewGuid().ToString("N");
+                data.ContractProcs = 0;
                 data.Version = CurrentVersion;
             }
 
@@ -204,6 +240,19 @@ namespace SkyCourier
                     data.RunSeed = RunSeedUtility.LegacySeed;
                 if (data.EncounterSeed == 0)
                     data.EncounterSeed = RunSeedUtility.LegacySeed;
+                if (string.IsNullOrWhiteSpace(data.AttemptId))
+                    data.AttemptId = Guid.NewGuid().ToString("N");
+                data.ContractProcs = Math.Max(0, data.ContractProcs);
+                if (!Enum.IsDefined(typeof(ChallengeId), data.Challenge))
+                    data.Challenge = (int)ChallengeId.Standard;
+                data.BuildSnapshots ??= new List<RunBuildSnapshot>();
+                data.BuildSnapshots = data.BuildSnapshots
+                    .FindAll(snapshot => snapshot != null);
+                foreach (RunBuildSnapshot snapshot in data.BuildSnapshots)
+                    RunBuildSnapshotRules.Normalize(snapshot);
+                if (data.BuildSnapshots.Count > RunBuildSnapshotRules.MaximumSnapshots)
+                    data.BuildSnapshots.RemoveRange(0,
+                        data.BuildSnapshots.Count - RunBuildSnapshotRules.MaximumSnapshots);
             }
         }
 

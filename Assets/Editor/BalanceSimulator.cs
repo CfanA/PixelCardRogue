@@ -11,6 +11,43 @@ namespace SkyCourierEditor
 {
     public static class BalanceSimulator
     {
+        private const int RouteProfileCount = 2;
+
+        private static readonly int[] RegressionSeeds =
+        {
+            RunSeedUtility.LegacySeed,
+            104729,
+            130363,
+            155921
+        };
+
+        private sealed class BuildDefinition
+        {
+            public string Name;
+            public CardId[] Additions;
+            public CargoContract Contract;
+
+            public BuildDefinition(string name, CardId[] additions, CargoContract contract)
+            {
+                Name = name;
+                Additions = additions;
+                Contract = contract;
+            }
+        }
+
+        private static readonly BuildDefinition[] Builds =
+        {
+            new BuildDefinition("锁定狙击", new[] { CardId.TargetLock, CardId.RailPiercer, CardId.LockCascade }, CargoContract.FragileMedicine),
+            new BuildDefinition("矢量追猎", new[] { CardId.VectorDash, CardId.PursuitShot, CardId.SlipstreamStrike }, CargoContract.StormCore),
+            new BuildDefinition("护盾冲角", new[] { CardId.ReactivePlating, CardId.AegisRam, CardId.PrismEcho }, CargoContract.FragileMedicine),
+            new BuildDefinition("零度循环", new[] { CardId.CryoPump, CardId.FrostLance, CardId.ZeroPointCalibration }, CargoContract.CryoSerum),
+            new BuildDefinition("熔炉爆发", new[] { CardId.HeatCharge, CardId.MeltdownBurst, CardId.RedlineIgnition }, CargoContract.CryoSerum),
+            new BuildDefinition("蜂群弹幕", new[] { CardId.Scattershot, CardId.MissileSwarm, CardId.SwarmBeacon }, CargoContract.StormCore),
+            new BuildDefinition("航迹欺骗", new[] { CardId.SignalScrambler, CardId.CounterPursuit, CardId.GhostProtocol }, CargoContract.BlackBoxRelay),
+            new BuildDefinition("侧翼雷网", new[] { CardId.AirBrake, CardId.InterceptMine, CardId.GhostProtocol }, CargoContract.BlackBoxRelay),
+            new BuildDefinition("余量调度", new[] { CardId.ReserveShot, CardId.StandbyField, CardId.TightSchedule }, CargoContract.SignalSeed)
+        };
+
         private sealed class RunResult
         {
             public string Name;
@@ -27,107 +64,147 @@ namespace SkyCourierEditor
             public int CalamityHits;
             public int TrackingHits;
             public CargoContract Contract;
+            public int Seed;
+            public EnemyKind Boss;
+            public bool BossReached;
+            public bool BossVictory;
+            public EncounterId? FailedEncounter;
         }
 
         [MenuItem("Tools/Sky Courier/Run Balance Suite")]
         public static void RunSuite()
         {
             var results = new List<RunResult>();
-            for (int routeProfile = 0; routeProfile < 2; routeProfile++)
+            for (int routeProfile = 0; routeProfile < RouteProfileCount; routeProfile++)
             {
-                results.Add(SimulateRun("锁定狙击", new[] { CardId.TargetLock, CardId.RailPiercer, CardId.LockCascade }, CargoContract.FragileMedicine, routeProfile));
-                results.Add(SimulateRun("矢量追猎", new[] { CardId.VectorDash, CardId.PursuitShot, CardId.SlipstreamStrike }, CargoContract.StormCore, routeProfile));
-                results.Add(SimulateRun("护盾冲角", new[] { CardId.ReactivePlating, CardId.AegisRam, CardId.PrismEcho }, CargoContract.FragileMedicine, routeProfile));
-                results.Add(SimulateRun("零度循环", new[] { CardId.CryoPump, CardId.FrostLance, CardId.ZeroPointCalibration }, CargoContract.CryoSerum, routeProfile));
-                results.Add(SimulateRun("熔炉爆发", new[] { CardId.HeatCharge, CardId.MeltdownBurst, CardId.RedlineIgnition }, CargoContract.CryoSerum, routeProfile));
-                results.Add(SimulateRun("蜂群弹幕", new[] { CardId.Scattershot, CardId.MissileSwarm, CardId.SwarmBeacon }, CargoContract.StormCore, routeProfile));
-                results.Add(SimulateRun("航迹欺骗", new[] { CardId.SignalScrambler, CardId.CounterPursuit, CardId.GhostProtocol }, CargoContract.BlackBoxRelay, routeProfile));
-                results.Add(SimulateRun("侧翼雷网", new[] { CardId.AirBrake, CardId.InterceptMine, CardId.GhostProtocol }, CargoContract.BlackBoxRelay, routeProfile));
+                for (int seedIndex = 0; seedIndex < RegressionSeeds.Length; seedIndex++)
+                {
+                    int seed = RegressionSeeds[seedIndex];
+                    int bossVariant = seedIndex % EncounterCatalog.BossVariantCount;
+                    foreach (BuildDefinition build in Builds)
+                    {
+                        results.Add(SimulateRun(build.Name, build.Additions, build.Contract, routeProfile,
+                            seed, bossVariant));
+                    }
+                }
             }
 
             foreach (RunResult result in results)
             {
-                Debug.Log($"BALANCE_RESULT|{result.Name}|合同={result.Contract}|路线={RouteProfileLabel(result.RouteProfile)}|胜利={result.Victory}|机体={result.Hull}|货物={result.Cargo}|回合={result.Turns}|出牌={result.Cards}|受伤={result.Damage}|过热={result.Overheats}|打断={result.CalamityInterrupts}|规避={result.CalamityEvades}|命中={result.CalamityHits}|追踪={result.TrackingHits}");
+                Debug.Log($"BALANCE_RESULT|{result.Name}|种子={result.Seed}|合同={result.Contract}|路线={RouteProfileLabel(result.RouteProfile)}|首领={BossLabel(result.Boss)}|胜利={result.Victory}|首领到达={result.BossReached}|首领胜利={result.BossVictory}|失败阶段={FailureLabel(result)}|机体={result.Hull}|货物={result.Cargo}|回合={result.Turns}|出牌={result.Cards}|受伤={result.Damage}|过热={result.Overheats}|打断={result.CalamityInterrupts}|规避={result.CalamityEvades}|命中={result.CalamityHits}|追踪={result.TrackingHits}");
             }
 
             int victories = results.Count(result => result.Victory);
-            Debug.Log($"BALANCE_SUMMARY|通关={victories}/{results.Count}|平均回合={results.Average(result => result.Turns):F1}|平均受伤={results.Average(result => result.Damage):F1}");
+            LogAggregates(results);
+            Debug.Log($"BALANCE_SUMMARY|样本={results.Count}|固定种子={RegressionSeeds.Length}|通关={victories}/{results.Count}|胜率={WinRate(victories, results.Count):F1}%|平均回合={results.Average(result => result.Turns):F1}|平均受伤={results.Average(result => result.Damage):F1}");
             WriteOnePageReport(results);
         }
 
         private static void WriteOnePageReport(IList<RunResult> results)
         {
             int victories = results.Count(result => result.Victory);
-            bool everyBuildViable = results.GroupBy(result => result.Name).All(group => group.Any(result => result.Victory));
+            int expectedSamples = Builds.Length * RouteProfileCount * RegressionSeeds.Length;
+            bool coverageComplete = results.Count == expectedSamples &&
+                                    results.GroupBy(result => new { result.Name, result.RouteProfile })
+                                        .All(group => group.Count() == RegressionSeeds.Length &&
+                                                      group.Select(result => result.Boss).Distinct().Count() ==
+                                                      EncounterCatalog.BossVariantCount);
+            string[] zeroWinBuilds = results.GroupBy(result => result.Name)
+                .Where(group => group.All(result => !result.Victory))
+                .Select(group => group.Key)
+                .ToArray();
             var report = new StringBuilder();
-            report.AppendLine("# 《云海邮差》v0.44 一页式试玩与平衡报告");
+            report.AppendLine("# 《云海邮差》v0.50 自动回归与平衡记录");
             report.AppendLine();
-            report.AppendLine($"> 生成日期：{DateTime.Now:yyyy-MM-dd}　|　自动构筑模拟：{victories}/{results.Count} 通关");
+            report.AppendLine($"> 生成日期：{DateTime.Now:yyyy-MM-dd}　|　确定性自动回归：{victories}/{results.Count} 通关（{WinRate(victories, results.Count):F1}%）");
             report.AppendLine();
-            report.AppendLine("## 真人试玩结论与本轮目标");
+            report.AppendLine("## 使用边界");
             report.AppendLine();
-            report.AppendLine("v0.44 完成终局前哨、可继承航线情报与六类分支结局；本轮只验证机制闭环、存档兼容和信息可见性，所有数值继续沿用 v0.41 基线，留待后续真人试玩。");
+            report.AppendLine("自动模拟是规则与极端回归测试，用来发现完全失效的构筑、路线断点和首领异常；其胜率不是平衡目标，也不得为了让脚本通过而盲目调数。卡牌、敌人、经济和路线的最终调整应以真人试玩中的决策质量、失败可解释性和策略差异为依据，再用本报告检查是否引入明显回归。");
             report.AppendLine();
-            report.AppendLine("## 已实施改动");
+            report.AppendLine("本轮只落地两项真人记录与旧回归共同支持的小幅卡牌调整：霜脉长枪低热追加伤害 6→5（升级 8→7），余量点射基础伤害 7→8（升级 10→11）。自动出牌策略不等同于真人策略。");
             report.AppendLine();
-            report.AppendLine("- 新增版本化单局存档、上一代备份和损坏回退；地图、战斗入口、商店、事件、维修和奖励节点自动保存。");
-            report.AppendLine("- 新增窗口/无边框/独占全屏、五档分辨率、垂直同步、帧率上限，以及音乐、音效、震屏和闪光强度设置。");
-            report.AppendLine("- 标题至结算的全部关键流程支持手柄导航，并持续显示当前焦点和控制器按键提示。");
-            report.AppendLine("- 每局生成可见种子；同一航点的编队、洗牌和战斗随机行为可稳定复现，恢复战斗不会改变开局状态。");
-            report.AppendLine("- 本地 JSONL 诊断记录版本、种子、界面、航点、合同、战损和关键流程；Unity 错误另存最后错误上下文，所有记录均不上传。");
-            report.AppendLine("- 标题页新增邮政档案，长期记录出发、送达、失事、战斗胜利、最佳货物、累计回合和累计出牌。");
-            report.AppendLine("- 新增合同、卡牌、模块和敌机发现图鉴，以及不提供属性加成的邮差等级与五枚荣誉签章。");
-            report.AppendLine("- 最近八次送达或失事记录保留合同、航点、种子、回合、牌组等摘要；档案使用独立主文件、备份和安全替换。");
-            report.AppendLine("- 规则层区分同航道攻击、航道封锁、全航道风暴、航迹追踪、灾变蓄力、首领正面/溅射和引擎过热八类致命来源。");
-            report.AppendLine("- 失败页显示致命敌机、最后机体损失、对应战术建议、本次档案增量与种子，并提供同合同新种子快速再试。");
-            report.AppendLine("- 邮政档案 v2 为失败记录保存致命来源；v1 档案自动迁移并保留既有统计和历史记录。");
-            report.AppendLine("- 新增统一 TSV 双语词表与运行时本地化服务，设置中可即时切换简体中文 / English，语言选择独立持久化。");
-            report.AppendLine("- 首批英文覆盖标题、设置、暂停、邮政档案、失败复盘，以及合同、卡牌、模块和敌机等核心名称。");
-            report.AppendLine("- 构建前扫描已接入的静态文本键并验证双语字段，同时验证全部动态卡牌名称、设置迁移和中英切换。");
-            report.AppendLine("- 四份合同不再同时平铺，改为中央聚焦、两侧后退、远端暗化的伪 3D 机库轮盘，突出本局构筑身份。");
-            report.AppendLine("- 当前合同集中显示风险条件、推荐构筑路线、玩法说明和报酬；支持鼠标、滚轮、方向键、数字键与手柄切换。");
-            report.AppendLine("- 设置页步进箭头脱离通用装饰按钮，使用对称专用按钮和独立点击区域，消除窄宽度下的括号拥挤与错位。");
-            report.AppendLine("- 连续换道累积航迹暴露；第二个连续机动回合会预告并触发一次5点追踪射击。停留会降低暴露。");
-            report.AppendLine("- 新增信号扰频、逆向追猎、矢量刹车、航道雷网4张牌，以及围绕航迹管理的幽灵黑匣合同。");
-            report.AppendLine("- 合同各自携带一张开局核心牌；长航线加入追迹者空域，并保留多次补给与维修选择。");
-            report.AppendLine("- 新增首次战斗提示、暂停、重新开始以及独立音乐/音效音量设置。");
-            report.AppendLine("- 12种攻击牌获得独立弹道、命中节奏、震屏强度与分层音效；点射、轨炮、制导、冲角、冰枪、热浪、飞弹和雷网可直接从动作轮廓区分。");
-            report.AppendLine("- 航线扩展为8个阶段、20个节点，包含普通战、精英、追猎、商店、事件、维修坞与两个终局首领，并按连线形成多条可选路径。");
-            report.AppendLine("- 地图支持滚轮、方向按钮和滚动条浏览；只解析当前节点之后两层，未到达情报由信号遮罩隐藏。");
-            report.AppendLine("- 高空疾风走廊、中层静电锋面、低空残骸潮分别绑定可复现的敌方编队池，并在地图与战斗顶部持续显示。");
-            report.AppendLine("- 获得合同签名牌后，普通战奖励会按当前空域偏向机动/低热、控制/调度或爆发/生存路线。");
-            report.AppendLine("- 终局前新增雷幕先导、磁针鳐卫与双频先遣队，以较低压力提前教授两个首领相反的航道判读规则。");
-            report.AppendLine("- 击破终局前哨会截获雷幕密钥、磁针罗盘或双频解码器；情报随单局存档继承，并重写对应首领首轮锁定。");
-            report.AppendLine("- 两名首领与信标纪事的中立、盟约、敌对阵营组合为六种独立终局，并进入邮政档案收藏与最近配送摘要。");
-            report.AppendLine("- 自动模拟改为4战安全路线与7战高压路线两类配置，覆盖分支带来的成长和战损差异。");
+            report.AppendLine("## 真人样本与数值边界");
             report.AppendLine();
-            report.AppendLine("## 构筑模拟摘要");
+            report.AppendLine("- 本机可核实的完整真人记录只有 2 局，均为零度血清送达；旧档案没有 v0.49 构筑快照，无法还原消费和路线选择。`RunsStarted=21` 混入编辑器界面预览，不作为真人胜率。 ");
+            report.AppendLine("- 霜脉长枪在旧回归的零度循环中 2/2 通关且保持满机体，一费低热上限又高于需要消耗锁定或动量的同级终结牌，因此仅削峰 1 点。 ");
+            report.AppendLine("- 余量调度旧回归 1/2、平均 62.5 回合但货物完整，问题更像收尾速度而非生存，所以只给主攻击 +1，不改变精确保留 1 能量的条件。 ");
+            report.AppendLine("- 敌人、Boss、经济、路线收益、维修和商店价格本轮保持不变：现有真人数据不足以支持这些跨系统改动；它们进入 v0.50 档案胜率页后再复测。 ");
             report.AppendLine();
-            report.AppendLine("| 构筑 | 合同 | 通关 | 平均机体 | 平均货物 | 平均回合 | 平均受伤 | 追踪命中 |");
+            report.AppendLine("## 回归配置");
+            report.AppendLine();
+            report.AppendLine($"- 样本矩阵：{Builds.Length} 套构筑 × {RouteProfileCount} 条路线 × {RegressionSeeds.Length} 个固定种子 = {expectedSamples} 局。");
+            report.AppendLine($"- 固定种子：{string.Join("、", RegressionSeeds)}；每个遭遇再通过局种子、路线位置和遭遇类型派生独立种子。");
+            report.AppendLine("- 首领覆盖：种子按固定顺序交替分配磁暴鳐与雷幕云龙，因此每套构筑在每条路线对两名首领各有两局样本。");
+            report.AppendLine("- 路线覆盖：安全补给线 4 战、高压封锁线 7 战；计划上限 396 场遭遇，中途失事会提前结束，以控制编辑器回归运行量。");
+            report.AppendLine("- 详细日志：每场遭遇输出 `BALANCE_ENCOUNTER`，每局输出 `BALANCE_RESULT`，四类汇总输出 `BALANCE_AGGREGATE`。");
+            report.AppendLine();
+            report.AppendLine("## 合同胜率");
+            report.AppendLine();
+            report.AppendLine("| 合同 | 通关胜率 | 平均机体 | 平均货物 | 平均受伤 |");
+            report.AppendLine("|---|---:|---:|---:|---:|");
+            foreach (IGrouping<CargoContract, RunResult> group in results.GroupBy(result => result.Contract))
+            {
+                report.AppendLine($"| {ContractLabel(group.Key)} | {WinSummary(group)} | " +
+                    $"{group.Average(result => result.Hull):F1} | {group.Average(result => result.Cargo):F1} | " +
+                    $"{group.Average(result => result.Damage):F1} |");
+            }
+            report.AppendLine();
+            report.AppendLine("## 构筑胜率");
+            report.AppendLine();
+            report.AppendLine("| 构筑 | 合同 | 通关胜率 | 平均机体 | 平均货物 | 平均回合 | 平均受伤 | 追踪命中 |");
             report.AppendLine("|---|---|---:|---:|---:|---:|---:|---:|");
             foreach (IGrouping<string, RunResult> group in results.GroupBy(result => result.Name))
             {
                 RunResult first = group.First();
-                report.AppendLine($"| {group.Key} | {ContractLabel(first.Contract)} | {group.Count(result => result.Victory)}/{group.Count()} | " +
+                report.AppendLine($"| {group.Key} | {ContractLabel(first.Contract)} | {WinSummary(group)} | " +
                     $"{group.Average(result => result.Hull):F1} | {group.Average(result => result.Cargo):F1} | " +
                     $"{group.Average(result => result.Turns):F1} | {group.Average(result => result.Damage):F1} | " +
                     $"{group.Sum(result => result.TrackingHits)} |");
             }
             report.AppendLine();
-            report.AppendLine("## 验收判断");
+            report.AppendLine("## 路线胜率");
             report.AppendLine();
-            report.AppendLine(victories >= 14 && everyBuildViable
-                ? $"通过：{victories}/{results.Count} 条压力路线通关，且8套主要构筑均至少通过一种完整编队。两个失败样本保留了灾变编队和高风险合同的失败压力；换道仍能规避高额攻击，但连续使用会产生可观测代价，专用卡牌可以把代价转化为收益。"
-                : $"未通过：当前有 {results.Count - victories} 条路线失败，或存在完全不可行的主要构筑，需要继续调整。");
+            report.AppendLine("| 路线 | 通关胜率 | 平均机体 | 平均货物 | 平均回合 | 平均受伤 |");
+            report.AppendLine("|---|---:|---:|---:|---:|---:|");
+            foreach (IGrouping<int, RunResult> group in results.GroupBy(result => result.RouteProfile))
+            {
+                report.AppendLine($"| {RouteProfileLabel(group.Key)} | {WinSummary(group)} | " +
+                    $"{group.Average(result => result.Hull):F1} | {group.Average(result => result.Cargo):F1} | " +
+                    $"{group.Average(result => result.Turns):F1} | {group.Average(result => result.Damage):F1} |");
+            }
+            report.AppendLine();
+            report.AppendLine("## Boss 胜率");
+            report.AppendLine();
+            report.AppendLine("“整局通关”将途中失败计入该首领路线；“首领战胜率”只统计实际到达首领的样本，避免把路线战损误判成首领强度。");
+            report.AppendLine();
+            report.AppendLine("| Boss | 整局通关胜率 | 到达率 | 首领战胜率 |");
+            report.AppendLine("|---|---:|---:|---:|");
+            foreach (IGrouping<EnemyKind, RunResult> group in results.GroupBy(result => result.Boss))
+            {
+                int reached = group.Count(result => result.BossReached);
+                int bossVictories = group.Count(result => result.BossVictory);
+                report.AppendLine($"| {BossLabel(group.Key)} | {WinSummary(group)} | " +
+                    $"{RatioSummary(reached, group.Count())} | {RatioSummary(bossVictories, reached)} |");
+            }
+            report.AppendLine();
+            report.AppendLine("## 回归判断");
+            report.AppendLine();
+            report.AppendLine(coverageComplete
+                ? $"覆盖通过：已生成预期的 {expectedSamples} 局，合同、构筑、路线和两名 Boss 均有独立胜率统计。"
+                : $"覆盖失败：预期 {expectedSamples} 局或两名 Boss 全覆盖，实际生成 {results.Count} 局；本报告不可用于回归比较。");
+            report.AppendLine(zeroWinBuilds.Length == 0
+                ? "未发现跨全部固定种子与路线均为 0 胜的构筑。此结论只表示没有显著功能性断点，不代表数值已经平衡。"
+                : $"回归警报：{string.Join("、", zeroWinBuilds)} 在全部固定样本中均为 0 胜；应先安排真人复测定位规则或策略问题，禁止仅为消除警报直接调数。");
 
-            string path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Docs/Playtest_Report_v0.44.md"));
+            string path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Docs/Playtest_Report_v0.50.md"));
             File.WriteAllText(path, report.ToString(), new UTF8Encoding(false));
             AssetDatabase.Refresh();
             Debug.Log($"BALANCE_REPORT_WRITTEN|{path}");
         }
 
         private static RunResult SimulateRun(string name, IEnumerable<CardId> additions, CargoContract contract,
-            int routeProfile)
+            int routeProfile, int runSeed, int bossVariant)
         {
             var deck = StarterDeck();
             CardId[] buildCards = additions.ToArray();
@@ -137,7 +214,15 @@ namespace SkyCourierEditor
             var modules = new HashSet<ModuleId>();
             int hull = BattleState.MaxPlayerHealth;
             int cargo = 3;
-            var result = new RunResult { Name = name, Victory = true, RouteProfile = routeProfile, Contract = contract };
+            var result = new RunResult
+            {
+                Name = name,
+                Victory = true,
+                RouteProfile = routeProfile,
+                Contract = contract,
+                Seed = runSeed,
+                Boss = BossKindForVariant(bossVariant)
+            };
             EncounterId[] encounters = routeProfile == 0
                 ? new[] { EncounterId.Skirmish, EncounterId.Skirmish, EncounterId.Elite, EncounterId.Boss }
                 : new[] { EncounterId.Skirmish, EncounterId.Elite, EncounterId.Hunt, EncounterId.Hunt,
@@ -153,12 +238,25 @@ namespace SkyCourierEditor
                 if (routeProfile == 0 && (encounterIndex == 2 || encounterIndex == 3))
                     hull = Math.Min(BattleState.MaxPlayerHealth, hull + 14);
 
+                int encounterSeed = RunSeedUtility.DeriveEncounterSeed(runSeed,
+                    (routeProfile + 1) * 100 + encounterIndex, encounter);
                 var state = new BattleState();
                 state.StartEncounter(encounter, deck, hull, cargo, contract,
-                    upgrades, modules, encounter == EncounterId.Boss ? 0 : routeProfile);
+                    upgrades, modules, encounter == EncounterId.Boss ? bossVariant : routeProfile,
+                    seed: encounterSeed);
+                if (encounter == EncounterId.Boss)
+                {
+                    result.BossReached = true;
+                    EnemyState boss = state.Enemies.FirstOrDefault(enemy =>
+                        enemy.Kind == EnemyKind.StormManta || enemy.Kind == EnemyKind.CloudWyrm);
+                    if (boss != null)
+                        result.Boss = boss.Kind;
+                }
                 SimulateEncounter(state);
+                if (encounter == EncounterId.Boss)
+                    result.BossVictory = state.Victory;
 
-                Debug.Log($"BALANCE_ENCOUNTER|{name}|{encounter}|胜利={state.Victory}|机体={state.PlayerHealth}|货物={state.CargoIntegrity}|回合={state.Turn}|出牌={state.CardsPlayed}|受伤={state.DamageTaken}");
+                Debug.Log($"BALANCE_ENCOUNTER|{name}|局种子={runSeed}|遭遇种子={encounterSeed}|路线={RouteProfileLabel(routeProfile)}|序号={encounterIndex + 1}|遭遇={encounter}|编队={state.FormationName}|胜利={state.Victory}|机体={state.PlayerHealth}|货物={state.CargoIntegrity}|回合={state.Turn}|出牌={state.CardsPlayed}|受伤={state.DamageTaken}");
 
                 result.Turns += state.Turn;
                 result.Cards += state.CardsPlayed;
@@ -174,6 +272,7 @@ namespace SkyCourierEditor
                 if (state.Defeat || !state.Victory)
                 {
                     result.Victory = false;
+                    result.FailedEncounter = encounter;
                     break;
                 }
 
@@ -264,6 +363,8 @@ namespace SkyCourierEditor
                 return true;
             if (threat >= 6 && state.Armor < threat && TryPlay(state, CardId.WindGuard))
                 return true;
+            if (threat >= 6 && state.Armor < threat && TryPlay(state, CardId.StandbyField))
+                return true;
             if (TryPressureCalamity(state))
                 return true;
             if (targetInLane && state.LockOn > 0 && TryPlay(state, CardId.RailPiercer))
@@ -288,6 +389,8 @@ namespace SkyCourierEditor
                 return true;
             if (targetInLane && state.Heat <= 5 && TryPlay(state, CardId.BurstFire))
                 return true;
+            if (targetInLane && state.Heat <= 5 && TryPlay(state, CardId.ReserveShot))
+                return true;
             if (state.Heat <= 5 && TryPlay(state, CardId.CounterPursuit))
                 return true;
             if (targetInLane && state.Heat <= 3 && TryPlay(state, CardId.OverloadAim))
@@ -302,6 +405,8 @@ namespace SkyCourierEditor
                 return true;
             if (state.Heat <= 4 && TryPlay(state, CardId.BroadsideVolley))
                 return true;
+            if (state.Energy >= 3 && TryPlay(state, CardId.TightSchedule))
+                return true;
 
             EnemyState target = state.Enemies.Where(enemy => enemy.Alive).OrderBy(enemy => enemy.Health).FirstOrDefault();
             if (!targetInLane)
@@ -309,6 +414,8 @@ namespace SkyCourierEditor
                 if (target != null && target.Lane < state.PlayerLane && TryPlay(state, CardId.BankUp))
                     return true;
                 if (target != null && target.Lane > state.PlayerLane && TryPlay(state, CardId.BankDown))
+                    return true;
+                if (target != null && state.PlayerLane != 1 && TryPlay(state, CardId.RelayStep))
                     return true;
                 if (state.EvasionExposure >= 2 && TryPlay(state, CardId.SignalScrambler))
                     return true;
@@ -327,6 +434,8 @@ namespace SkyCourierEditor
             if (state.EvasionExposure == 0 && TryPlay(state, CardId.VectorDash))
                 return true;
             if (threat > 0 && TryPlay(state, CardId.WindGuard))
+                return true;
+            if (threat > 0 && TryPlay(state, CardId.ReserveRouting))
                 return true;
 
             return false;
@@ -380,6 +489,9 @@ namespace SkyCourierEditor
 
         private static bool TryPlay(BattleState state, CardId id)
         {
+            CardSpec spec = CardLibrary.Get(id);
+            if (state.Cargo == CargoContract.SignalSeed && spec.Cost > 0 && spec.Cost >= state.Energy)
+                return false;
             for (int i = 0; i < state.Hand.Count; i++)
             {
                 if (state.Hand[i] != id || !state.CanPlay(i))
@@ -442,13 +554,56 @@ namespace SkyCourierEditor
 
         private static CardId ContractStarter(CargoContract contract)
         {
-            return contract switch
+            return ContractCatalog.StarterCard(contract);
+        }
+
+        private static void LogAggregates(IList<RunResult> results)
+        {
+            foreach (IGrouping<CargoContract, RunResult> group in results.GroupBy(result => result.Contract))
+                Debug.Log($"BALANCE_AGGREGATE|维度=合同|名称={ContractLabel(group.Key)}|胜率={WinSummary(group)}|样本={group.Count()}");
+            foreach (IGrouping<string, RunResult> group in results.GroupBy(result => result.Name))
+                Debug.Log($"BALANCE_AGGREGATE|维度=构筑|名称={group.Key}|胜率={WinSummary(group)}|样本={group.Count()}");
+            foreach (IGrouping<int, RunResult> group in results.GroupBy(result => result.RouteProfile))
+                Debug.Log($"BALANCE_AGGREGATE|维度=路线|名称={RouteProfileLabel(group.Key)}|胜率={WinSummary(group)}|样本={group.Count()}");
+            foreach (IGrouping<EnemyKind, RunResult> group in results.GroupBy(result => result.Boss))
             {
-                CargoContract.FragileMedicine => CardId.ReactivePlating,
-                CargoContract.CryoSerum => CardId.CryoPump,
-                CargoContract.StormCore => CardId.VectorDash,
-                _ => CardId.SignalScrambler
-            };
+                int reached = group.Count(result => result.BossReached);
+                int bossVictories = group.Count(result => result.BossVictory);
+                Debug.Log($"BALANCE_AGGREGATE|维度=Boss|名称={BossLabel(group.Key)}|整局胜率={WinSummary(group)}|到达率={RatioSummary(reached, group.Count())}|首领战胜率={RatioSummary(bossVictories, reached)}|样本={group.Count()}");
+            }
+        }
+
+        private static string WinSummary(IEnumerable<RunResult> results)
+        {
+            RunResult[] samples = results.ToArray();
+            return RatioSummary(samples.Count(result => result.Victory), samples.Length);
+        }
+
+        private static string RatioSummary(int successes, int samples)
+        {
+            return samples == 0 ? "0/0 (n/a)" : $"{successes}/{samples} ({WinRate(successes, samples):F1}%)";
+        }
+
+        private static float WinRate(int victories, int samples)
+        {
+            return samples == 0 ? 0f : victories * 100f / samples;
+        }
+
+        private static string FailureLabel(RunResult result)
+        {
+            return result.FailedEncounter.HasValue ? result.FailedEncounter.Value.ToString() : "无";
+        }
+
+        private static EnemyKind BossKindForVariant(int variant)
+        {
+            return Math.Abs(variant) % EncounterCatalog.BossVariantCount == 0
+                ? EnemyKind.StormManta
+                : EnemyKind.CloudWyrm;
+        }
+
+        private static string BossLabel(EnemyKind boss)
+        {
+            return boss == EnemyKind.CloudWyrm ? "雷幕云龙" : "磁暴鳐";
         }
 
         private static ModuleId BuildModule(string name)
@@ -462,6 +617,7 @@ namespace SkyCourierEditor
                 "蜂群弹幕" => ModuleId.SwarmUplink,
                 "侧翼雷网" => ModuleId.GhostDecoder,
                 "航迹欺骗" => ModuleId.GhostDecoder,
+                "余量调度" => ModuleId.ExecutionChip,
                 "锁定狙击" => ModuleId.PrecisionMatrix,
                 _ => ModuleId.ExecutionChip
             };
@@ -474,7 +630,8 @@ namespace SkyCourierEditor
                 CargoContract.FragileMedicine => "易碎药剂",
                 CargoContract.CryoSerum => "零度血清",
                 CargoContract.StormCore => "风暴核心",
-                _ => "幽灵黑匣"
+                CargoContract.BlackBoxRelay => "幽灵黑匣",
+                _ => "信标种子"
             };
         }
 

@@ -8,7 +8,7 @@ title.new	新配送	NEW DELIVERY
 title.start	开始配送	START DELIVERY
 title.archive	邮政档案	POSTAL ARCHIVE
 title.settings	系统设置	SETTINGS
-title.version	v0.44.0  //  FINALE DEPTH COMPLETE	v0.44.0  //  FINALE DEPTH COMPLETE
+title.version	v0.52  //  ACCESSIBLE FLIGHT MANUAL	v0.52  //  ACCESSIBLE FLIGHT MANUAL
 settings.title	系统设置	SETTINGS
 settings.section	ACCESS // DISPLAY	ACCESS // DISPLAY
 settings.language	语言	LANGUAGE
@@ -20,6 +20,8 @@ settings.music	音乐音量	MUSIC VOLUME
 settings.sfx	音效音量	SFX VOLUME
 settings.shake	震屏强度	SCREEN SHAKE
 settings.flash	闪光强度	FLASH INTENSITY
+settings.tutorials	情境教学	CONTEXTUAL TUTORIALS
+settings.focus_hints	焦点提示	FOCUS HIGHLIGHTS
 settings.on	开启	ON
 settings.off	关闭	OFF
 settings.monitor	由显示器同步	DISPLAY SYNC
@@ -31,7 +33,159 @@ display.exclusive	独占全屏	EXCLUSIVE FULLSCREEN
 pause.title	系统暂停	SYSTEM PAUSED
 pause.resume	继续配送	RESUME DELIVERY
 pause.settings	系统设置	SETTINGS
-pause.guide	操作指南	HOW TO PLAY
+pause.guide	规则说明	RULEBOOK
+rulebook.title	规则说明与术语词典	RULEBOOK & GLOSSARY
+rulebook.status	F1 随时查看 // 方向键切换	F1 ANY TIME // ARROWS TO BROWSE
+rulebook.close	返回配送	RETURN TO RUN
+rulebook.controls	左右方向键 / 左摇杆浏览　ENTER / [A] 返回	ARROWS / LEFT STICK TO BROWSE  ENTER / [A] BACK
+keyboard.settings	方向键 / WASD 选择与调整　ENTER 确认　ESC 返回	ARROWS / WASD SELECT & ADJUST  ENTER CONFIRM  ESC BACK
+tutorial.contextual	渐进教学 // 根据当前行为触发	CONTEXTUAL TUTORIAL // TRIGGERED BY YOUR ACTION
+tutorial.once	本条只自动显示一次；可按 F1 随时重看。	THIS TIP APPEARS ONCE. PRESS F1 TO REVIEW IT ANY TIME.
+tutorial.understood	明白，继续	GOT IT, CONTINUE
+tutorial.category	规则类型 // {0}	RULE TYPE // {0}
+tutorial.category.read	判读	READ
+tutorial.category.attack	攻击	ATTACK
+tutorial.category.resource	资源	RESOURCE
+tutorial.category.contract	合同	CONTRACT
+tutorial.category.maneuver	机动	MANEUVER
+tutorial.category.danger	危险	DANGER
+tutorial.category.build	构筑	BUILD
+tutorial.category.route	路线	ROUTE
+tutorial.first_run_standard	首局使用标准派遣；挑战任务将在首次结算后开放。	YOUR FIRST RUN USES STANDARD DISPATCH. CHALLENGES UNLOCK AFTER ITS RESULT.
+encounter.skirmish.name	废弃风标	DERELICT VANE
+encounter.elite.name	雷暴封锁线	THUNDER BLOCKADE
+encounter.hunt.name	追迹者空域	PURSUER AIRSPACE
+encounter.wyrm.name	雷幕龙脊	THUNDER WYRM RIDGE
+encounter.manta.name	磁暴鳐巢	MAGNETIC MANTA NEST
+battle.hull	机体  {0}/{1}	HULL  {0}/{1}
+battle.heat	# 热量  {0}/{1}	# HEAT  {0}/{1}
+battle.energy	能量	ENERGY
+battle.armor	护盾 {0}	SHIELD {0}
+battle.lane	航道 {0}	LANE {0}
+battle.lane.current	[>] 航道 {0} // 当前	[>] LANE {0} // CURRENT
+battle.courier	邮运-07 // 邮差	POST-07 // COURIER
+battle.courier.shift	邮运-07 // 换至航道 {0}	POST-07 // SHIFT TO LANE {0}
+battle.intent.shift	变轨至航道 {0}	SHIFT TO LANE {0}
+battle.enemy_armor	装甲 {0}/{1}	ARMOR {0}/{1}
+battle.safe_lane	[O] 唯一安全航道	[O] ONLY SAFE LANE
+battle.danger_lane	[X] 雷幕封锁	[X] THUNDER CURTAIN
+battle.magnet_danger	[X] 磁针扫掠	[X] MAGNET SWEEP
+battle.clear_lane	[O] 可规避航道	[O] CLEAR LANE
+battle.piles	回合 {0:00} // 手牌 {1} // 抽牌 {2} // 弃牌 {3}	TURN {0:00} // HAND {1} // DRAW {2} // DISCARD {3}
+battle.resources	锁定 {0} / 动量 {1} / 航迹 {2}	LOCK {0} / MOMENTUM {1} / TRACE {2}
+battle.end_turn	结束回合	END TURN
+battle.intent_warning	! 敌人将执行\n当前显示的意图	! ENEMIES EXECUTE\nTHE SHOWN INTENT
+battle.log.summary	回合 {0} // 阅读意图后出牌或换道	TURN {0} // READ INTENT, THEN PLAY OR SHIFT
+feedback.run_restored	RUN RESTORED // 战斗从入口重新开始	RUN RESTORED // BATTLE RESTARTED FROM ENTRY
+feedback.target_break	TARGET BREAK // 敌机解体	TARGET BREAK // HOSTILE DESTROYED
+feedback.lane_value	航道 {0}	LANE {0}
+feedback.heat_value	热量 {0}	HEAT {0}
+feedback.shield_value	护盾 {0}	SHIELD {0}
+feedback.command_complete	指令完成	COMMAND COMPLETE
+feedback.shield_online	护盾在线	SHIELD ONLINE
+feedback.lane_locked	航道锁定 // {0}	LANE LOCKED // {0}
+feedback.storm_core_safe	CONTRACT SAFE // 风暴核心稳定计时已重置	CONTRACT SAFE // STORM-CORE TIMER RESET
+feedback.phase_exchange	相变循环 // 废热转化为手牌	PHASE CYCLE // WASTE HEAT CONVERTED TO CARDS
+feedback.cryo_cycle	低温循环 // 废热回收	CRYO CYCLE // WASTE HEAT RECOVERED
+feedback.heat_down	热量下降	HEAT REDUCED
+feedback.cryo_safe	CONTRACT SAFE // 血清温度恢复安全范围	CONTRACT SAFE // SERUM TEMPERATURE STABILIZED
+feedback.false_trace	FALSE TRACE // 暴露 ×{0}	FALSE TRACE // EXPOSURE ×{0}
+feedback.heat_charge	HEAT CHARGE // 强制供能	HEAT CHARGE // FORCED POWER
+feedback.energy_gain	+{0} 能量	+{0} ENERGY
+feedback.decoy_burst	DECOY BURST // 伪造航迹注入	DECOY BURST // FALSE TRACE INJECTED
+feedback.overdrive	OVERDRIVE // 能量回路突破	OVERDRIVE // POWER CIRCUIT OPEN
+feedback.module_triggered	模块已触发	MODULE TRIGGERED
+feedback.charge_break	CHARGE BREAK // 灾变蓄力已中断	CHARGE BREAK // ULTIMATE INTERRUPTED
+feedback.enemy_core_exposed	敌方核心暴露	ENEMY CORE EXPOSED
+feedback.armor_broken	装甲破裂 // 核心暴露	ARMOR BROKEN // CORE EXPOSED
+feedback.critical	CRITICAL // 弱点贯穿	CRITICAL // WEAK POINT PIERCED
+feedback.status_triggered	状态规则已触发	STATUS RULE TRIGGERED
+feedback.boss_counter	首领反制已触发	BOSS COUNTER TRIGGERED
+feedback.cargo_lost	合同完整度 -1 // {0}	CARGO INTEGRITY -1 // {0}
+feedback.hull_lost	-{0} 机体	-{0} HULL
+feedback.enemy_shift	敌方变轨 ×{0}	HOSTILE SHIFT ×{0}
+feedback.evaded	成功规避	EVADED
+feedback.hull_damaged	DANGER // 机体受损	DANGER // HULL DAMAGED
+feedback.shield_broken	SHIELD BREAK // 护盾耗尽	SHIELD BREAK // SHIELD DEPLETED
+feedback.absorbed	ABSORBED // 护盾完全抵消	ABSORBED // SHIELD BLOCKED ALL DAMAGE
+feedback.hostile_shift	HOSTILE SHIFT // 敌方切换航道	HOSTILE SHIFT // ENEMIES CHANGED LANES
+feedback.perfect_evade	EVADE // 完美规避	EVADE // PERFECT EVASION
+feedback.cargo_rule_triggered	合同风险已触发	CONTRACT RISK TRIGGERED
+intent.destroyed	已击落	DESTROYED
+intent.calamity.recalibrate	重新校准 / 跳过行动	RECALIBRATE / SKIP ACTION
+intent.calamity.staggered	系统失衡 / 跳过行动	SYSTEM STAGGERED / SKIP ACTION
+intent.calamity.charge	灾变 {0} / 航道 {1} · 打断 {2}/{3}	CALAMITY {0} / LANE {1} · BREAK {2}/{3}
+intent.manta.transition	阶段转换 / 磁暴甲壳重构	PHASE SHIFT / MAGNETIC SHELL REBUILD
+intent.manta.retarget	阶段 {0} / 重新锁定航道	PHASE {0} / RETARGET LANE
+intent.manta.interrupted	核心过载 / 大招已打断	CORE OVERLOAD / ULTIMATE INTERRUPTED
+intent.manta.dive	磁暴俯冲 {0} / 航道 {1} · 打断 {2}/{3}	MAGNETIC DIVE {0} / LANE {1} · BREAK {2}/{3}
+intent.manta.devour	吞界磁暴 {0}+邻道{1} / 航道 {2} · 打断 {3}/{4}	DEVOURING STORM {0}+ADJACENT {1} / LANE {2} · BREAK {3}/{4}
+intent.wyrm.transition	阶段转换 / 雷幕天穹展开	PHASE SHIFT / SKY CURTAIN DEPLOYED
+intent.wyrm.retarget	阶段 {0} / 重绘安全航道	PHASE {0} / REDRAW SAFE LANE
+intent.wyrm.interrupted	雷幕短路 / 大招已打断	CURTAIN SHORTED / ULTIMATE INTERRUPTED
+intent.wyrm.curtain	双翼雷幕 {0} / 仅航道 {1} 安全 · 打断 {2}/{3}	TWIN CURTAIN {0} / ONLY LANE {1} SAFE · BREAK {2}/{3}
+intent.wyrm.overwrite	天穹覆写 {0} / 仅航道 {1} 安全 · 打断 {2}/{3}	SKY OVERWRITE {0} / ONLY LANE {1} SAFE · BREAK {2}/{3}
+intent.herald.recalibrate	重绘雷幕 / 跳过行动	REDRAW CURTAIN / SKIP ACTION
+intent.herald.interrupted	雷幕短路 / 跳过行动	CURTAIN SHORTED / SKIP ACTION
+intent.herald.curtain	先导雷幕 {0} / 仅航道 {1} 安全 · 打断 {2}/{3}	HERALD CURTAIN {0} / ONLY LANE {1} SAFE · BREAK {2}/{3}
+intent.skimmer.recalibrate	磁针校准 / 跳过行动	MAGNET CALIBRATION / SKIP ACTION
+intent.skimmer.interrupted	磁针失衡 / 跳过行动	MAGNET STAGGERED / SKIP ACTION
+intent.skimmer.sweep	磁针扫掠 {0} / 航道 {1}+邻道危险 · 打断 {2}/{3}	MAGNET SWEEP {0} / LANE {1}+ADJACENT DANGER · BREAK {2}/{3}
+intent.storm	风暴 {0} / 全航道	STORM {0} / ALL LANES
+intent.shield_leech	盾蚀 / 清空当前{0}点护盾	SHIELD CORROSION / CLEAR CURRENT {0} SHIELD
+intent.hand_jam	手牌干扰 {0} / 保留5+张触发	HAND JAM {0} / TRIGGERS AT 5+ HELD CARDS
+intent.hand_safe	监听手牌 / 少于5张安全	MONITOR HAND / SAFE BELOW 5 CARDS
+intent.heat_seek	热寻 {0} / 当前热量4+	HEAT-SEEK {0} / CURRENT HEAT 4+
+intent.hijack.lock	劫持锁定 / 锁定-1，敌装甲+3	HIJACK LOCK / LOCK -1, ENEMY ARMOR +3
+intent.hijack.momentum	劫持动量 / 动量-1，敌装甲+3	HIJACK MOMENTUM / MOMENTUM -1, ENEMY ARMOR +3
+intent.hijack.trace	污染航迹 / 暴露+1，敌装甲+3	POLLUTE TRACE / EXPOSURE +1, ENEMY ARMOR +3
+intent.hijack.scan	协议扫描 / 无资源可劫持	PROTOCOL SCAN / NO RESOURCE TO HIJACK
+intent.tracking	追踪 {0} / 继续换道将暴露航迹	TRACKING {0} / ANOTHER SHIFT EXPOSES YOUR TRACE
+intent.block.hit	封锁 {0} / 换道可规避	BLOCK {0} / SHIFT TO EVADE
+intent.block.lane	封锁航道 {0} / 进入将受{1}伤害	BLOCK LANE {0} / ENTERING RISKS {1} DAMAGE
+intent.attack	攻击 {0}	ATTACK {0}
+intent.move.down	下降1条航道	DESCEND 1 LANE
+intent.move.up	上升1条航道	ASCEND 1 LANE
+tutorial.Intent.title	先读意图	READ INTENT FIRST
+tutorial.Intent.trigger	首次进入战斗：敌方行动已经公开。	FIRST BATTLE: ENEMY ACTIONS ARE ALREADY VISIBLE.
+tutorial.Intent.body	敌机上方的带框文字是下一步意图。先读动作、伤害和目标航道，再决定出牌或换道；结束回合后敌机会执行当前显示的意图。	THE FRAMED TEXT ABOVE EACH ENEMY IS ITS NEXT INTENT. READ THE ACTION, DAMAGE, AND TARGET LANE BEFORE PLAYING OR MOVING. ENEMIES EXECUTE THE SHOWN INTENT WHEN YOU END THE TURN.
+glossary.Intent	意图：敌方下一次行动的完整预告。边框颜色表示规则类别，“!”形状和文字始终同时显示，因此无需只依赖颜色判断。	INTENT: THE FULL PREVIEW OF AN ENEMY'S NEXT ACTION. BORDER COLOR SHOWS ITS RULE CLASS; THE “!” SYMBOL AND TEXT ARE ALWAYS PRESENT SO COLOR IS NEVER THE ONLY SIGNAL.
+tutorial.LaneAttack.title	同航道攻击	SAME-LANE ATTACK
+tutorial.LaneAttack.trigger	你首次命中了正前方航道中的敌机。	YOU HIT AN ENEMY IN YOUR CURRENT LANE FOR THE FIRST TIME.
+tutorial.LaneAttack.body	写有“同航道”的武器只能命中邮差所在航道的目标。当前航道同时用青色底、粗线和“[>] 当前”文字标记；先换道或等待敌机进入射线。	WEAPONS MARKED “SAME LANE” ONLY HIT TARGETS IN THE COURIER'S CURRENT LANE. YOUR LANE USES A CYAN FILL, THICK LINE, AND “[>] CURRENT” TEXT. MOVE FIRST OR WAIT FOR A TARGET TO ENTER THE FIRING LINE.
+glossary.LaneAttack	同航道：邮差和目标处于同一条水平航道。此限制只影响明确写有“同航道”的牌；“追踪”与“所有敌人”不受此限制。	SAME LANE: THE COURIER AND TARGET SHARE ONE HORIZONTAL LANE. THIS ONLY LIMITS CARDS THAT SAY “SAME LANE”; TRACKING AND ALL-ENEMY EFFECTS IGNORE IT.
+tutorial.Heat.title	热量与过热	HEAT & OVERHEAT
+tutorial.Heat.trigger	你首次打出会增加热量的指令。	YOU PLAYED YOUR FIRST HEAT-GENERATING COMMAND.
+tutorial.Heat.body	卡牌费用旁的橙色数值会累积热量。到达上限时机体受损并清空热量；橙色“#”、进度条和“热量 x/y”文字会一起预警。冷却牌可以在结束回合前降低风险。	THE ORANGE VALUE BESIDE A CARD'S COST ADDS HEAT. REACHING THE LIMIT DAMAGES HULL AND CLEARS HEAT. THE ORANGE “#”, METER, AND “HEAT x/y” TEXT WARN TOGETHER. COOLING CARDS CAN LOWER THE RISK BEFORE ENDING THE TURN.
+glossary.Heat	热量：跨回合保留的引擎压力。达到热量上限会触发过热伤害；部分合同、卡牌和模块会改变安全阈值或利用高低热窗口。	HEAT: ENGINE PRESSURE THAT PERSISTS BETWEEN TURNS. REACHING THE LIMIT DEALS OVERHEAT DAMAGE. CONTRACTS, CARDS, AND MODULES MAY CHANGE THE SAFE THRESHOLD OR REWARD HIGH/LOW HEAT WINDOWS.
+tutorial.Cargo.title	货物完整度	CARGO INTEGRITY
+tutorial.Cargo.trigger	合同风险首次让货物失去完整度。	A CONTRACT RISK REDUCED CARGO INTEGRITY FOR THE FIRST TIME.
+tutorial.Cargo.body	货物有3格完整度，影响最终评级与报酬。每份合同的风险不同；右上角同时显示合同颜色、方格“■■□”、数值和状态文字。查看合同安全操作，避免重复触发同一风险。	CARGO HAS 3 INTEGRITY AND AFFECTS FINAL GRADE AND PAY. EACH CONTRACT HAS A DIFFERENT RISK. THE TOP-RIGHT PANEL SHOWS CONTRACT COLOR, “■■□” SHAPES, A NUMBER, AND STATUS TEXT. FOLLOW THE CONTRACT'S SAFE ACTION TO AVOID REPEATED LOSSES.
+glossary.Cargo	货物完整度：本局合同的独立耐久，共3格。它不是机体生命；降到0不会立即失事，但会显著降低配送评价和收益。	CARGO INTEGRITY: THE RUN CONTRACT'S SEPARATE 3-POINT DURABILITY. IT IS NOT HULL; REACHING 0 DOES NOT IMMEDIATELY CRASH YOU, BUT IT GREATLY REDUCES DELIVERY GRADE AND PAY.
+tutorial.LaneShift.title	换道	LANE SHIFT
+tutorial.LaneShift.trigger	你首次通过机动牌切换了航道。	YOU CHANGED LANES WITH A MANEUVER CARD FOR THE FIRST TIME.
+tutorial.LaneShift.body	换道可以避开普通同航道攻击，也可以对准目标。当前航道有青色底、粗线和“[>] 当前”文字；换道动画结束前输入会短暂锁定，避免连续误触。	LANE SHIFTS EVADE NORMAL SAME-LANE ATTACKS AND LINE UP TARGETS. YOUR CURRENT LANE HAS A CYAN FILL, THICK LINE, AND “[>] CURRENT” TEXT. INPUT BRIEFLY LOCKS DURING THE SHIFT TO PREVENT ACCIDENTAL REPEATS.
+glossary.LaneShift	换道：从当前航道移动到另一条航道。普通攻击只命中执行时与敌机同航道的邮差，但灾变、雷幕和追踪有各自的目标规则。	LANE SHIFT: MOVE FROM THE CURRENT LANE TO ANOTHER. NORMAL ATTACKS ONLY HIT IF YOU SHARE THE ENEMY'S LANE AT RESOLUTION, BUT CALAMITY, CURTAIN, AND TRACKING ATTACKS USE THEIR OWN TARGET RULES.
+tutorial.Tracking.title	航迹追踪	TRACKING FIRE
+tutorial.Tracking.trigger	你连续依赖换道，敌方开始锁定暴露航迹。	REPEATED LANE SHIFTS CAUSED ENEMIES TO LOCK ONTO YOUR TRACE.
+tutorial.Tracking.body	连续回合换道会提高航迹暴露。达到2层后，敌人会以“X 追踪”文字预告无法靠再次换道躲避的追踪弹。停留一回合，或用信号扰频、矢量刹车等牌主动清除暴露。	SHIFTING ON CONSECUTIVE TURNS BUILDS TRACE EXPOSURE. AT 2 STACKS, ENEMIES PREVIEW “X TRACKING” FIRE THAT ANOTHER SHIFT CANNOT EVADE. STAY PUT FOR A TURN OR CLEAR EXPOSURE WITH SIGNAL SCRAMBLER, AIR BRAKE, AND SIMILAR CARDS.
+glossary.Tracking	航迹暴露：连续机动留下的追踪资源。2层时可能触发追踪攻击；粉色边框、“X”形状和“追踪”文字共同标记这种危险。	TRACE EXPOSURE: A TRACKING RESOURCE LEFT BY CONSECUTIVE MANEUVERS. AT 2 STACKS IT MAY TRIGGER TRACKING FIRE. A PINK BORDER, “X” SYMBOL, AND “TRACKING” TEXT MARK THIS DANGER TOGETHER.
+tutorial.Retrofit.title	机体改装	AIRFRAME RETROFIT
+tutorial.Retrofit.trigger	本局首次抵达不可逆的改装转折。	YOU REACHED THIS RUN'S IRREVERSIBLE RETROFIT PIVOT.
+tutorial.Retrofit.body	三种改装会永久改变本局之后每场战斗的基础规则：手牌与护盾、手牌上限，或能量与热量。选择前同时阅读收益和代价；改装会写入构筑快照与失败复盘。	EACH RETROFIT PERMANENTLY CHANGES THE BASE RULES OF EVERY LATER BATTLE: HAND AND SHIELD, HAND LIMIT, OR ENERGY AND HEAT. READ BOTH BENEFIT AND COST. THE CHOICE IS RECORDED IN BUILD SNAPSHOTS AND THE FAILURE DEBRIEF.
+glossary.Retrofit	机体改装：一局一次、不可撤销的基础规则变化。它不是普通模块，不能在后续节点替换，并会参与Boss反制矩阵。	AIRFRAME RETROFIT: A ONCE-PER-RUN, IRREVERSIBLE BASE-RULE CHANGE. IT IS NOT A NORMAL MODULE, CANNOT BE REPLACED LATER, AND PARTICIPATES IN THE BOSS COUNTER MATRIX.
+tutorial.Chronicle.title	信标纪事	SIGNAL CHRONICLE
+tutorial.Chronicle.trigger	首次进入会改变后续路线的三分支事件。	YOU ENTERED YOUR FIRST THREE-WAY EVENT THAT CHANGES LATER ROUTES.
+tutorial.Chronicle.body	援助、风险和静默三条选择都会留下纪事状态，并改变后续事件、构筑和Boss结局。选择不可撤销；确认前阅读即时收益、代价和后续路线说明。	AID, RISK, AND SILENT CHOICES ALL LEAVE A CHRONICLE STATE THAT CHANGES LATER EVENTS, YOUR BUILD, AND BOSS ENDINGS. CHOICES ARE IRREVERSIBLE; READ THE IMMEDIATE RETURN, COST, AND ROUTE CONSEQUENCE BEFORE CONFIRMING.
+glossary.Chronicle	纪事：同一局内跨事件保留的路线状态。它记录你如何处理信标广播，并决定后续分支文本、奖励、改装协同和终局阵营。	CHRONICLE: ROUTE STATE PRESERVED ACROSS EVENTS IN ONE RUN. IT RECORDS HOW YOU HANDLED THE SIGNAL AND DETERMINES LATER BRANCH TEXT, REWARDS, RETROFIT SYNERGY, AND FINALE ALIGNMENT.
+tutorial.Outpost.title	补给前哨	SUPPLY OUTPOST
+tutorial.Outpost.trigger	首次停靠可交易构筑资源的补给站。	YOU DOCKED AT YOUR FIRST BUILD-TRADING SUPPLY STOP.
+tutorial.Outpost.body	邮票可购买卡牌、维修、删牌和卡牌A/B分支改写。每项服务在本次停靠有独立次数或费用；先查看牌组、机体和后续路线，再决定是扩大构筑还是精简循环。	SPEND STAMPS ON CARDS, REPAIRS, REMOVAL, AND A/B CARD REWRITES. EACH SERVICE HAS ITS OWN VISIT LIMIT OR PRICE. CHECK YOUR DECK, HULL, AND UPCOMING ROUTE BEFORE CHOOSING BETWEEN BUILDING WIDER AND TRIMMING THE LOOP.
+glossary.Outpost	前哨：路线中的补给与构筑节点。购买会立即写入本局状态；离开后库存、维修和服务次数不会保留到下一座前哨。	OUTPOST: A ROUTE SUPPLY AND BUILD NODE. PURCHASES WRITE TO THE RUN IMMEDIATELY; STOCK, REPAIRS, AND SERVICE USES DO NOT CARRY TO THE NEXT OUTPOST.
+tutorial.Boss.title	Boss规则矩阵	BOSS RULE MATRIX
+tutorial.Boss.trigger	首次进入终局Boss战，第二阶段反制规则已经公开。	YOU ENTERED YOUR FIRST FINALE BOSS; ITS PHASE-TWO COUNTERS ARE VISIBLE.
+tutorial.Boss.body	Boss除航道攻击外，还会在第二阶段同时读取合同、机体改装和纪事阵营。顶部矩阵和首领旁面板会用颜色、双“!!”形状与文字显示当前反制；先看安全航道和打断阈值，再提交回合。	IN ADDITION TO LANE ATTACKS, THE BOSS READS YOUR CONTRACT, AIRFRAME, AND CHRONICLE ALIGNMENT IN PHASE TWO. THE TOP MATRIX AND BOSS PANELS USE COLOR, A DOUBLE “!!” SYMBOL, AND TEXT FOR ACTIVE COUNTERS. READ SAFE LANES AND BREAK THRESHOLDS BEFORE ENDING THE TURN.
+glossary.Boss	Boss矩阵：终局首领第二阶段的三组公开反制，包括合同协议、机体协议和纪事阵营。它们是确定性规则，不是隐藏随机效果。	BOSS MATRIX: THREE PUBLIC PHASE-TWO COUNTERS FOR CONTRACT PROTOCOL, AIRFRAME PROTOCOL, AND CHRONICLE ALIGNMENT. THESE ARE DETERMINISTIC RULES, NOT HIDDEN RANDOM EFFECTS.
 pause.restart	重新开始本次配送	RESTART DELIVERY
 pause.title_button	返回标题	RETURN TO TITLE
 archive.title	群岛邮政档案	ARCHIPELAGO POSTAL ARCHIVE
@@ -91,12 +245,28 @@ cargo.destroyed	货物损毁	DESTROYED
 failure.title	航线失事复盘	ROUTE FAILURE DEBRIEF
 failure.cause	致命原因 // {0}	FATAL CAUSE // {0}
 failure.damage	{0} 造成最后 {1} 点机体损失	{0} dealt the final {1} hull damage
-failure.next	下一次可执行动作	NEXT ACTION
-failure.archived	档案已记录 // 第 {0} 次失事尝试 · SEED {1}	ARCHIVED // LOST ATTEMPT {0} · SEED {1}
+failure.next	再次出发策略	RELAUNCH STRATEGY
+failure.archived	档案已记录 // 第 {0} 次失事 · SEED {1}	ARCHIVED // LOSS {0} · SEED {1}
 failure.retry	同合同再试	RETRY CONTRACT
-failure.change	更换合同	CHANGE CONTRACT
+failure.change	调整合同	CHANGE CONTRACT
 failure.title_button	返回标题	RETURN TO TITLE
-failure.retry_note	快速再试将保留【{0}】并生成新种子；返回标题仍可继续本场入口存档。	Quick retry keeps [{0}] and generates a new seed. Return to title to retry this encounter seed.
+failure.retry_note	同种子用于验证单一策略；新种子保留【{0}】但重排编队、奖励与商店。失败已结算，不保留可继续检查点。	Use the same seed to test one strategy change. A new seed keeps [{0}] but rerolls formations, rewards, and shops. The failed run is final.
+failure.damage_detail	第 {0} 回合 · {1}：原始伤害 {2} / 护盾吸收 {3} / 机体损失 {4}（击中前 {5}）	Turn {0} · {1}: {2} raw / {3} shielded / {4} hull lost ({5} hull before hit)
+failure.mistake	本局关键失误 // 基于战斗记录的风险判断	KEY MISTAKE // TELEMETRY-BASED RISK ASSESSMENT
+failure.weakness	构筑短板 // 终局快照	BUILD WEAKNESS // FINAL SNAPSHOT
+failure.build_title	构筑清单 // {0}	BUILD MANIFEST // {0}
+failure.deck	核心牌 // {0}	CORE DECK // {0}
+failure.upgrades	分支强化 // {0}	BRANCH UPGRADES // {0}
+failure.modules	模块 // {0}\n机体 // {1}	MODULES // {0}\nAIRFRAME // {1}
+failure.route_title	路线收益 // {0}	ROUTE RETURNS // {0}
+failure.route_context	纪事：{0}　|　合同被动 {1} 次　|　风险报酬 +{2} 邮票	Chronicle: {0} | Contract procs {1} | Risk bonus +{2}
+failure.metrics	航程 {0} 回合 · 出牌 {1} · 机体受损 {2} · 过热 {3}	{0} turns · {1} cards · {2} hull damage · {3} overheats
+failure.telegraphs	灾变：打断 {0} / 规避 {1} / 命中 {2}　·　追踪命中 {3}	Calamity: {0} interrupted / {1} evaded / {2} hit · Tracking hits {3}
+failure.same_seed	同种子复飞	RETRY SAME SEED
+failure.new_seed	同合同 · 新种子	SAME CONTRACT · NEW SEED
+failure.fixed_seed	挑战种子固定	CHALLENGE SEED LOCKED
+failure.retry_fixed_note	当前挑战锁定种子；可同种子验证策略，或调整合同后以同一挑战种子重新出发。失败已结算。	This challenge locks its seed. Retry to test a strategy or change contracts on the same challenge seed. The failed run is final.
+failure.none	无	NONE
 failure.unknown	未知威胁	UNKNOWN THREAT
 failure.direct	同航道直接攻击	DIRECT LANE ATTACK
 failure.block	航道封锁	LANE BLOCK
@@ -131,7 +301,7 @@ contract.BlackBoxRelay	幽灵黑匣	GHOST BLACK BOX
 contract_select.title	选择配送合同	SELECT DELIVERY CONTRACT
 contract_select.hangar	HANGAR // CARGO ASSIGNMENT	HANGAR // CARGO ASSIGNMENT
 contract_select.subtitle	每份合同同时带来专属被动与货物风险；利用被动构筑牌组，并保护3格完整度。	Each contract grants a unique passive and cargo risk. Build around its benefit and protect all 3 integrity.
-contract_select.controls	点击两侧货舱切换　滚轮 / 方向键浏览　1—4 快速定位	CLICK SIDE CARGO TO SWITCH  WHEEL / ARROWS BROWSE  1—4 LOCATE
+contract_select.controls	点击两侧货舱切换　滚轮 / 方向键浏览　1—5 快速定位	CLICK SIDE CARGO TO SWITCH  WHEEL / ARROWS BROWSE  1—5 LOCATE
 contract_select.integrity	货物完整度　■■■　3/3	CARGO INTEGRITY  ■■■  3/3
 contract_select.fail	合同风险	FAILURE CONDITION
 contract_select.passive	专属被动 // {0}	UNIQUE PASSIVE // {0}
@@ -175,6 +345,8 @@ enemy.ShieldLeech	盾蚀水蛭	SHIELD LEECH
 enemy.HandJammer	噪声织网	NOISE LATTICE
 enemy.HeatSeeker	热寻隼	HEAT-SEEKER
 enemy.SignalHijacker	协议劫持机	SIGNAL HIJACKER
+enemy.CurtainHerald	雷幕先导	CURTAIN HERALD
+enemy.FluxSkimmer	磁针鳐卫	FLUX SKIMMER
 event.open.FragileMedicine.title	失压医疗驳船	DEPRESSURIZED MEDICAL BARGE
 event.open.CryoSerum.title	冻裂冷却塔	FRACTURED COOLING TOWER
 event.open.StormCore.title	雷暴走私信标	STORM SMUGGLER BEACON
@@ -232,9 +404,138 @@ event.story.result.betrayed	坐标售出：+{0}邮票，机体-2，货物完整�
 event.story.result.repaid	债务结清：-{0}邮票，机体修复{1}，货物完整度恢复{2}格	Debt repaid: -{0} Stamps, repaired {1} Hull, restored {2} Cargo Integrity
 event.story.result.defied	强行突围：+{0}邮票，机体-5，货物完整度-1；追债信标已烧毁	Forced breakout: +{0} Stamps, Hull -5, Cargo Integrity -1; collection beacon burned
 event.continue	继续航行	CONTINUE
-event.irreversible	事件选择不可撤销，并会改变后续信标纪事。	This choice cannot be undone and will alter later Signal Thread events.
+event.irreversible	三条事件路线均不可撤销，并会改变后续信标纪事与构筑。	All three routes are irreversible and alter both the Signal Thread and your build.
 event.confirm	确认选择	CONFIRM
 map.route_status	区域 {0}/{1} // 情报范围 2 // 信标纪事：{2}	SECTOR {0}/{1} // INTEL RANGE 2 // SIGNAL THREAD: {2}
+map.title	风车群岛分支航线	WINDMILL ARCHIPELAGO ROUTE
+map.act_status	第 {0} 幕 / 3 · {1}　//　区域 {2}/{3}　//　信标纪事：{4}	ACT {0} / 3 · {1}  //  SECTOR {2}/{3}  //  SIGNAL THREAD: {4}
+map.node_detail	{0}\n预期产出：{1}　//　空域：{2}	{0}\nEXPECTED: {1}  //  AIRSPACE: {2}
+map.enter_boss	挑战首领	CHALLENGE BOSS
+map.enter_node	前往 {0}	ENTER {0}
+map.scroll_help	滚轮 / 航标拖动浏览路线	WHEEL / ROUTE BAR TO BROWSE
+map.risk.low	低风险	LOW RISK
+map.risk.variable	风险交易	RISK TRADE
+map.risk.standard	标准威胁	STANDARD
+map.risk.high	高风险	HIGH RISK
+map.risk.severe	严重威胁	SEVERE
+map.risk.extreme	终局威胁	FINALE
+map.reward.shop	购买卡牌、模块与维修	CARDS, MODULES, REPAIRS
+map.reward.event	三分支纪事、删牌与风险交易	THREE-WAY STORY, PURGE, OR RISK TRADE
+map.reward.rest	维修、强化或删牌	REPAIR, UPGRADE, OR REMOVE
+map.reward.elite	稀有模块与高额邮票	RARE MODULE AND HIGH STAMPS
+map.reward.hunt	卡牌与追猎报酬	CARD AND HUNT BOUNTY
+map.reward.boss	终局结局与合同精通	ENDING AND CONTRACT MASTERY
+map.reward.skirmish	卡牌与邮票	CARD AND STAMPS
+run_act.departure	离港构筑	DEPARTURE
+run_act.pivot	改装转折	RETROFIT
+run_act.final	终局进场	APPROACH
+departure.title	离港派遣条款	DEPARTURE CLAUSE
+departure.header	ACT I // DEPARTURE CLAUSE	ACT I // DEPARTURE CLAUSE
+departure.subtitle	在第一架敌机升空前确定本局开场优势；收益会立即生效，条款签署后不可更改。	Choose your opening edge before first contact. The clause applies immediately and cannot be changed.
+departure.contract	合同 // {0}　初始牌组 {1} 张　机体 {2}/{3}　货物 {4}/3	CONTRACT // {0}  STARTER {1}  HULL {2}/{3}  CARGO {4}/3
+departure.standard.title	标准舱单	STANDARD MANIFEST
+departure.standard.badge	稳健 // 邮票 +10	STEADY // +10 STAMPS
+departure.standard.benefit	携带常规周转金离港，保留完整机体与货物。	Depart with routine working capital and preserve full Hull and Cargo.
+departure.standard.cost	无附加代价。适合先观察首段路线再决定构筑。	No added cost. Read the opening route before committing your build.
+departure.advance.title	预支报酬	ADVANCE PAYMENT
+departure.advance.badge	高周转 // 邮票 +32	HIGH LIQUIDITY // +32 STAMPS
+departure.advance.benefit	提前获得大额邮票，可在首个补给站快速成形。	Take a large advance to shape the deck at the first supply stop.
+departure.advance.cost	货物完整度 -1。更高购买力换来更脆弱的合同。	Cargo Integrity -1. More buying power leaves the contract exposed.
+departure.hot.title	热启动	HOT LAUNCH
+departure.hot.badge	构筑先手 // 核心牌 A	BUILD TEMPO // CORE CARD A
+departure.hot.benefit	立即写入合同核心牌的增幅分支，全部同名副本共享。	Write the Alpha branch to the contract core card and all matching copies.
+departure.hot.cost	机体 -6。用早期结构损伤换取从第一战开始的构筑方向。	Hull -6. Trade early structure for a defined build from battle one.
+departure.sign	签署条款	SIGN CLAUSE
+departure.note	三项条款只改变本局开场资源，不提供永久属性加成。	Clauses only alter this run's opening state and grant no permanent power.
+run_structure.unavailable	条件不足	UNAVAILABLE
+controller.departure	左摇杆选择　[A] 签署条款　[MENU] 暂停	STICK SELECT  [A] SIGN  [MENU] PAUSE
+controller.final_approach	左摇杆选择　[A] 执行方案　[MENU] 暂停	STICK SELECT  [A] EXECUTE  [MENU] PAUSE
+controller.settings	左摇杆选择 / 调整　[A] 确认　[B] 返回	STICK SELECT / ADJUST  [A] CONFIRM  [B] BACK
+controller.battle	左摇杆选择　[A] 确认　[Y] 结束回合　[MENU] 暂停	STICK SELECT  [A] CONFIRM  [Y] END TURN  [MENU] PAUSE
+controller.retrofit	左摇杆选择　[A] 执行永久改装　[MENU] 暂停	STICK SELECT  [A] INSTALL RETROFIT  [MENU] PAUSE
+controller.default	左摇杆选择　[A] 确认　[B] 返回　[MENU] 暂停	STICK SELECT  [A] CONFIRM  [B] BACK  [MENU] PAUSE
+final_approach.title	终局进场方案	FINAL APPROACH PLAN
+final_approach.header	ACT III // FINAL APPROACH	ACT III // FINAL APPROACH
+final_approach.subtitle	终局前哨已进入雷达。执行一次不可逆的战前整备，或保持当前构筑直接进场。	The finale screen is on radar. Make one irreversible preparation or hold the current build.
+final_approach.status	机体 {0}/{1}　//　货物 {2}/3　//　邮票 {3}　//　牌组 {4}　//　模块 {5}	HULL {0}/{1}  //  CARGO {2}/3  //  STAMPS {3}  //  DECK {4}  //  MODULES {5}
+final_approach.patch.title	战地补片	FIELD PATCH
+final_approach.patch.badge	结构整备 // 恢复 10	STRUCTURE // RESTORE 10
+final_approach.patch.benefit	在终局前修复 10 点机体耐久，降低先遣战连续受损的压力。	Restore 10 Hull before the finale and absorb damage across the prelude.
+final_approach.patch.cost	支付 20 枚邮票。机体完整或邮票不足时无法执行。	Pay 20 Stamps. Unavailable at full Hull or without enough Stamps.
+final_approach.trim.title	抛弃冗余	DEADWEIGHT TRIM
+final_approach.trim.badge	牌组整备 // 删除 1 张	DECK PREP // REMOVE 1
+final_approach.trim.benefit	从当前牌组删除任意一张卡牌副本，让终局循环更集中。	Remove any one card copy to focus the deck's finale cycle.
+final_approach.trim.cost	不获得机体或资源补偿；删除确认后不可撤销。	No Hull or resource compensation. The confirmed removal is final.
+final_approach.overclock.title	货舱超频	CARGO OVERCLOCK
+final_approach.overclock.badge	合同模块 // {0}	CONTRACT MODULE // {0}
+final_approach.overclock.complete	合同模块 // 已全部安装	CONTRACT MODULE // ALL INSTALLED
+final_approach.overclock.benefit	安装一枚尚未持有的合同协同模块，立即改变终局战斗循环。	Install a missing contract module and reshape the finale combat loop.
+final_approach.overclock.cost	货物完整度 -1；货物只剩 1 点时禁止执行。	Cargo Integrity -1. Disabled when only 1 Cargo remains.
+final_approach.execute	执行方案	EXECUTE PLAN
+final_approach.hold	保持航向 // 不改变当前状态	HOLD COURSE // KEEP CURRENT STATE
+final_trim.title	终局抛弃清单	FINALE TRIM MANIFEST
+final_trim.subtitle	选择一种卡牌并永久删除其中一张副本；确认后将直接进入终局前哨航线。	Remove one card copy permanently, then proceed directly to the finale prelude route.
+final_trim.cancel	返回进场方案	BACK TO APPROACH PLAN
+final_trim.note	终局整备 // 可移除任意 1 张卡牌副本；不设置牌组或伤害牌下限	FINALE PREP // REMOVE ANY COPY; NO DECK OR DAMAGE-CARD FLOOR
+purge.title	精简指令牌组	TRIM COMMAND DECK
+purge.subtitle	选择一种卡牌并删除其中一张副本；被删除的卡牌不会进入本场配送的弃牌堆。	Choose a card and remove one copy; it does not enter this run's discard pile.
+purge.deck_status	牌组 {0}　伤害牌 {1}	DECK {0}  DAMAGE CARDS {1}
+purge.page	牌页 {0} / {1}	PAGE {0} / {1}
+purge.cancel	取消精简，返回维修坞	CANCEL AND RETURN TO DOCK
+purge.note	构筑自治 // 本次停靠可移除任意 1 张卡牌副本	BUILD AUTONOMY // REMOVE ANY ONE CARD COPY AT THIS DOCK
+event.story.mid.silent.title	回声二：静默拆解场	ECHO II: SILENT BREAKER YARD
+event.story.mid.silent.desc	你封存的广播没有消失，而是被一座无登记拆解场接收。这里可以继续保持静默，也可以重新接入援助或残骸网络。	The broadcast you sealed was caught by an unregistered breaker yard. Stay silent, or reconnect to the aid or salvage network.
+event.story.final.silent.title	回声终章：无声航标	FINAL ECHO: SILENT BEACON
+event.story.final.silent.desc	无声航标已经拼出一条不属于任何阵营的终局通路。最后一次裁掉冗余，便能带着完整的构筑记录进入风眼。	The silent beacon has assembled a finale route owned by no faction. Make one final cut and carry the completed build record into the eye.
+event.story.status.silent	原始广播已经封存	ORIGINAL BROADCAST SEALED
+event.story.status.silent_strong	静默航线保持完整	SILENT ROUTE INTACT
+event.story.status.silent_final	无声航标已经锁定	SILENT BEACON SECURED
+event.story.final.silent.safe	解封援助频段	UNSEAL THE AID BAND
+event.story.final.silent.risk	出售静默坐标	SELL THE SILENT COORDINATES
+event.story.final.silent.safe_desc	将全部【{0}】改写为B分支，并修复6点机体。	Rewrite every [{0}] to Branch B and repair 6 Hull.
+event.story.mid.silent.safe	重新接入援助网	REJOIN THE AID NETWORK
+event.story.mid.silent.risk	广播拆解坐标	BROADCAST THE BREAKER COORDINATES
+event.story.result.silent_cooperate	静默解封：{0}+B，机体修复{1}；航线重新接入援助网络	Silence lifted: {0}+B, repaired {1} Hull; the route rejoins the aid network
+event.story.result.silent_risk	静默坐标售出：+{0}邮票，机体-3，货物完整度-1	Silent coordinates sold: +{0} Stamps, Hull -3, Cargo Integrity -1
+event.choice.independent	静默路线	SILENT ROUTE
+event.independent.open.title	切断广播链路	CUT THE BROADCAST CHAIN
+event.independent.mid.title	执行静默拆解	RUN A SILENT BREAKDOWN
+event.independent.final.title	封存无声航标	SEAL THE SILENT BEACON
+event.independent.open.desc	删除任意1张牌并获得18枚邮票。\n后续事件将沿静默航线展开。	Remove any 1 card and gain 18 Stamps.\nLater events follow the Silent Route.
+event.independent.mid.desc	删除任意1张牌，获得12枚邮票，并将【{0}】改写为B分支。	Remove any 1 card, gain 12 Stamps, and rewrite [{0}] to Branch B.
+event.independent.final.desc	删除任意1张牌，并安装【{0}】。\n纪事转入中立无声结局。	Remove any 1 card and install [{0}].\nThe thread enters a neutral Silent ending.
+event.independent.final.fallback	删除任意1张牌，获得25枚邮票。\n纪事转入中立无声结局。	Remove any 1 card and gain 25 Stamps.\nThe thread enters a neutral Silent ending.
+event.independent.result.open	广播已封存：移除【{0}】，获得{1}邮票	Broadcast sealed: removed [{0}], gained {1} Stamps
+event.independent.result.mid	静默拆解完成：移除【{0}】，获得{1}邮票，{2}+B	Silent breakdown complete: removed [{0}], gained {1} Stamps, {2}+B
+event.independent.result.final_module	无声航标锁定：移除【{0}】，安装【{1}】	Silent beacon secured: removed [{0}], installed [{1}]
+event.independent.result.final_credits	无声航标锁定：移除【{0}】，获得{1}邮票	Silent beacon secured: removed [{0}], gained {1} Stamps
+event.purge.title	静默舱单裁切	SILENT MANIFEST CUT
+event.purge.subtitle	选择一种卡牌并永久删除其中一张副本，随后结算静默事件分支。	Choose a card and permanently remove one copy, then resolve the Silent event branch.
+event.purge.cancel	取消裁切，返回事件	CANCEL CUT AND RETURN TO EVENT
+event.purge.note	静默分支 // 可在确认删除前返回事件重新选择	SILENT BRANCH // RETURN TO THE EVENT BEFORE CONFIRMING THE CUT
+shop.subtitle.v049	购买新牌，或在航线工坊中维修、删牌与重写卡牌分支。	Buy new cards, or use the route workshop to repair, purge, and rewrite card branches.
+shop.workbench	ROUTE WORKBENCH // 航线工坊	ROUTE WORKBENCH
+shop.service.repair	结构维修 // 恢复12机体	HULL REPAIR // RESTORE 12
+shop.service.purge	拆牌台 // 删除任意1张	PURGE BENCH // REMOVE ANY 1
+shop.service.calibrate	分支改写 // 任意卡牌 A / B	BRANCH REWRITE // ANY CARD A / B
+shop.service.used	本停靠已使用	USED AT THIS STOP
+shop.service.cost	{0} 邮票	{0} STAMPS
+shop.purge.title	补给站拆牌台	SUPPLY-STOP PURGE BENCH
+shop.purge.subtitle	支付{0}邮票，选择一种卡牌并永久删除其中一张副本。	Pay {0} Stamps and permanently remove one copy of a selected card.
+shop.purge.cancel	取消拆牌，返回补给站	CANCEL PURGE AND RETURN TO SHOP
+shop.purge.note	付费精简 // 本补给站限用一次；不设置牌组或伤害牌下限	PAID TRIM // ONCE PER STOP; NO DECK OR DAMAGE-CARD FLOOR
+workshop.select.title	航线工坊：选择改写卡牌	ROUTE WORKSHOP: SELECT A CARD
+workshop.select.subtitle	选择一种现有卡牌，再决定写入A增幅分支或B机制分支；全部同名副本共享。	Select an owned card, then write Branch A for power or Branch B for mechanics; all copies share it.
+workshop.cost	费用 {0} 邮票	COST {0} STAMPS
+workshop.cancel	取消改写，返回补给站	CANCEL REWRITE AND RETURN TO SHOP
+workshop.select.note	改写不会增加卡牌副本；已强化卡牌可以切换分支。	A rewrite adds no copies; an upgraded card may switch branches.
+workshop.unmodified	未改写	UNMODIFIED
+workshop.branch.title	卡牌分支改写	CARD BRANCH REWRITE
+workshop.branch.subtitle	为全部【{0}】写入分支；确认后支付{1}邮票。	Write a branch to every [{0}]; confirmation costs {1} Stamps.
+workshop.overwrite	将覆盖当前分支	CURRENT BRANCH WILL BE OVERWRITTEN
+workshop.write_alpha	写入 A 分支	WRITE BRANCH A
+workshop.write_beta	写入 B 分支	WRITE BRANCH B
+workshop.branch.back	返回卡牌清单	BACK TO CARD LIST
 complete.story_seed	信标纪事 // {0}　|　RUN SEED // {1}	SIGNAL THREAD // {0}  |  RUN SEED // {1}
 boss.matrix.summary	BOSS MATRIX // {0} · {1} · {2}	BOSS MATRIX // {0} · {1} · {2}
 boss.matrix.contract_line	合同反制 // {0}	CONTRACT COUNTER // {0}
@@ -331,3 +632,308 @@ retrofit.hud.None	标准机体	STANDARD AIRFRAME
 retrofit.hud.SealedBulkhead	回合护盾5 / 手牌4	5 SHIELD / 4 CARDS
 retrofit.hud.OpenAvionics	手牌6 / 回合暴露+1	6 CARDS / +1 TRACE
 retrofit.hud.RedlineTurbine	能量4 / 无自然冷却	4 ENERGY / NO PASSIVE COOLING
+challenge.title	派遣任务	DEPLOYMENT ASSIGNMENT
+challenge.subtitle	选择本局规则。固定种子挑战只记录技巧与成绩，不提供永久属性加成。	Choose this run's rules. Fixed-seed challenges record skill and scores without permanent stat bonuses.
+challenge.board	任务板 // 标准配送 + 3 项固定挑战	ASSIGNMENT BOARD // STANDARD + 3 FIXED CHALLENGES
+challenge.controls	点击派遣卡　方向键选择　1—4 快速开始　ESC 返回	CLICK AN ASSIGNMENT  ARROWS SELECT  1—4 START  ESC BACK
+challenge.depart	接受派遣	ACCEPT ASSIGNMENT
+challenge.next_goal	下一局追求 // {0}	NEXT-RUN PURSUIT // {0}
+challenge.progress	完成 {0} / 尝试 {1}　最佳货物 {2}	CLEARED {0} / ATTEMPTS {1}  BEST CARGO {2}
+challenge.random_seed	每局随机种子	RANDOM SEED EACH RUN
+challenge.standard_note	标准规则 // 不计入固定挑战完成数	STANDARD RULES // NOT COUNTED AS A FIXED CHALLENGE
+challenge.untried	尚未完成	NOT YET CLEARED
+challenge.Standard.name	标准配送	STANDARD DELIVERY
+challenge.Standard.rule	完整机体、自然冷却与战后自动修复；每局使用新种子。	Full hull, natural cooling, and post-battle field repairs; a fresh seed each run.
+challenge.RedlineRelay.name	红线接力	REDLINE RELAY
+challenge.RedlineRelay.rule	每场战斗从3点热量开始。固定种子用于比较构筑与路线。	Start every battle with 3 Heat. A fixed seed makes builds and routes comparable.
+challenge.NoSafeHarbor.name	无安全港	NO SAFE HARBOR
+challenge.NoSafeHarbor.rule	战斗胜利后不再自动修复机体；维修坞与商店仍可使用。	No automatic hull repair after victories; repair docks and shops remain available.
+challenge.LeanManifest.name	轻装清单	LEAN MANIFEST
+challenge.LeanManifest.rule	以28点机体开始配送，必须更谨慎地规划护盾、维修与风险。	Start with 28 Hull, demanding tighter shield, repair, and risk planning.
+contract.SignalSeed	信标种子	SIGNAL SEED
+contract_select.build.SignalSeed	余量调度 / 指令循环	RESERVE ROUTING / COMMAND LOOP
+contract_select.passive_name.SignalSeed	余量回授	RESERVE FEEDBACK
+contract_select.passive_desc.SignalSeed	每回合首次支付费用后恰好保留1点能量时，抽1张牌。	The first card each turn that leaves exactly 1 Energy after payment draws 1 card.
+contract_hud.passive.SignalSeed	余量回授 · 首次保留1能量 → 抽1	RESERVE FEEDBACK · FIRST 1 ENERGY → DRAW 1
+contract_select.reward.SignalSeed	报酬 +20%	PAY +20%
+contract_select.rule.SignalSeed	回合结束时能量为0，则失去1格完整度。	Lose 1 integrity when ending the turn with 0 Energy.
+contract_select.integrity_mastery	货物完整度 {0}　//　精通 {1}	CARGO INTEGRITY {0}  //  MASTERY {1}
+card.ReserveShot.name	余量点射	RESERVE SHOT
+card.StandbyField.name	待机力场	STANDBY FIELD
+card.TightSchedule.name	紧凑班次	TIGHT SCHEDULE
+card.RelayStep.name	中继变轨	RELAY STEP
+card.ReserveRouting.name	余量调度	RESERVE ROUTING
+card.BurstFire.rules	对同航道首个敌人造成6点伤害。	DEAL 6 DAMAGE TO THE FIRST ENEMY IN YOUR LANE.
+card.BankUp.rules	向上移动1条航道，获得3点护盾。	MOVE UP 1 LANE. GAIN 3 SHIELD.
+card.BankDown.rules	向下移动1条航道，获得3点护盾。	MOVE DOWN 1 LANE. GAIN 3 SHIELD.
+card.EmergencyCoolant.rules	降低3点热量。	REMOVE 3 HEAT.
+card.BroadsideVolley.rules	对所有敌人造成3点伤害。	DEAL 3 DAMAGE TO ALL ENEMIES.
+card.WindGuard.rules	获得6点护盾。	GAIN 6 SHIELD.
+card.OverloadAim.rules	对同航道造成10点伤害；已有4点热量时额外造成3点。	DEAL 10 DAMAGE IN YOUR LANE. DEAL 3 MORE IF YOU HAVE AT LEAST 4 HEAT.
+card.EngineOverclock.rules	获得1点能量。	GAIN 1 ENERGY.
+card.TargetLock.rules	获得1层锁定；穿甲轨炮会消耗锁定并增伤。	GAIN 1 LOCK-ON. RAIL PIERCER SPENDS LOCK-ON FOR MORE DAMAGE.
+card.RailPiercer.rules	造成8点伤害；每层锁定额外造成5点伤害并消耗全部锁定。	DEAL 8 DAMAGE. DEAL 5 MORE PER LOCK-ON, THEN SPEND ALL LOCK-ON.
+card.VectorDash.rules	向下移动1条航道；已在最下方时改为向上。获得2点护盾与1层动量。	MOVE DOWN 1 LANE, OR UP IF ALREADY AT THE BOTTOM. GAIN 2 SHIELD AND 1 MOMENTUM.
+card.PursuitShot.rules	造成5点伤害；每层动量额外造成4点伤害并消耗全部动量。	DEAL 5 DAMAGE. DEAL 4 MORE PER MOMENTUM, THEN SPEND ALL MOMENTUM.
+card.ReactivePlating.rules	获得7点护盾，为护盾冲角储备伤害。	GAIN 7 SHIELD TO CHARGE AEGIS RAM.
+card.AegisRam.rules	造成4点伤害，并追加最多10点当前护盾值，然后清空护盾。	DEAL 4 DAMAGE PLUS UP TO 10 OF YOUR CURRENT SHIELD, THEN LOSE ALL SHIELD.
+card.CryoPump.rules	降低4点热量；若实际降低至少3点，获得1点能量。	REMOVE 4 HEAT. IF AT LEAST 3 WAS REMOVED, GAIN 1 ENERGY.
+card.FrostLance.rules	造成7点伤害；出牌前热量不高于2时额外造成5点。	DEAL 7 DAMAGE. DEAL 5 MORE IF YOU HAD 2 OR LESS HEAT.
+card.HeatCharge.rules	获得2点能量，同时增加3点热量。	GAIN 2 ENERGY AND 3 HEAT.
+card.MeltdownBurst.rules	对所有敌人造成2点加当前热量的伤害，然后清空热量。	DEAL 2 PLUS YOUR HEAT TO ALL ENEMIES, THEN CLEAR ALL HEAT.
+card.Scattershot.rules	对所有敌人造成2点伤害。	DEAL 2 DAMAGE TO ALL ENEMIES.
+card.MissileSwarm.rules	发射4枚飞弹，每枚对随机敌人造成2点伤害。	FIRE 4 MISSILES THAT EACH DEAL 2 DAMAGE TO A RANDOM ENEMY.
+card.SignalScrambler.rules	清除全部航迹暴露，获得5点护盾。	CLEAR ALL TRACE EXPOSURE. GAIN 5 SHIELD.
+card.CounterPursuit.rules	追踪最低耐久敌人造成7点伤害；每层航迹暴露额外造成6点，随后清除暴露。	TRACK THE LOWEST-HEALTH ENEMY FOR 7 DAMAGE PLUS 6 PER EXPOSURE, THEN CLEAR EXPOSURE.
+card.AirBrake.rules	降低1层航迹暴露并获得5点护盾；若成功降低，获得1点能量。	REMOVE 1 EXPOSURE AND GAIN 5 SHIELD. IF EXPOSURE WAS REMOVED, GAIN 1 ENERGY.
+card.InterceptMine.rules	对所有不同航道的敌人造成6点伤害。	DEAL 6 DAMAGE TO ALL ENEMIES OUTSIDE YOUR LANE.
+card.LockCascade.rules	获得1层锁定；已有锁定时额外对同航道造成4点伤害。	GAIN 1 LOCK-ON. IF YOU ALREADY HAD LOCK-ON, DEAL 4 DAMAGE IN YOUR LANE.
+card.SlipstreamStrike.rules	造成5点加每层动量2点的伤害，且不消耗动量。	DEAL 5 DAMAGE PLUS 2 PER MOMENTUM WITHOUT SPENDING MOMENTUM.
+card.PrismEcho.rules	获得5点护盾，并对同航道造成当前护盾一半的伤害。	GAIN 5 SHIELD, THEN DEAL HALF YOUR CURRENT SHIELD IN YOUR LANE.
+card.ZeroPointCalibration.rules	降低3点热量；若实际降低3点，使下一次攻击必定暴击。	REMOVE 3 HEAT. IF ALL 3 WAS REMOVED, YOUR NEXT ATTACK IS A GUARANTEED CRITICAL.
+card.RedlineIgnition.rules	获得2点能量并增加3点热量；高热时使下一次攻击必定暴击。	GAIN 2 ENERGY AND 3 HEAT. AT HIGH HEAT, YOUR NEXT ATTACK IS A GUARANTEED CRITICAL.
+card.SwarmBeacon.rules	校准蜂群链路，使下一张齐射或飞弹牌获得额外伤害。	CALIBRATE THE SWARM SO YOUR NEXT VOLLEY OR MISSILE CARD DEALS EXTRA DAMAGE.
+card.GhostProtocol.rules	主动获得1层航迹暴露，追踪最低耐久敌人造成6点加每层暴露5点的伤害。	GAIN 1 EXPOSURE, THEN TRACK THE LOWEST-HEALTH ENEMY FOR 6 DAMAGE PLUS 5 PER EXPOSURE.
+card.ReactiveSeal.rules	获得6点护盾；若有锁定，消耗1层锁定并再获得6点护盾。	GAIN 6 SHIELD. IF YOU HAVE LOCK-ON, SPEND 1 TO GAIN 6 MORE.
+card.PhaseExchange.rules	清空热量；每实际降低3点热量抽1张牌，最多抽2张。	CLEAR ALL HEAT. DRAW 1 CARD PER 3 HEAT REMOVED, UP TO 2.
+card.EyeTransit.rules	直接穿越至另一侧外航道；每跨越1条航道获得1层动量。	CROSS TO THE OPPOSITE OUTER LANE. GAIN 1 MOMENTUM PER LANE CROSSED.
+card.FalseTelemetry.rules	主动获得2层航迹暴露，然后抽2张牌。	GAIN 2 TRACE EXPOSURE, THEN DRAW 2 CARDS.
+card.ReserveShot.rules	对同航道造成8点伤害；支付费用后恰好剩1点能量时额外造成4点。	DEAL 8 DAMAGE IN YOUR LANE. DEAL 4 MORE IF PAYING THE COST LEAVES EXACTLY 1 ENERGY.
+card.StandbyField.rules	获得6点护盾；支付费用后恰好剩1点能量时再获得4点。	GAIN 6 SHIELD, PLUS 4 IF PAYING THE COST LEAVES EXACTLY 1 ENERGY.
+card.TightSchedule.rules	抽2张牌；支付费用后恰好剩1点能量时获得1层锁定。	DRAW 2 CARDS. GAIN 1 LOCK-ON IF PAYING THE COST LEAVES EXACTLY 1 ENERGY.
+card.RelayStep.rules	切换至对侧外航道并获得1层动量；保留1点能量时清除1层航迹暴露。	SHIFT TO THE OPPOSITE OUTER LANE AND GAIN 1 MOMENTUM. IF 1 ENERGY REMAINS, REMOVE 1 EXPOSURE.
+card.ReserveRouting.rules	获得4点护盾；支付费用后恰好剩1点能量时抽2张牌。	GAIN 4 SHIELD. DRAW 2 CARDS IF PAYING THE COST LEAVES EXACTLY 1 ENERGY.
+card.ThermalBarrier.rules	降低最多3点热量；每实际降低1点，获得2点护盾。	REMOVE UP TO 3 HEAT. GAIN 2 SHIELD FOR EACH HEAT REMOVED.
+card.CapacitorDump.rules	消耗4点护盾，获得1点能量与1层锁定。	SPEND 4 SHIELD TO GAIN 1 ENERGY AND 1 LOCK-ON.
+card.KineticBroadside.rules	对所有敌人造成2点加当前动量的伤害，不消耗动量。	DEAL 2 PLUS YOUR MOMENTUM TO ALL ENEMIES WITHOUT SPENDING MOMENTUM.
+card.TracerSwarm.rules	发射4枚2点飞弹；若有锁定，消耗1层并额外发射2枚。	FIRE FOUR 2-DAMAGE MISSILES. IF YOU HAVE LOCK-ON, SPEND 1 TO FIRE TWO MORE.
+card.QueueDirective.rules	消耗1层锁定并抽2张牌；支付后剩1点能量时再获得4点护盾。	SPEND 1 LOCK-ON AND DRAW 2 CARDS. GAIN 4 SHIELD IF 1 ENERGY REMAINS AFTER PAYMENT.
+card.EmergencySort.rules	弃掉其余手牌，再抽取相同数量加1张牌。消耗。	DISCARD THE REST OF YOUR HAND, THEN DRAW THAT MANY PLUS 1. EXHAUST.
+card.HoldFormation.rules	获得4点护盾与1层航迹暴露；本回合结束时保留其余手牌。	GAIN 4 SHIELD AND 1 EXPOSURE. RETAIN THE REST OF YOUR HAND THIS TURN.
+card.ArmorySearch.rules	从抽牌堆检索1张武器牌；没有武器牌时改为抽1张。	FETCH 1 WEAPON FROM YOUR DRAW PILE; IF NONE REMAIN, DRAW 1 CARD.
+card.AblativeFoam.rules	获得3点护盾；此前没有护盾时再获得3点。	GAIN 3 SHIELD, PLUS 3 IF YOU HAD NO SHIELD.
+card.PrecisionSeal.rules	获得5点护盾与1层锁定。	GAIN 5 SHIELD AND 1 LOCK-ON.
+card.LockBastion.rules	获得5点护盾；每层锁定再获得4点，随后消耗全部锁定。	GAIN 5 SHIELD PLUS 4 PER LOCK-ON, THEN SPEND ALL LOCK-ON.
+card.MirrorPlating.rules	获得6点护盾，并对同航道造成当前护盾一半的伤害。	GAIN 6 SHIELD, THEN DEAL HALF YOUR CURRENT SHIELD IN YOUR LANE.
+card.BulkheadPulse.rules	对所有敌人造成当前护盾三分之一的伤害，至少造成2点。	DEAL ONE THIRD OF YOUR SHIELD TO ALL ENEMIES, MINIMUM 2.
+card.CompressionRam.rules	对同航道造成6点加当前护盾的伤害，随后保留一半护盾。	DEAL 6 PLUS YOUR CURRENT SHIELD IN YOUR LANE, THEN KEEP HALF YOUR SHIELD.
+card.CargoScreen.rules	获得12点护盾；若这是手中最后一张牌，抽1张牌。	GAIN 12 SHIELD. IF THIS IS YOUR LAST CARD IN HAND, DRAW 1.
+card.ImpactLedger.rules	拥有至少8点护盾时抽2张牌；否则抽1张并获得1层锁定。	IF YOU HAVE AT LEAST 8 SHIELD, DRAW 2; OTHERWISE DRAW 1 AND GAIN 1 LOCK-ON.
+card.SealantRecycle.rules	消耗最多6点护盾并降低等量热量；消耗满6点时抽1张牌。	SPEND UP TO 6 SHIELD TO REMOVE THE SAME HEAT. IF 6 WAS SPENT, DRAW 1.
+card.BraceForImpact.rules	获得8点护盾；手中仍有防御牌时再获得3点。	GAIN 8 SHIELD, PLUS 3 IF ANOTHER DEFENSE CARD REMAINS IN HAND.
+card.ParcelAegis.rules	获得18点护盾；若有锁定，消耗1层并抽2张牌。	GAIN 18 SHIELD. IF YOU HAVE LOCK-ON, SPEND 1 AND DRAW 2 CARDS.
+card.LastStandCourier.rules	追踪最低耐久敌人造成10点伤害；机体不高于一半时额外造成8点。	TRACK THE LOWEST-HEALTH ENEMY FOR 10 DAMAGE, PLUS 8 IF YOUR HULL IS AT OR BELOW HALF.
+card.FlashFreeze.rules	降低2点热量；若热量降至0，获得5点护盾。	REMOVE 2 HEAT. IF HEAT REACHES 0, GAIN 5 SHIELD.
+card.ThermalBattery.rules	降低最多3点热量；实际降低至少2点时获得1点能量。	REMOVE UP TO 3 HEAT. IF AT LEAST 2 WAS REMOVED, GAIN 1 ENERGY.
+card.SuperheatedCoolant.rules	抽2张牌；出牌前热量至少4点时再降低2点热量。	DRAW 2 CARDS. IF YOU HAD AT LEAST 4 HEAT, ALSO REMOVE 2 HEAT.
+card.HeatSinkLance.rules	对同航道造成6点伤害并降低2点热量；实际降温时额外造成4点。	DEAL 6 DAMAGE IN YOUR LANE AND REMOVE 2 HEAT. DEAL 4 MORE IF HEAT WAS REMOVED.
+card.QuenchVolley.rules	对所有敌人造成3点伤害并降低2点热量。	DEAL 3 DAMAGE TO ALL ENEMIES AND REMOVE 2 HEAT.
+card.BoiloffArmor.rules	获得4点加当前热量的护盾，随后降低1点热量。	GAIN 4 PLUS YOUR CURRENT HEAT AS SHIELD, THEN REMOVE 1 HEAT.
+card.ColdStart.rules	热量为0时获得1点能量并抽1张牌；否则降低2点热量。	AT 0 HEAT, GAIN 1 ENERGY AND DRAW 1; OTHERWISE REMOVE 2 HEAT.
+card.IgnitionLoop.rules	获得2点能量；结算后热量至少5点时抽1张牌。	GAIN 2 ENERGY. IF YOU HAVE AT LEAST 5 HEAT AFTERWARD, DRAW 1.
+card.ReactorPurge.rules	追踪最低耐久敌人造成4点加热量两倍的伤害，然后清空热量。	TRACK THE LOWEST-HEALTH ENEMY FOR 4 PLUS TWICE YOUR HEAT, THEN CLEAR HEAT.
+card.WhiteoutProtocol.rules	低热时获得8点护盾；否则获得4点护盾并降低2点热量。	AT LOW HEAT GAIN 8 SHIELD; OTHERWISE GAIN 4 SHIELD AND REMOVE 2 HEAT.
+card.FurnaceWake.rules	对同航道造成7点伤害；出牌前热量至少4点时额外造成6点。	DEAL 7 DAMAGE IN YOUR LANE, PLUS 6 IF YOU HAD AT LEAST 4 HEAT.
+card.AbsoluteZero.rules	对所有敌人造成8点伤害；出牌前热量为0时改为14点。	DEAL 8 DAMAGE TO ALL ENEMIES, OR 14 IF YOU HAD 0 HEAT.
+card.CrosswindCut.rules	切换至对侧外航道，再对新航道造成6点伤害。	SHIFT TO THE OPPOSITE OUTER LANE, THEN DEAL 6 DAMAGE IN THE NEW LANE.
+card.MomentumGuard.rules	获得4点加每层动量3点的护盾。	GAIN 4 SHIELD PLUS 3 PER MOMENTUM.
+card.DriftFire.rules	对同航道造成5点加每层动量3点的伤害，不消耗动量。	DEAL 5 DAMAGE IN YOUR LANE PLUS 3 PER MOMENTUM WITHOUT SPENDING IT.
+card.VectorLoop.rules	切换至对侧外航道，获得1层动量并抽1张牌。	SHIFT TO THE OPPOSITE OUTER LANE, GAIN 1 MOMENTUM, AND DRAW 1.
+card.TailwindCharge.rules	消耗1层动量，获得1点能量并抽1张牌。	SPEND 1 MOMENTUM TO GAIN 1 ENERGY AND DRAW 1.
+card.SpiralBarrage.rules	对所有敌人造成2点加每层动量2点的伤害，随后清空动量。	DEAL 2 PLUS 2 PER MOMENTUM TO ALL ENEMIES, THEN CLEAR MOMENTUM.
+card.SnapRoll.rules	切换至对侧外航道，降低1层航迹暴露并获得2点护盾。	SHIFT TO THE OPPOSITE OUTER LANE, REMOVE 1 EXPOSURE, AND GAIN 2 SHIELD.
+card.WakeMine.rules	对其他航道的敌人造成4点加当前动量的伤害，不消耗动量。	DEAL 4 PLUS YOUR MOMENTUM TO ENEMIES OUTSIDE YOUR LANE WITHOUT SPENDING IT.
+card.PursuitVector.rules	进入最低耐久敌人所在航道，并获得1层动量。	ENTER THE LOWEST-HEALTH ENEMY'S LANE AND GAIN 1 MOMENTUM.
+card.GaleBreak.rules	追踪最低耐久敌人造成8点加每层动量5点的伤害，随后清空动量。	TRACK THE LOWEST-HEALTH ENEMY FOR 8 PLUS 5 PER MOMENTUM, THEN CLEAR MOMENTUM.
+card.StormOrbit.rules	获得1层动量与1层航迹暴露并抽1张牌；本回合保留其余手牌。	GAIN 1 MOMENTUM, 1 EXPOSURE, AND DRAW 1. RETAIN THE REST OF YOUR HAND THIS TURN.
+card.TerminalDive.rules	对所有敌人造成5点加每层动量5点的伤害，随后清空动量。	DEAL 5 PLUS 5 PER MOMENTUM TO ALL ENEMIES, THEN CLEAR MOMENTUM.
+card.TraceHarvest.rules	降低1层航迹暴露；若成功，获得1点能量。	REMOVE 1 EXPOSURE. IF REMOVED, GAIN 1 ENERGY.
+card.ShadowLock.rules	获得1层航迹暴露与2层锁定。	GAIN 1 EXPOSURE AND 2 LOCK-ON.
+card.DecoyPacket.rules	获得1层航迹暴露并抽2张牌。	GAIN 1 EXPOSURE AND DRAW 2 CARDS.
+card.SilentBurst.rules	追踪最低耐久敌人造成8点伤害；没有暴露时额外造成6点。	TRACK THE LOWEST-HEALTH ENEMY FOR 8 DAMAGE, PLUS 6 IF YOU HAVE NO EXPOSURE.
+card.BroadcastMine.rules	对其他航道的敌人造成5点加每层暴露2点的伤害。	DEAL 5 PLUS 2 PER EXPOSURE TO ENEMIES OUTSIDE YOUR LANE.
+card.GhostShield.rules	清除全部航迹暴露，获得4点加每层清除量4点的护盾。	CLEAR ALL EXPOSURE. GAIN 4 SHIELD PLUS 4 PER STACK CLEARED.
+card.SignalLeech.rules	消耗1层锁定，获得1点能量并抽1张牌。	SPEND 1 LOCK-ON TO GAIN 1 ENERGY AND DRAW 1.
+card.BlindSpot.rules	切换至对侧外航道，降低1层航迹暴露并获得4点护盾。	SHIFT TO THE OPPOSITE OUTER LANE, REMOVE 1 EXPOSURE, AND GAIN 4 SHIELD.
+card.CounterSignal.rules	追踪最低耐久敌人造成6点加每层暴露4点的伤害，结算后保留1层暴露。	TRACK THE LOWEST-HEALTH ENEMY FOR 6 PLUS 4 PER EXPOSURE, THEN KEEP 1 EXPOSURE.
+card.BlackoutVolley.rules	对所有敌人造成2点加每层暴露3点的伤害，随后清除全部暴露。	DEAL 2 PLUS 3 PER EXPOSURE TO ALL ENEMIES, THEN CLEAR EXPOSURE.
+card.DeadDrop.rules	获得1层锁定并抽1张牌。消耗。	GAIN 1 LOCK-ON AND DRAW 1. EXHAUST.
+card.ZeroSignature.rules	追踪最低耐久敌人；无暴露时造成18点，否则造成10点并清除暴露。	TRACK THE LOWEST-HEALTH ENEMY FOR 18 DAMAGE WITH NO EXPOSURE; OTHERWISE DEAL 10 AND CLEAR EXPOSURE.
+card.OnePointPlan.rules	剩余1点能量时抽2张牌；否则抽1张。	IF YOU HAVE EXACTLY 1 ENERGY, DRAW 2; OTHERWISE DRAW 1.
+card.ReserveCapacitor.rules	获得5点护盾；支付后剩1点能量时再获得1层锁定。	GAIN 5 SHIELD. IF PAYMENT LEAVES 1 ENERGY, ALSO GAIN 1 LOCK-ON.
+card.ScheduledShot.rules	对同航道造成6点伤害；支付后剩1点能量时额外造成3点。	DEAL 6 DAMAGE IN YOUR LANE, PLUS 3 IF PAYMENT LEAVES 1 ENERGY.
+card.DispatchLoop.rules	抽1张牌；支付后剩1点能量时改为抽2张。	DRAW 1 CARD, OR 2 IF PAYMENT LEAVES 1 ENERGY.
+card.LockVoucher.rules	消耗1层锁定并抽1张牌；支付后剩1点能量时获得1点能量并再抽1张。	SPEND 1 LOCK-ON AND DRAW 1. IF PAYMENT LEAVES 1 ENERGY, GAIN 1 ENERGY AND DRAW 1 MORE.
+card.DeferredVolley.rules	对所有敌人造成3点伤害；支付后剩1点能量时改为5点。	DEAL 3 DAMAGE TO ALL ENEMIES, OR 5 IF PAYMENT LEAVES 1 ENERGY.
+card.BudgetThruster.rules	切换至对侧外航道并获得3点护盾；支付后剩1点能量时返还1点。	SHIFT TO THE OPPOSITE OUTER LANE AND GAIN 3 SHIELD. REFUND 1 ENERGY IF PAYMENT LEAVES 1.
+card.SpareChannel.rules	抽1张牌；支付后剩1点能量时，本回合保留其余手牌。	DRAW 1. IF PAYMENT LEAVES 1 ENERGY, RETAIN THE REST OF YOUR HAND THIS TURN.
+card.ExactChange.rules	将超过1点的能量全部转化为护盾，每转化1点获得4点护盾。	CONVERT ALL ENERGY ABOVE 1 INTO 4 SHIELD EACH.
+card.QueueCollapse.rules	追踪最低耐久敌人，手牌越多伤害越高；支付后剩1点能量时抽1张。	TRACK THE LOWEST-HEALTH ENEMY; DEAL MORE DAMAGE WITH A LARGER HAND. DRAW 1 IF PAYMENT LEAVES 1 ENERGY.
+card.FinalAllocation.rules	获得6点加支付后剩余能量四倍的护盾。	GAIN 6 SHIELD PLUS 4 TIMES YOUR ENERGY REMAINING AFTER PAYMENT.
+card.PostalOverdrive.rules	追踪最低耐久敌人造成18点伤害；支付后剩1点能量时额外造成8点。	TRACK THE LOWEST-HEALTH ENEMY FOR 18 DAMAGE, PLUS 8 IF PAYMENT LEAVES 1 ENERGY.
+boss.protocol.contract.ReserveSiphon.name	余量虹吸	RESERVE SIPHON
+boss.protocol.contract.ReserveSiphon.rule	敌方阶段开始时若恰好保留1点能量，首领获得3点装甲。	If exactly 1 Energy remains when the enemy phase begins, the boss gains 3 Armor.
+event.open.SignalSeed.title	休眠信标苗圃	DORMANT BEACON NURSERY
+event.open.SignalSeed.desc	一片未登记的信标种子仍在交换微弱余量。接入它们可获得专属牌，但会压缩应急储备。	Unregistered beacon seeds still exchange faint reserve signals. Linking them grants a signature card but tightens emergency reserves.
+archive.tab.overview	履历总览	CAREER OVERVIEW
+archive.tab.progression	挑战与精通	CHALLENGES & MASTERY
+archive.tab.dossiers	首领与终局	BOSSES & ENDINGS
+archive.tab.stats	胜率分析	WIN-RATE ANALYSIS
+stats.header	已结算尝试胜率 // 仅统计有明确终局的本地记录	RESOLVED ATTEMPT WIN RATES // LOCAL FINAL RESULTS ONLY
+stats.note	Boss 仅统计实际到达样本	BOSSES COUNT REACHED FIGHTS ONLY
+stats.contract	合同胜率	CONTRACT WIN RATE
+stats.build	构筑胜率	BUILD WIN RATE
+stats.route	路线胜率	ROUTE WIN RATE
+stats.boss	Boss 胜率 // 实际到达	BOSS WIN RATE // REACHED ONLY
+stats.empty	尚无可统计的已结算样本。\n完成配送或记录一次失事后，这里会自动更新。	No resolved samples yet.\nComplete a delivery or record a loss to update this panel.
+stats.ratio	{0}/{1}　{2:0}%	{0}/{1}  {2:0}%
+stats.build.weapon	火力主轴	WEAPON CORE
+stats.build.maneuver	机动主轴	MANEUVER CORE
+stats.build.defense	防护主轴	DEFENSE CORE
+stats.build.utility	调度主轴	UTILITY CORE
+stats.build.hybrid	混合构筑	HYBRID BUILD
+stats.route.pressure	高压战线	PRESSURE LINE
+stats.route.service	补给航线	SERVICE LINE
+stats.route.silent	静默航线	SILENT LINE
+stats.route.mixed	混合航线	MIXED LINE
+debrief.build.unavailable	没有可用的构筑快照。	No build snapshot is available.
+debrief.build.summary	牌组 {0}（攻击 {1} / 支援 {2}）· 升级 {3}（分支 {4}）· 模块 {5} · 改装 {6}	Deck {0} ({1} attack / {2} support) · {3} upgrades ({4} branches) · {5} modules · {6}
+debrief.route.unavailable	没有足够的路线快照可供比较。	Not enough route snapshots are available.
+debrief.route.summary	路线净变化：邮票 {0} · 机体 {1} · 货物 {2}；入组 {3} / 删牌 {4}，升级 +{5}，模块 +{6}。	Route net: credits {0} · hull {1} · cargo {2}; {3} added / {4} purged, +{5} upgrades, +{6} modules.
+debrief.threat.unknown	未知威胁	UNKNOWN THREAT
+debrief.mistake.heat	热量管理失控：累计过热 {0} 次，最后由 {1} 造成 {2} 点机体损失。	Heat control failed: {0} overheats; {1} dealt the final {2} hull damage.
+debrief.mistake.hand	回合末手牌没有降到安全范围，{0} 借此造成了最后 {1} 点损失。	The end-turn hand stayed unsafe; {0} dealt the final {1} damage.
+debrief.mistake.position	航道应对不足：累计承受 {0} 次追踪命中，最后由 {1} 造成 {2} 点损失。	Positioning broke down: {0} tracking hits; {1} dealt the final {2} damage.
+debrief.mistake.telegraph	没有化解预告攻击：蓄力命中 {0} 次，打断 {1} / 规避 {2}，最后损失 {3} 点机体。	Telegraphed attacks went unanswered: {0} hits, {1} interrupted / {2} evaded; final hull loss {3}.
+debrief.mistake.damage	防护余量不足：全程累计受伤 {0} 点，{1} 造成了最后 {2} 点损失。	Defense margin was insufficient: {0} total hull damage; {1} dealt the final {2}.
+debrief.mistake.tempo	行动效率偏低：{0} 回合只打出 {1} 张牌，威胁累积速度超过了解场速度。	Low tempo: only {1} cards in {0} turns, allowing threats to outpace answers.
+debrief.mistake.contract	合同机制没有形成循环：整段航程只触发 {0} 次合同被动。	The contract engine never formed: only {0} passive triggers across the route.
+debrief.mistake.unknown	战斗记录不足以锁定单一失误；优先复查最后一回合的敌人意图与资源顺序。	Telemetry cannot isolate one mistake. Review enemy intents and resource order on the final turn.
+debrief.weakness.missing	构筑快照不完整，无法可靠判断牌组短板。	The build snapshot is incomplete, so no reliable weakness can be assigned.
+debrief.weakness.damage	输出密度不足：{0} 张牌中只有 {1} 张攻击牌，难以在预告窗口内完成打断。	Low damage density: only {1} attack cards in {0}, making telegraph interrupts unreliable.
+debrief.weakness.support	支援密度不足：{0} 张牌中只有 {1} 张非攻击牌，缺少防护、位移或冷却余量。	Low support density: only {1} non-attack cards in {0}; defense, movement, or cooling is scarce.
+debrief.weakness.bloat	牌组膨胀到 {0} 张，关键牌和已升级牌的回转速度明显下降。	The deck has grown to {0} cards, slowing core and upgraded card cycles.
+debrief.weakness.upgrade	强化投入分散：{0} 张牌组只有 {1} 张升级牌，核心循环缺少明确主轴。	Upgrade investment is thin: only {1} upgraded cards in a {0}-card deck.
+debrief.weakness.module	进入最终航段时仍没有模块，构筑缺少能稳定触发的被动支点。	No module was installed before final approach, leaving the build without a repeatable passive anchor.
+debrief.weakness.modification	进入改装航段后仍未确定机体方向，牌组没有围绕明确代价建立循环。	No airframe direction was chosen after retrofit, so the deck never covered a defined tradeoff.
+debrief.weakness.none	攻击、支援与强化密度处于合理区间；主要问题来自战斗执行而非构筑数量。	Attack, support, and upgrade density are reasonable; execution mattered more than build quantity.
+debrief.strategy.heat	新策略：保留至少 2 张主动冷却牌，并在结束回合前把热量压到 4 以下。	New plan: keep at least two active cooling cards and end turns below 4 Heat.
+debrief.strategy.hand	新策略：优先低费与弃牌工具，每回合先把手牌降到 4 张再处理输出。	New plan: prioritize cheap or discard tools and reduce the hand to four before damage.
+debrief.strategy.position	新策略：每轮保留 1 张位移牌，只在敌人意图确认后决定最终航道。	New plan: reserve one maneuver each round and choose the final lane after reading intents.
+debrief.strategy.telegraph	新策略：为预告回合预留位移或爆发，不在前一回合耗尽两种解法。	New plan: reserve movement or burst for telegraphs instead of spending both one turn early.
+debrief.strategy.damage	新策略：接下来两次奖励优先补攻击牌，把攻击占比提高到至少 30%。	New plan: take attack cards from the next two rewards until damage density reaches 30%.
+debrief.strategy.support	新策略：先补 2 张防护、位移或冷却牌，再接受新的纯输出奖励。	New plan: add two defense, movement, or cooling cards before taking more pure damage.
+debrief.strategy.bloat	新策略：把牌组控制在 17 张以内；跳过低协同奖励，并在下一站删掉 1 张基础牌。	New plan: keep the deck at 17 or fewer, skip weak rewards, and purge one starter card.
+debrief.strategy.upgrade	新策略：暂停扩牌，先把两张核心牌升级并为其中一张确定 A/B 分支。	New plan: stop adding cards, upgrade two core cards, and commit one to an A/B branch.
+debrief.strategy.module	新策略：在最终航段前锁定 1 个能被牌组稳定触发的模块。	New plan: secure one module the deck can trigger reliably before final approach.
+debrief.strategy.modification	新策略：到达改装点时立即选定机体方向，之后只拿能覆盖其代价的牌。	New plan: commit to an airframe at retrofit and draft only cards that cover its cost.
+debrief.strategy.review	新策略：先复查最后一回合敌人意图，再以同种子重开验证单一调整。	New plan: review the final intents, then retry the same seed with one deliberate change.
+debrief.strategy.tempo	新策略：降低平均费用，确保普通回合至少能打出 2 张有效牌。	New plan: lower average cost so ordinary turns produce at least two useful plays.
+debrief.strategy.contract	新策略：前两次选牌只选择能直接触发当前合同被动的卡牌。	New plan: use the first two drafts only on cards that directly trigger the contract passive.
+debrief.strategy.defense	新策略：每回合先覆盖已预告伤害，再把剩余能量投入输出。	New plan: cover telegraphed damage first, then spend remaining energy on offense.
+debrief.modification.sealed_bulkhead	密封隔舱	SEALED BULKHEAD
+debrief.modification.open_avionics	开放航电	OPEN AVIONICS
+debrief.modification.redline_turbine	红线涡轮	REDLINE TURBINE
+debrief.modification.none	未改装	NO RETROFIT
+archive.challenge_header	固定种子挑战	FIXED-SEED CHALLENGES
+archive.mastery	合同精通	CONTRACT MASTERY
+archive.honors	荣誉签章	HONOR STAMPS
+archive.next_goals	下一局目标	NEXT-RUN GOALS
+archive.endings	终局收藏	ENDING COLLECTION
+mastery.level	精通 {0}	MASTERY {0}
+mastery.stats	出发 {0}　送达 {1}　无损 {2}　挑战 {3}	RUNS {0}  DELIVERIES {1}  PRISTINE {2}  CHALLENGES {3}
+dossier.stats	遭遇 {0}　击破 {1}	ENCOUNTERS {0}  VICTORIES {1}
+dossier.endings	已解析 // {0}	RESOLVED // {0}
+dossier.CloudWyrm.rule	雷幕标出唯一安全航道。集中火力可打断蓄力，第二阶段会提高打断门槛。	The storm curtain marks the only safe lane. Focus fire interrupts the charge; phase two raises the threshold.
+dossier.StormManta.rule	磁暴核心标出危险航道。第二阶段会波及邻道，需要拉开距离或打断蓄力。	The magnetic core marks a dangerous lane. Phase two splashes adjacent lanes; move away or interrupt it.
+ending.route.allied	盟约纪事	ALLIED THREAD
+ending.route.hostile	敌对纪事	HOSTILE THREAD
+ending.route.neutral	中立纪事	NEUTRAL THREAD
+ending.unknown	未解析终局	UNRESOLVED ENDING
+achievement.FirstChallenge.name	定期航班	SCHEDULED SERVICE
+achievement.FirstChallenge.rule	完成任意固定种子挑战	Clear any fixed-seed challenge
+achievement.FiveContracts.name	全类承运	ALL CARGO ACCEPTED
+achievement.FiveContracts.rule	送达全部五份合同	Deliver all five contracts
+achievement.TwinBossArchive.name	双重航权	TWIN AIR RIGHTS
+achievement.TwinBossArchive.rule	击破两类终局首领	Defeat both finale bosses
+achievement.SixEndings.name	六路回声	SIX ECHOES
+achievement.SixEndings.rule	发现全部六类终局	Discover all six endings
+achievement.ContractMaster.name	合同专家	CONTRACT SPECIALIST
+achievement.ContractMaster.rule	全部合同达到精通2	Reach Mastery 2 with every contract
+achievement.locked	未解锁	LOCKED
+goal.challenges	完成固定种子挑战	CLEAR FIXED-SEED CHALLENGES
+goal.contracts	完成不同合同送达	DELIVER DISTINCT CONTRACTS
+goal.bosses	击破两类终局首领	DEFEAT BOTH FINALE BOSSES
+goal.endings	解析六类终局	RESOLVE SIX ENDINGS
+goal.mastery	将全部合同提升至精通2	RAISE ALL CONTRACTS TO MASTERY 2
+goal.complete	全部长期目标均已完成；可以继续刷新挑战成绩。	All long-term goals complete; keep improving challenge records.
+complete.progression	派遣 {0}　|　合同精通 {1}　|　挑战完成 {2}	ASSIGNMENT {0}  |  MASTERY {1}  |  CHALLENGE CLEAR {2}
+complete.next_goal	下一局目标 // {0}	NEXT-RUN GOAL // {0}
+card.ThermalBarrier.name	热障转换	THERMAL BARRIER
+card.CapacitorDump.name	电容卸载	CAPACITOR DUMP
+card.KineticBroadside.name	动能齐射	KINETIC BROADSIDE
+card.TracerSwarm.name	标定蜂群	TRACER SWARM
+card.QueueDirective.name	队列指令	QUEUE DIRECTIVE
+card.EmergencySort.name	紧急分拣	EMERGENCY SORT
+card.HoldFormation.name	保持编队	HOLD FORMATION
+card.ArmorySearch.name	武库检索	ARMORY SEARCH
+card.AblativeFoam.name	烧蚀泡沫	ABLATIVE FOAM
+card.PrecisionSeal.name	精密密封	PRECISION SEAL
+card.LockBastion.name	锁定壁垒	LOCK BASTION
+card.MirrorPlating.name	镜面装甲	MIRROR PLATING
+card.BulkheadPulse.name	舱壁脉冲	BULKHEAD PULSE
+card.CompressionRam.name	压缩冲角	COMPRESSION RAM
+card.CargoScreen.name	货舱屏障	CARGO SCREEN
+card.ImpactLedger.name	冲击账本	IMPACT LEDGER
+card.SealantRecycle.name	密封回收	SEALANT RECYCLE
+card.BraceForImpact.name	抗冲击姿态	BRACE FOR IMPACT
+card.ParcelAegis.name	邮包神盾	PARCEL AEGIS
+card.LastStandCourier.name	末班邮差	LAST-STAND COURIER
+card.FlashFreeze.name	闪速冻结	FLASH FREEZE
+card.ThermalBattery.name	热能电池	THERMAL BATTERY
+card.SuperheatedCoolant.name	过热冷媒	SUPERHEATED COOLANT
+card.HeatSinkLance.name	热沉长枪	HEAT-SINK LANCE
+card.QuenchVolley.name	淬冷齐射	QUENCH VOLLEY
+card.BoiloffArmor.name	沸腾装甲	BOIL-OFF ARMOR
+card.ColdStart.name	冷启动	COLD START
+card.IgnitionLoop.name	点火循环	IGNITION LOOP
+card.ReactorPurge.name	炉心排空	REACTOR PURGE
+card.WhiteoutProtocol.name	白障协议	WHITEOUT PROTOCOL
+card.FurnaceWake.name	炉心尾焰	FURNACE WAKE
+card.AbsoluteZero.name	绝对零度	ABSOLUTE ZERO
+card.CrosswindCut.name	侧风切割	CROSSWIND CUT
+card.MomentumGuard.name	动量护航	MOMENTUM ESCORT
+card.DriftFire.name	漂移射击	DRIFT FIRE
+card.VectorLoop.name	矢量回环	VECTOR LOOP
+card.TailwindCharge.name	顺风充能	TAILWIND CHARGE
+card.SpiralBarrage.name	螺旋弹幕	SPIRAL BARRAGE
+card.SnapRoll.name	急滚规避	SNAP ROLL
+card.WakeMine.name	尾流雷障	WAKE MINE
+card.PursuitVector.name	追击矢量	PURSUIT VECTOR
+card.GaleBreak.name	破风冲刺	GALE BREAK
+card.StormOrbit.name	风暴环航	STORM ORBIT
+card.TerminalDive.name	终端俯冲	TERMINAL DIVE
+card.TraceHarvest.name	航迹采收	TRACE HARVEST
+card.ShadowLock.name	暗影标定	SHADOW LOCK
+card.DecoyPacket.name	诱饵数据	DECOY PACKET
+card.SilentBurst.name	静默爆破	SILENT BURST
+card.BroadcastMine.name	广播雷网	BROADCAST MINE
+card.GhostShield.name	幽灵护盾	GHOST SHIELD
+card.SignalLeech.name	信号窃取	SIGNAL LEECH
+card.BlindSpot.name	盲区穿行	BLIND SPOT
+card.CounterSignal.name	反制信号	COUNTER SIGNAL
+card.BlackoutVolley.name	黑障齐射	BLACKOUT VOLLEY
+card.DeadDrop.name	死信投递	DEAD DROP
+card.ZeroSignature.name	零特征	ZERO SIGNATURE
+card.OnePointPlan.name	一点计划	ONE-POINT PLAN
+card.ReserveCapacitor.name	余量电容	RESERVE CAPACITOR
+card.ScheduledShot.name	排程射击	SCHEDULED SHOT
+card.DispatchLoop.name	派送循环	DISPATCH LOOP
+card.LockVoucher.name	锁定凭单	LOCK VOUCHER
+card.DeferredVolley.name	延后齐射	DEFERRED VOLLEY
+card.BudgetThruster.name	预算推进	BUDGET THRUSTER
+card.SpareChannel.name	备用信道	SPARE CHANNEL
+card.ExactChange.name	精确找零	EXACT CHANGE
+card.QueueCollapse.name	队列坍缩	QUEUE COLLAPSE
+card.FinalAllocation.name	最终分配	FINAL ALLOCATION
+card.PostalOverdrive.name	邮路超频	POSTAL OVERDRIVE

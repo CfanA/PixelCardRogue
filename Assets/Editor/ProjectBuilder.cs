@@ -31,7 +31,7 @@ namespace SkyCourierEditor
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
             PlayerSettings.resizableWindow = true;
             PlayerSettings.runInBackground = true;
-            PlayerSettings.bundleVersion = "0.44.0";
+            PlayerSettings.bundleVersion = "0.52.0";
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -41,10 +41,10 @@ namespace SkyCourierEditor
         [MenuItem("Tools/Sky Courier/Build Windows Prototype")]
         public static void BuildWindowsPrototype()
         {
-            PlayerSettings.bundleVersion = "0.44.0";
+            PlayerSettings.bundleVersion = "0.52.0";
             ValidateCoreRules();
-            BalanceSimulator.RunSuite();
-            string outputDirectory = Path.GetFullPath(Path.Combine(Application.dataPath, "../Builds/SkyCourierPrototype"));
+            string outputDirectory = Path.GetFullPath(
+                Path.Combine(Application.dataPath, "../Builds/SkyCourierPrototype_v0.52"));
             if (Directory.Exists(outputDirectory))
                 Directory.Delete(outputDirectory, true);
             Directory.CreateDirectory(outputDirectory);
@@ -68,18 +68,17 @@ namespace SkyCourierEditor
             if (Directory.Exists(burstDebugDirectory))
                 Directory.Delete(burstDebugDirectory, true);
 
-            string playtestReport = Path.GetFullPath(Path.Combine(Application.dataPath, "../Docs/Playtest_Report_v0.44.md"));
-            if (File.Exists(playtestReport))
-                File.Copy(playtestReport, Path.Combine(outputDirectory, "试玩与平衡报告.md"), true);
-            File.WriteAllText(Path.Combine(outputDirectory, "试玩说明.txt"),
-                "《云海邮差》v0.44.0\r\n\r\n运行：双击 Sky Courier Prototype.exe\r\n键鼠：合同机库点击两侧货舱、使用滚轮/方向键或1—4切换，点击“签署合同”或按Enter确认。点击航点与卡牌；Space结束回合；Esc暂停。\r\n合同：四份合同各有独立风险、战斗被动与专属机制牌；专属牌只会进入对应合同的奖励与商店。\r\n空域：高空疾风走廊、中层静电锋面、低空残骸潮拥有不同敌方编队池和奖励倾向；地图航点详情会在进入前说明。\r\n纪事：前半程事件会留下援助承诺或残骸债务；后续事件会识别此前选择并产生不同回访与终章。\r\n改装：进入后半段航线时必须焊入一项永久机体改装；本局不可拆除或跳过，后续战斗顶部会显示其规则。\r\n反制：后半程会出现读取护盾、手牌、热量和合同资源的敌机；意图会明确显示触发条件与结算结果。\r\n终局前哨：最后一列前会遭遇雷幕先导、磁针鳐卫或双频先遣队；它们提前教授两名终局首领的航道规则。\r\n航线情报：击破前哨会获得一项本局永久情报，并改变对应首领首轮锁定，地图、战斗顶部和结算页都会显示。\r\n双终局：北线通往雷幕龙脊，南线通往磁暴鳐巢；中央高风险入口可自由选择两个终局。\r\n首领：磁暴鳐要求远离锁定航道；雷幕云龙标出的青色航道则是唯一安全区。两者二阶段都会读取合同、机体改装与信标纪事。\r\n结局：两名首领分别结合信标纪事形成中立、盟约、敌对三种结局，共六种；已发现终局会计入邮政档案。\r\n手柄：左摇杆选择；A确认；B返回；Y结束回合；Menu暂停。\r\n语言：标题页或暂停菜单进入设置，可即时切换简体中文 / English；选择会保存在本机。\r\n存档：节点与战斗入口自动保存；战斗中退出会从该场入口重新开始。\r\n复盘：失败页会说明致命来源、下一次行动建议和档案增量；可保留合同并使用新种子快速再试。\r\n档案：标题页可查看长期配送履历、发现图鉴、六类终局收藏、荣誉签章和最近记录；所有内容只保存在本机。\r\n复现：暂停菜单、航线状态和结算页显示本局种子；本地诊断位于游戏存档目录的 Diagnostics 文件夹，不会上传。\r\n目标：穿越8段分支航线并保护合同货物。\r\n",
-                new System.Text.UTF8Encoding(true));
+            CopyReleaseDocument("Acceptance_v0.52.md", "验收报告_v0.52.txt", outputDirectory);
 
-            string musicLicense = Path.GetFullPath(Path.Combine(Application.dataPath, "Resources/Audio/BGM/License.txt"));
-            if (File.Exists(musicLicense))
-                File.Copy(musicLicense, Path.Combine(outputDirectory, "音乐授权说明.txt"), true);
+            Debug.Log($"SKY_COURIER_BUILD_COMPLETE|version=0.52.0|path={executablePath}");
+        }
 
-            Debug.Log($"SKY_COURIER_BUILD_COMPLETE: {executablePath}");
+        private static void CopyReleaseDocument(string sourceName, string outputName, string outputDirectory)
+        {
+            string sourcePath = Path.GetFullPath(Path.Combine(Application.dataPath, "../Docs", sourceName));
+            if (!File.Exists(sourcePath))
+                throw new FileNotFoundException($"Release document missing: {sourceName}", sourcePath);
+            File.Copy(sourcePath, Path.Combine(outputDirectory, outputName), true);
         }
 
         [MenuItem("Tools/Sky Courier/Validate Core Rules")]
@@ -94,7 +93,8 @@ namespace SkyCourierEditor
                     .Cast<Match>().Select(match => match.Groups[1].Value))
                 .Distinct().ToArray();
             string[] dynamicLocalizationKeys = Enum.GetValues(typeof(CardId)).Cast<CardId>()
-                .Select(card => $"card.{card}.name").ToArray();
+                .SelectMany(card => new[] { $"card.{card}.name", $"card.{card}.rules" })
+                .Concat(RuleGlossaryCatalog.LocalizationKeys()).ToArray();
             if (!LocalizationService.ValidateKeys(sourceLocalizationKeys.Concat(dynamicLocalizationKeys),
                     out string localizationError))
                 throw new InvalidOperationException(localizationError);
@@ -102,9 +102,14 @@ namespace SkyCourierEditor
                 throw new InvalidOperationException("Simplified Chinese localization lookup failed.");
             LocalizationService.SetLanguage(GameLanguage.English);
             if (LocalizationService.Text("title.start", "开始配送") != "START DELIVERY" ||
-                CardLibrary.Get(CardId.SignalScrambler).Name != "SIGNAL SCRAMBLER")
+                LocalizationService.Text("departure.title", "离港派遣条款") != "DEPARTURE CLAUSE" ||
+                LocalizationService.Text("final_approach.title", "终局进场方案") != "FINAL APPROACH PLAN" ||
+                CardLibrary.Get(CardId.SignalScrambler).Name != "SIGNAL SCRAMBLER" ||
+                !CardLibrary.Get(CardId.SignalScrambler).Rules.StartsWith("CLEAR ALL TRACE", StringComparison.Ordinal) ||
+                RuleGlossaryCatalog.Get(TutorialTopic.Tracking).Title != "TRACKING FIRE")
                 throw new InvalidOperationException("English localization lookup failed.");
             LocalizationService.SetLanguage(GameLanguage.SimplifiedChinese);
+            CardPoolValidator.Validate();
 
             var settingsProbe = new GameSettingsData
             {
@@ -117,7 +122,9 @@ namespace SkyCourierEditor
                 FrameRate = 120,
                 ShakeIntensity = 0.25f,
                 FlashIntensity = 0f,
-                Language = (int)GameLanguage.English
+                Language = (int)GameLanguage.English,
+                ContextualTutorials = false,
+                FocusHints = true
             };
             GameSettingsData restoredSettings =
                 JsonUtility.FromJson<GameSettingsData>(JsonUtility.ToJson(settingsProbe));
@@ -127,7 +134,8 @@ namespace SkyCourierEditor
                 restoredSettings.FrameRate != 120 ||
                 restoredSettings.Language != (int)GameLanguage.English ||
                 !Mathf.Approximately(restoredSettings.ShakeIntensity, 0.25f) ||
-                !Mathf.Approximately(restoredSettings.FlashIntensity, 0f))
+                !Mathf.Approximately(restoredSettings.FlashIntensity, 0f) ||
+                restoredSettings.ContextualTutorials || !restoredSettings.FocusHints)
                 throw new InvalidOperationException("Versioned game settings did not survive JSON round-trip.");
             var legacySettings = new GameSettingsData
             {
@@ -138,9 +146,36 @@ namespace SkyCourierEditor
             if (legacySettings.Version != GameSettingsService.CurrentVersion ||
                 legacySettings.Language != (int)GameLanguage.SimplifiedChinese)
                 throw new InvalidOperationException("Version 1 settings language migration failed.");
+            if (!RuleGlossaryCatalog.IsComplete || RuleGlossaryCatalog.All.Count != 10)
+                throw new InvalidOperationException("Tutorial glossary does not cover every progressive rule topic.");
+            var tutorialProbe = new TutorialProgressData
+            {
+                SeenTopics = new System.Collections.Generic.List<int>
+                {
+                    (int)TutorialTopic.Intent, (int)TutorialTopic.Intent, 999
+                }
+            };
+            TutorialProgressService.Normalize(tutorialProbe);
+            TutorialProgressData restoredTutorial = JsonUtility.FromJson<TutorialProgressData>(
+                JsonUtility.ToJson(tutorialProbe));
+            TutorialProgressService.Normalize(restoredTutorial);
+            if (restoredTutorial.Version != TutorialProgressService.CurrentVersion ||
+                restoredTutorial.SeenTopics.Count != 1 ||
+                !TutorialProgressService.HasSeen(restoredTutorial, TutorialTopic.Intent) ||
+                TutorialProgressService.HasSeen(restoredTutorial, TutorialTopic.Boss))
+                throw new InvalidOperationException("Tutorial progress normalization or round-trip failed.");
+            if (FirstRunGuidanceRules.ChallengesAvailable(new DeliveryArchiveData()) ||
+                !FirstRunGuidanceRules.ChallengesAvailable(new DeliveryArchiveData { EncountersLost = 1 }) ||
+                !FirstRunGuidanceRules.ChallengesAvailable(new DeliveryArchiveData
+                {
+                    RecentRuns = new System.Collections.Generic.List<ArchivedRunRecord>
+                        { new ArchivedRunRecord() }
+                }))
+                throw new InvalidOperationException("First-run challenge visibility rule failed.");
 
             var saveProbe = new RunSaveData
             {
+                AttemptId = "validation-attempt-050",
                 RunSeed = 1357911,
                 EncounterSeed = 2468022,
                 Screen = "Map",
@@ -148,20 +183,60 @@ namespace SkyCourierEditor
                 AirframeModification = (int)AirframeModification.OpenAvionics,
                 RouteStoryState = (int)RouteStoryState.PromiseStrengthened,
                 RouteIntel = (int)RouteIntel.DualChannelDecoder,
+                Challenge = (int)ChallengeId.NoSafeHarbor,
+                DepartureDirective = (int)DepartureDirective.AdvancePayment,
+                FinalApproachPlan = (int)FinalApproachPlan.CargoOverclock,
+                WorkshopCard = (int)CardId.SignalScrambler,
                 Deck = new System.Collections.Generic.List<int> { (int)CardId.BurstFire, (int)CardId.SignalScrambler },
+                BuildSnapshots = new System.Collections.Generic.List<RunBuildSnapshot>
+                {
+                    new RunBuildSnapshot
+                    {
+                        Key = "act2_retrofit",
+                        CapturedAtUtc = "2026-07-26T15:00:00.0000000Z",
+                        Moment = (int)RunBuildSnapshotMoment.Retrofit,
+                        RouteColumn = 4,
+                        RouteNodeId = 9,
+                        Act = (int)RunAct.Pivot,
+                        Hull = 27,
+                        CargoIntegrity = 2,
+                        Credits = 41,
+                        AirframeModification = (int)AirframeModification.OpenAvionics,
+                        RouteStoryState = (int)RouteStoryState.SilenceMaintained,
+                        Deck = new System.Collections.Generic.List<int>
+                            { (int)CardId.BurstFire, (int)CardId.SignalScrambler },
+                        Upgrades = new System.Collections.Generic.List<int> { (int)CardId.SignalScrambler },
+                        UpgradeBranchCards = new System.Collections.Generic.List<int> { (int)CardId.SignalScrambler },
+                        UpgradeBranches = new System.Collections.Generic.List<int> { (int)UpgradeBranch.Beta },
+                        Modules = new System.Collections.Generic.List<int> { (int)ModuleId.GhostDecoder }
+                    }
+                },
                 SelectedRouteNodeId = 4,
                 Hull = 27,
                 CargoIntegrity = 2,
+                ShopPurgeBought = true,
+                ShopCalibrationBought = true,
+                ContractProcs = 7,
                 ShopBought = new[] { true, false, true }
             };
             RunSaveData restoredSave = JsonUtility.FromJson<RunSaveData>(JsonUtility.ToJson(saveProbe));
             if (restoredSave == null || restoredSave.Version != RunSaveService.CurrentVersion ||
                 restoredSave.Deck.Count != 2 || restoredSave.SelectedRouteNodeId != 4 ||
                 restoredSave.Hull != 27 || restoredSave.RunSeed != 1357911 ||
+                restoredSave.AttemptId != "validation-attempt-050" || restoredSave.ContractProcs != 7 ||
                 restoredSave.EncounterSeed != 2468022 ||
                 restoredSave.AirframeModification != (int)AirframeModification.OpenAvionics ||
                 restoredSave.RouteStoryState != (int)RouteStoryState.PromiseStrengthened ||
                 restoredSave.RouteIntel != (int)RouteIntel.DualChannelDecoder ||
+                restoredSave.Challenge != (int)ChallengeId.NoSafeHarbor ||
+                restoredSave.DepartureDirective != (int)DepartureDirective.AdvancePayment ||
+                restoredSave.FinalApproachPlan != (int)FinalApproachPlan.CargoOverclock ||
+                restoredSave.WorkshopCard != (int)CardId.SignalScrambler ||
+                restoredSave.BuildSnapshots.Count != 1 ||
+                restoredSave.BuildSnapshots[0].Key != "act2_retrofit" ||
+                restoredSave.BuildSnapshots[0].Deck.Count != 2 ||
+                restoredSave.BuildSnapshots[0].UpgradeBranches.Single() != (int)UpgradeBranch.Beta ||
+                !restoredSave.ShopPurgeBought || !restoredSave.ShopCalibrationBought ||
                 !restoredSave.ShopBought[0] || !restoredSave.ShopBought[2])
                 throw new InvalidOperationException("Versioned run save did not survive JSON round-trip.");
             string saveValidationDirectory = Path.Combine(Path.GetTempPath(), $"SkyCourierSaveValidation-{Guid.NewGuid():N}");
@@ -176,6 +251,21 @@ namespace SkyCourierEditor
                         out bool restoredBackup, out string saveError) ||
                     !restoredBackup || backupSave.Credits != 11)
                     throw new InvalidOperationException($"Run save backup recovery failed: {saveError}");
+
+                var emptyDeckSave = new RunSaveData
+                {
+                    RunSeed = 470100,
+                    EncounterSeed = 470101,
+                    Screen = "Map",
+                    Contract = (int)CargoContract.FragileMedicine,
+                    Deck = new System.Collections.Generic.List<int>(),
+                    SelectedRouteNodeId = 0
+                };
+                RunSaveService.SaveToDirectory(emptyDeckSave, saveValidationDirectory);
+                if (!RunSaveService.TryLoadFromDirectory(saveValidationDirectory, out RunSaveData restoredEmptyDeck,
+                        out _, out string emptyDeckError) ||
+                    restoredEmptyDeck.Deck == null || restoredEmptyDeck.Deck.Count != 0)
+                    throw new InvalidOperationException($"Empty run deck did not survive save round-trip: {emptyDeckError}");
 
                 var legacySave = new RunSaveData
                 {
@@ -247,14 +337,103 @@ namespace SkyCourierEditor
                 if (!RunSaveService.TryLoadFromDirectory(saveValidationDirectory, out RunSaveData migratedVersionFour,
                         out _, out string versionFourError) ||
                     migratedVersionFour.Version != RunSaveService.CurrentVersion ||
-                    migratedVersionFour.RouteIntel != (int)RouteIntel.None)
+                    migratedVersionFour.RouteIntel != (int)RouteIntel.None ||
+                    migratedVersionFour.Challenge != (int)ChallengeId.Standard)
                     throw new InvalidOperationException($"Version 4 run save migration failed: {versionFourError}");
+
+                var versionFiveSave = new RunSaveData
+                {
+                    Version = 5,
+                    RunSeed = 470045,
+                    EncounterSeed = 470046,
+                    Screen = "Map",
+                    Deck = new System.Collections.Generic.List<int> { (int)CardId.SignalScrambler },
+                    SelectedRouteNodeId = 15,
+                    RouteIntel = (int)RouteIntel.DualChannelDecoder
+                };
+                File.WriteAllText(Path.Combine(saveValidationDirectory, "run.json"),
+                    JsonUtility.ToJson(versionFiveSave));
+                if (!RunSaveService.TryLoadFromDirectory(saveValidationDirectory, out RunSaveData migratedVersionFive,
+                        out _, out string versionFiveError) ||
+                    migratedVersionFive.Version != RunSaveService.CurrentVersion ||
+                    migratedVersionFive.RouteIntel != (int)RouteIntel.DualChannelDecoder ||
+                    migratedVersionFive.Challenge != (int)ChallengeId.Standard)
+                    throw new InvalidOperationException($"Version 5 run save migration failed: {versionFiveError}");
+
+                var versionSixSave = new RunSaveData
+                {
+                    Version = 6,
+                    RunSeed = 480006,
+                    EncounterSeed = 480016,
+                    Screen = "Map",
+                    Contract = (int)CargoContract.SignalSeed,
+                    Deck = new System.Collections.Generic.List<int> { (int)CardId.ReserveShot },
+                    SelectedRouteNodeId = 15,
+                    RouteIndex = 6,
+                    Credits = 73,
+                    Hull = 24,
+                    CargoIntegrity = 2
+                };
+                File.WriteAllText(Path.Combine(saveValidationDirectory, "run.json"),
+                    JsonUtility.ToJson(versionSixSave));
+                if (!RunSaveService.TryLoadFromDirectory(saveValidationDirectory, out RunSaveData migratedVersionSix,
+                        out _, out string versionSixError) ||
+                    migratedVersionSix.Version != RunSaveService.CurrentVersion ||
+                    migratedVersionSix.DepartureDirective != (int)DepartureDirective.LegacyManifest ||
+                    migratedVersionSix.FinalApproachPlan != (int)FinalApproachPlan.HoldCourse ||
+                    migratedVersionSix.Credits != 73 || migratedVersionSix.Hull != 24 ||
+                    migratedVersionSix.CargoIntegrity != 2)
+                    throw new InvalidOperationException($"Version 6 run save migration failed: {versionSixError}");
+
+                var versionSevenSave = new RunSaveData
+                {
+                    Version = 7,
+                    RunSeed = 490007,
+                    EncounterSeed = 490017,
+                    Screen = "Map",
+                    Contract = (int)CargoContract.BlackBoxRelay,
+                    Deck = new System.Collections.Generic.List<int> { (int)CardId.SignalScrambler },
+                    SelectedRouteNodeId = 11,
+                    RouteIndex = 4,
+                    WorkshopCard = (int)CardId.BurstFire,
+                    BuildSnapshots = null
+                };
+                File.WriteAllText(Path.Combine(saveValidationDirectory, "run.json"),
+                    JsonUtility.ToJson(versionSevenSave));
+                if (!RunSaveService.TryLoadFromDirectory(saveValidationDirectory, out RunSaveData migratedVersionSeven,
+                        out _, out string versionSevenError) ||
+                    migratedVersionSeven.Version != RunSaveService.CurrentVersion ||
+                    migratedVersionSeven.WorkshopCard != -1 || migratedVersionSeven.BuildSnapshots == null ||
+                    migratedVersionSeven.BuildSnapshots.Count != 0 ||
+                    string.IsNullOrWhiteSpace(migratedVersionSeven.AttemptId))
+                    throw new InvalidOperationException($"Version 7 run save migration failed: {versionSevenError}");
+
+                var versionEightSave = new RunSaveData
+                {
+                    Version = 8,
+                    RunSeed = 500008,
+                    EncounterSeed = 500018,
+                    Screen = "Map",
+                    Contract = (int)CargoContract.CryoSerum,
+                    Deck = new System.Collections.Generic.List<int> { (int)CardId.CryoPump },
+                    SelectedRouteNodeId = 14,
+                    RouteIndex = 5,
+                    BuildSnapshots = new System.Collections.Generic.List<RunBuildSnapshot>()
+                };
+                File.WriteAllText(Path.Combine(saveValidationDirectory, "run.json"),
+                    JsonUtility.ToJson(versionEightSave));
+                if (!RunSaveService.TryLoadFromDirectory(saveValidationDirectory, out RunSaveData migratedVersionEight,
+                        out _, out string versionEightError) ||
+                    migratedVersionEight.Version != RunSaveService.CurrentVersion ||
+                    string.IsNullOrWhiteSpace(migratedVersionEight.AttemptId) ||
+                    migratedVersionEight.ContractProcs != 0)
+                    throw new InvalidOperationException($"Version 8 run save migration failed: {versionEightError}");
 
                 var diagnosticProbe = new RunDiagnosticRecord
                 {
                     TimestampUtc = DateTime.UtcNow.ToString("O"),
                     Event = "validation_probe",
-                    GameVersion = "0.44.0",
+                    GameVersion = "0.52.0",
                     RunSeed = 1357911,
                     Screen = "Map"
                 };
@@ -269,7 +448,8 @@ namespace SkyCourierEditor
 
                 var archiveProbe = new DeliveryArchiveData();
                 DeliveryArchiveService.RegisterRunStarted(archiveProbe, (int)CargoContract.StormCore,
-                    new[] { (int)CardId.BurstFire, (int)CardId.BurstFire, (int)CardId.VectorDash });
+                    new[] { (int)CardId.BurstFire, (int)CardId.BurstFire, (int)CardId.VectorDash },
+                    (int)ChallengeId.RedlineRelay);
                 DeliveryArchiveService.RegisterBattleStarted(archiveProbe,
                     new[] { (int)EnemyKind.RustKite, (int)EnemyKind.CalamityDrone },
                     new[] { (int)CardId.BurstFire, (int)CardId.VectorDash },
@@ -277,6 +457,7 @@ namespace SkyCourierEditor
                 DeliveryArchiveService.RegisterBattleWon(archiveProbe);
                 DeliveryArchiveService.RegisterRunResult(archiveProbe, new ArchivedRunRecord
                 {
+                    AttemptId = "validation-delivered-050",
                     RunSeed = 1357911,
                     Contract = (int)CargoContract.StormCore,
                     RouteNodeId = 18,
@@ -289,10 +470,17 @@ namespace SkyCourierEditor
                     DeckCount = 16,
                     ModuleCount = 2,
                     RouteIntel = (int)RouteIntel.FluxCompass,
-                    FinaleEnding = (int)FinaleEnding.MantaPostalShield
+                    FinaleEnding = (int)FinaleEnding.MantaPostalShield,
+                    Challenge = (int)ChallengeId.RedlineRelay,
+                    BossKind = (int)EnemyKind.StormManta,
+                    ContractProcs = 8,
+                    BuildProfile = "maneuver",
+                    RouteProfile = "pressure",
+                    BuildSnapshots = RunBuildSnapshotRules.Clone(saveProbe.BuildSnapshots)
                 }, true);
                 DeliveryArchiveService.RegisterRunResult(archiveProbe, new ArchivedRunRecord
                 {
+                    AttemptId = "validation-lost-050",
                     RunSeed = 2468022,
                     Contract = (int)CargoContract.BlackBoxRelay,
                     RouteNodeId = 7,
@@ -305,7 +493,22 @@ namespace SkyCourierEditor
                     DeckCount = 14,
                     ModuleCount = 1,
                     DefeatSource = (int)PlayerDamageSource.TrackingShot,
-                    DefeatDealer = "追迹锈翼鸢"
+                    DefeatDealer = "追迹锈翼鸢",
+                    DefeatDamage = 4,
+                    DefeatRawDamage = 7,
+                    DefeatShieldAbsorbed = 3,
+                    DefeatHullBefore = 4,
+                    DefeatTurn = 6,
+                    ContractProcs = 2,
+                    BuildProfile = "utility",
+                    RouteProfile = "service"
+                }, false);
+                DeliveryArchiveService.RegisterRunResult(archiveProbe, new ArchivedRunRecord
+                {
+                    AttemptId = "validation-lost-050",
+                    Contract = (int)CargoContract.BlackBoxRelay,
+                    BuildProfile = "utility",
+                    RouteProfile = "service"
                 }, false);
                 if (archiveProbe.RunsStarted != 1 || archiveProbe.DeliveriesCompleted != 1 ||
                     archiveProbe.EncountersLost != 1 ||
@@ -313,6 +516,26 @@ namespace SkyCourierEditor
                     archiveProbe.DiscoveredEnemies.Count != 2 || archiveProbe.RecentRuns.Count != 2 ||
                     archiveProbe.DiscoveredEndings.Single() != (int)FinaleEnding.MantaPostalShield ||
                     archiveProbe.RecentRuns[0].DefeatSource != (int)PlayerDamageSource.TrackingShot ||
+                    archiveProbe.ChallengeProgress.Single().Attempts != 1 ||
+                    archiveProbe.ChallengeProgress.Single().Completions != 1 ||
+                    archiveProbe.ContractMastery.Single(record =>
+                        record.Contract == (int)CargoContract.StormCore).ChallengeDeliveries != 1 ||
+                    archiveProbe.BossDossiers.Single().Victories != 1 ||
+                    archiveProbe.ResolvedAttemptIds.Count != 2 ||
+                    archiveProbe.PerformanceStats.Single(record =>
+                        record.Dimension == DeliveryArchiveService.ContractDimension &&
+                        record.Key == ((int)CargoContract.StormCore).ToString()).Wins != 1 ||
+                    archiveProbe.PerformanceStats.Single(record =>
+                        record.Dimension == DeliveryArchiveService.BuildDimension &&
+                        record.Key == "utility").Attempts != 1 ||
+                    archiveProbe.PerformanceStats.Single(record =>
+                        record.Dimension == DeliveryArchiveService.RouteDimension &&
+                        record.Key == "service").Wins != 0 ||
+                    archiveProbe.PerformanceStats.Single(record =>
+                        record.Dimension == DeliveryArchiveService.BossDimension).Attempts != 1 ||
+                    archiveProbe.RecentRuns[1].BuildSnapshots.Count != 1 ||
+                    archiveProbe.RecentRuns[1].BuildSnapshots[0].Modules.Single() != (int)ModuleId.GhostDecoder ||
+                    !LongTermProgressionRules.AchievementUnlocked(archiveProbe, AchievementId.FirstChallenge) ||
                     DeliveryArchiveService.CourierRank(archiveProbe) != "正式邮差")
                     throw new InvalidOperationException("Delivery archive progression aggregation is invalid.");
 
@@ -325,7 +548,15 @@ namespace SkyCourierEditor
                 if (!archiveRestoredBackup || restoredArchive.DeliveriesCompleted != 1 ||
                     restoredArchive.BestCredits != 84 || restoredArchive.RecentRuns[0].RunSeed != 2468022 ||
                     restoredArchive.RecentRuns[0].DefeatSource != (int)PlayerDamageSource.TrackingShot ||
-                    restoredArchive.RecentRuns[0].DefeatDealer != "追迹锈翼鸢")
+                    restoredArchive.RecentRuns[0].DefeatDealer != "追迹锈翼鸢" ||
+                    restoredArchive.RecentRuns[0].DefeatRawDamage != 7 ||
+                    restoredArchive.RecentRuns[0].ContractProcs != 2 ||
+                    restoredArchive.ResolvedAttemptIds.Count != 2 ||
+                    restoredArchive.PerformanceStats.Count < 4 ||
+                    restoredArchive.ChallengeProgress.Single().Completions != 1 ||
+                    restoredArchive.BossDossiers.Single().Boss != (int)EnemyKind.StormManta ||
+                    restoredArchive.RecentRuns[1].BuildSnapshots.Count != 1 ||
+                    restoredArchive.RecentRuns[1].BuildSnapshots[0].Key != "act2_retrofit")
                     throw new InvalidOperationException($"Delivery archive backup recovery failed: {archiveError}");
 
                 var legacyArchive = new DeliveryArchiveData
@@ -348,6 +579,72 @@ namespace SkyCourierEditor
                 if (migratedArchive.Version != DeliveryArchiveService.CurrentVersion ||
                     migratedArchive.RecentRuns.Count != 1 || migratedArchive.RecentRuns[0].DefeatSource != -1)
                     throw new InvalidOperationException($"Version 1 delivery archive migration failed: {archiveMigrationError}");
+
+                var versionThreeArchive = new DeliveryArchiveData
+                {
+                    Version = 3,
+                    DeliveriesCompleted = 2,
+                    DiscoveredEndings = new System.Collections.Generic.List<int>
+                    {
+                        (int)FinaleEnding.WyrmClearSky
+                    },
+                    RecentRuns = new System.Collections.Generic.List<ArchivedRunRecord>
+                    {
+                        new ArchivedRunRecord
+                        {
+                            Outcome = "DELIVERED",
+                            RunSeed = 470047,
+                            Contract = (int)CargoContract.CryoSerum,
+                            BossKind = (int)EnemyKind.CloudWyrm,
+                            Challenge = (int)ChallengeId.LeanManifest
+                        }
+                    }
+                };
+                File.WriteAllText(Path.Combine(saveValidationDirectory, "archive.json"),
+                    JsonUtility.ToJson(versionThreeArchive));
+                DeliveryArchiveData migratedVersionThreeArchive = DeliveryArchiveService.LoadFromDirectory(
+                    saveValidationDirectory, out _, out string versionThreeArchiveError);
+                if (migratedVersionThreeArchive.Version != DeliveryArchiveService.CurrentVersion ||
+                    migratedVersionThreeArchive.DeliveriesCompleted != 2 ||
+                    migratedVersionThreeArchive.RecentRuns[0].Challenge != (int)ChallengeId.Standard ||
+                    migratedVersionThreeArchive.RecentRuns[0].BossKind != -1)
+                    throw new InvalidOperationException(
+                        $"Version 3 delivery archive migration failed: {versionThreeArchiveError}");
+
+                var versionFiveArchive = new DeliveryArchiveData
+                {
+                    Version = 5,
+                    RecentRuns = new System.Collections.Generic.List<ArchivedRunRecord>
+                    {
+                        new ArchivedRunRecord
+                        {
+                            Outcome = "DELIVERED",
+                            RunSeed = 500050,
+                            Contract = (int)CargoContract.SignalSeed,
+                            BossKind = (int)EnemyKind.CloudWyrm
+                        },
+                        new ArchivedRunRecord
+                        {
+                            Outcome = "LOST",
+                            RunSeed = 500051,
+                            Contract = (int)CargoContract.SignalSeed,
+                            BossKind = -1
+                        }
+                    }
+                };
+                File.WriteAllText(Path.Combine(saveValidationDirectory, "archive.json"),
+                    JsonUtility.ToJson(versionFiveArchive));
+                DeliveryArchiveData migratedVersionFiveArchive = DeliveryArchiveService.LoadFromDirectory(
+                    saveValidationDirectory, out _, out string versionFiveArchiveError);
+                RunWinRateRecord migratedContractStat = migratedVersionFiveArchive.PerformanceStats.Single(record =>
+                    record.Dimension == DeliveryArchiveService.ContractDimension &&
+                    record.Key == ((int)CargoContract.SignalSeed).ToString());
+                if (migratedVersionFiveArchive.Version != DeliveryArchiveService.CurrentVersion ||
+                    migratedContractStat.Attempts != 2 || migratedContractStat.Wins != 1 ||
+                    migratedVersionFiveArchive.PerformanceStats.Single(record =>
+                        record.Dimension == DeliveryArchiveService.BossDimension).Wins != 1)
+                    throw new InvalidOperationException(
+                        $"Version 5 delivery archive migration failed: {versionFiveArchiveError}");
             }
             finally
             {
@@ -356,6 +653,25 @@ namespace SkyCourierEditor
             }
 
             RouteDefinition route = RouteCatalog.WindmillArchipelago;
+            if (RunStructureCatalog.ActForColumn(0) != RunAct.Departure ||
+                RunStructureCatalog.ActForColumn(2) != RunAct.Departure ||
+                RunStructureCatalog.ActForColumn(3) != RunAct.Pivot ||
+                RunStructureCatalog.ActForColumn(5) != RunAct.Pivot ||
+                RunStructureCatalog.ActForColumn(6) != RunAct.FinalApproach ||
+                RunStructureCatalog.ActForColumn(7) != RunAct.FinalApproach ||
+                RunStructureCatalog.RetrofitColumn >= RunStructureCatalog.FinalApproachColumn)
+                throw new InvalidOperationException("Three-act route boundaries are invalid.");
+            foreach (CargoContract contract in ContractCatalog.All)
+            {
+                ModuleId[] priority = RunStructureCatalog.FinalModulePriority(contract).ToArray();
+                ModuleId? first = RunStructureCatalog.SuggestedFinalModule(contract, Array.Empty<ModuleId>());
+                ModuleId? second = RunStructureCatalog.SuggestedFinalModule(contract, new[] { priority[0] });
+                ModuleId? exhausted = RunStructureCatalog.SuggestedFinalModule(contract, priority);
+                if (priority.Length != 3 || priority.Distinct().Count() != 3 ||
+                    first != priority[0] || second != priority[1] || exhausted.HasValue)
+                    throw new InvalidOperationException(
+                        $"Final approach module priority is invalid for {contract}.");
+            }
             if (route.ColumnCount != 8 || route.Nodes.Count != 20)
                 throw new InvalidOperationException("Branching route must contain 8 columns and 20 nodes.");
             if (route.AtColumn(0).Count() != 1 || route.AtColumn(route.ColumnCount - 1).Count() != 2 ||
@@ -389,6 +705,14 @@ namespace SkyCourierEditor
                 })) ||
                 route.Nodes.Select(node => node.Airspace).Distinct().Count() != 3)
                 throw new InvalidOperationException("Route altitude bands did not resolve to three airspace identities.");
+            Rect highBandLabel = SkyCourierGame.RouteBandLabelRect(0);
+            Rect middleBandLabel = SkyCourierGame.RouteBandLabelRect(1);
+            Rect lowBandLabel = SkyCourierGame.RouteBandLabelRect(2);
+            if (!Mathf.Approximately(highBandLabel.x, middleBandLabel.x) ||
+                !Mathf.Approximately(highBandLabel.x, lowBandLabel.x) ||
+                !Mathf.Approximately(highBandLabel.x, 7f) ||
+                !(highBandLabel.y < middleBandLabel.y && middleBandLabel.y < lowBandLabel.y))
+                throw new InvalidOperationException("Route altitude labels must stay pinned to the viewport while content scrolls.");
             int airspaceProbeSeed = 40040;
             int jetstreamVariant = AirspaceRuleCatalog.EncounterVariant(
                 AirspaceCondition.JetstreamCorridor, airspaceProbeSeed);
@@ -418,6 +742,58 @@ namespace SkyCourierEditor
                 RouteStoryRules.IsPending(RouteStoryState.PromiseFulfilled))
                 throw new InvalidOperationException("Salvage debt story path did not support escalation and redemption.");
 
+            RouteStoryState silentOpen = RouteStoryRules.ChooseIndependent(RouteStoryState.None, 2);
+            RouteStoryState silentMid = RouteStoryRules.ChooseIndependent(silentOpen, 7);
+            RouteStoryState silentFinal = RouteStoryRules.ChooseIndependent(silentMid, 12);
+            if (silentOpen != RouteStoryState.SignalSevered ||
+                silentMid != RouteStoryState.SilenceMaintained ||
+                silentFinal != RouteStoryState.SilentRouteSecured ||
+                !RouteStoryRules.IsPending(silentOpen) || !RouteStoryRules.IsPending(silentMid) ||
+                RouteStoryRules.IsPending(silentFinal) ||
+                RouteStoryRules.BossAlignment(silentFinal) != BossStoryAlignment.Neutral)
+                throw new InvalidOperationException("Route story independent path is invalid.");
+            if (RouteDecisionCatalog.ShopPurgeCost(4) != 18 ||
+                RouteDecisionCatalog.ShopPurgeCost(11) != 28 ||
+                RouteDecisionCatalog.ShopCalibrationCost(4) != 28 ||
+                RouteDecisionCatalog.ShopCalibrationCost(11) != 38 ||
+                RouteDecisionCatalog.IndependentEventCredits(2) != 18 ||
+                RouteDecisionCatalog.IndependentEventCredits(7) != 12 ||
+                RouteDecisionCatalog.IndependentEventCredits(12) != 25)
+                throw new InvalidOperationException("Route decision costs are invalid.");
+            System.Collections.Generic.List<RunBuildSnapshot> clonedSnapshots =
+                RunBuildSnapshotRules.Clone(saveProbe.BuildSnapshots);
+            clonedSnapshots[0].Deck[0] = (int)CardId.BankUp;
+            if (saveProbe.BuildSnapshots[0].Deck[0] != (int)CardId.BurstFire)
+                throw new InvalidOperationException("Build snapshot clone must deep-copy collection fields.");
+            var debriefSnapshots = RunBuildSnapshotRules.Clone(saveProbe.BuildSnapshots);
+            RunBuildSnapshot finalSnapshot = debriefSnapshots[0].Clone();
+            finalSnapshot.Key = "result_lost";
+            finalSnapshot.Moment = (int)RunBuildSnapshotMoment.RunResult;
+            finalSnapshot.RouteColumn = 6;
+            finalSnapshot.Hull = 0;
+            finalSnapshot.Credits = 68;
+            finalSnapshot.Deck.Add((int)CardId.ReserveShot);
+            debriefSnapshots.Add(finalSnapshot);
+            RunDebriefSummary debrief = RunDebriefAnalyzer.Analyze(debriefSnapshots, new RunDebriefMetrics
+            {
+                Contract = (int)CargoContract.BlackBoxRelay,
+                DefeatSource = (int)PlayerDamageSource.TrackingShot,
+                DefeatDealer = "追迹锈翼鸢",
+                DefeatDamage = 4,
+                Turns = 22,
+                CardsPlayed = 44,
+                DamageTaken = 31,
+                TrackingHits = 3,
+                ContractPassiveProcs = 5,
+                ContractBonusCredits = 9
+            });
+            if (debrief.ValidSnapshotCount != 2 || debrief.DeckCount != 3 ||
+                debrief.RouteCardsAdded != 1 || debrief.RouteCreditsDelta != 27 ||
+                debrief.KeyMistakeCategory != RunDebriefMistakeCategory.Positioning ||
+                string.IsNullOrWhiteSpace(debrief.NextStrategy) ||
+                RunDebriefAnalyzer.Analyze(null, null).BuildWeakness != RunDebriefBuildWeakness.MissingSnapshot)
+                throw new InvalidOperationException("Run debrief analysis did not produce deterministic failure guidance.");
+
             var deck = new[]
             {
                 CardId.BurstFire, CardId.BurstFire, CardId.BankUp, CardId.BankDown,
@@ -435,7 +811,9 @@ namespace SkyCourierEditor
             overheatDefeat.PlayCard(0);
             if (!overheatDefeat.Defeat || !overheatDefeat.HasDefeatCause ||
                 overheatDefeat.DefeatSource != PlayerDamageSource.Overheat ||
-                overheatDefeat.DefeatDealer != "引擎过热")
+                overheatDefeat.DefeatDealer != "引擎过热" ||
+                overheatDefeat.DefeatRawDamage < overheatDefeat.DefeatDamage ||
+                overheatDefeat.DefeatHullBefore <= 0 || overheatDefeat.DefeatTurn <= 0)
                 throw new InvalidOperationException("Fatal overheat did not retain a structured defeat cause.");
 
             var laneDefeat = new BattleState();
@@ -648,8 +1026,13 @@ namespace SkyCourierEditor
 
             CargoContract[] contracts = Enum.GetValues(typeof(CargoContract)).Cast<CargoContract>().ToArray();
             CardId[] signatureCards = contracts.Select(ContractCardCatalog.SignatureCard).ToArray();
-            if (signatureCards.Distinct().Count() != contracts.Length)
-                throw new InvalidOperationException("Contract signature cards are not unique.");
+            BossContractProtocol[] contractProtocols = contracts.Select(ContractCatalog.BossProtocol).ToArray();
+            CardId[] starterCards = contracts.Select(ContractCatalog.StarterCard).ToArray();
+            if (contracts.Length != 5 || ContractCatalog.All.Count != contracts.Length ||
+                signatureCards.Distinct().Count() != contracts.Length ||
+                contractProtocols.Distinct().Count() != contracts.Length ||
+                starterCards.Distinct().Count() != contracts.Length)
+                throw new InvalidOperationException("Five-contract catalog mappings are incomplete or not unique.");
             foreach (CargoContract contract in contracts)
             {
                 foreach (CargoContract other in contracts)
@@ -659,6 +1042,42 @@ namespace SkyCourierEditor
                         throw new InvalidOperationException("A signature card leaked into another contract pool.");
                 }
             }
+
+            ChallengeDefinition[] challenges = ChallengeCatalog.All.ToArray();
+            int[] fixedChallengeSeeds = challenges.Where(definition => definition.Id != ChallengeId.Standard)
+                .Select(definition => definition.FixedSeed).ToArray();
+            if (challenges.Length != 4 || fixedChallengeSeeds.Any(seed => seed == 0) ||
+                fixedChallengeSeeds.Distinct().Count() != fixedChallengeSeeds.Length ||
+                ChallengeCatalog.Get(ChallengeId.RedlineRelay).StartingHeat != 3 ||
+                ChallengeCatalog.Get(ChallengeId.NoSafeHarbor).FieldRepairsEnabled ||
+                ChallengeCatalog.Get(ChallengeId.LeanManifest).StartingHull != 28)
+                throw new InvalidOperationException("Fixed-seed challenge definitions are invalid.");
+
+            var redlineChallenge = new BattleState();
+            redlineChallenge.StartEncounter(EncounterId.Skirmish,
+                Enumerable.Repeat(CardId.WindGuard, 5).ToArray(), BattleState.MaxPlayerHealth, 3,
+                CargoContract.FragileMedicine, null, null, 0, null,
+                ChallengeCatalog.Get(ChallengeId.RedlineRelay).FixedSeed,
+                AirframeModification.None, RouteStoryState.None, RouteIntel.None,
+                ChallengeCatalog.Get(ChallengeId.RedlineRelay).StartingHeat);
+            if (redlineChallenge.Heat != 3)
+                throw new InvalidOperationException("Redline Relay starting Heat was not applied.");
+
+            var signalPassive = new BattleState();
+            signalPassive.StartEncounter(EncounterId.Skirmish,
+                Enumerable.Repeat(CardId.StandbyField, 6).ToArray(), BattleState.MaxPlayerHealth, 3,
+                CargoContract.SignalSeed, null, null, 0, null, 32005);
+            signalPassive.PlayCard(0);
+            if (signalPassive.ContractPassiveTriggered)
+                throw new InvalidOperationException("Signal Seed passive triggered before reserving exactly one Energy.");
+            signalPassive.PlayCard(0);
+            if (!signalPassive.ContractPassiveTriggered || signalPassive.ContractPassiveProcs != 1 ||
+                signalPassive.Energy != 1 || signalPassive.Hand.Count != 4 || signalPassive.Armor != 16)
+                throw new InvalidOperationException("Signal Seed reserve passive or Standby Field bonus is invalid.");
+            signalPassive.PlayCard(0);
+            signalPassive.EndTurn();
+            if (signalPassive.CargoIntegrity != 2)
+                throw new InvalidOperationException("Signal Seed risk did not damage cargo after spending all Energy.");
 
             var sealDeck = new[]
             {
@@ -887,7 +1306,7 @@ namespace SkyCourierEditor
             int frostTarget = frostEnemy.Health + frostEnemy.Armor;
             state.PlayCard(state.Hand.IndexOf(CardId.FrostLance));
             if (state.Heat != 1 || state.Energy != energyBeforePump ||
-                frostEnemy.Health + frostEnemy.Armor != frostTarget - 20 || !state.LastAttackCritical)
+                frostEnemy.Health + frostEnemy.Armor != frostTarget - 18 || !state.LastAttackCritical)
                 throw new InvalidOperationException("Cryo loop did not refund energy and enable low-heat Frost Lance.");
 
             var overheatBuild = new[] { CardId.HeatCharge, CardId.HeatCharge, CardId.MeltdownBurst, CardId.HeatCharge, CardId.MeltdownBurst };
@@ -1221,6 +1640,57 @@ namespace SkyCourierEditor
             if (finaleEndings.Any(ending => ending == FinaleEnding.None) ||
                 finaleEndings.Distinct().Count() != 6)
                 throw new InvalidOperationException("Boss and Signal Thread combinations do not resolve to six unique endings.");
+
+            var emptyProgression = new DeliveryArchiveData();
+            ProgressGoal[] openingGoals = LongTermProgressionRules.NextGoals(emptyProgression).ToArray();
+            if (openingGoals.Length != 3 || openingGoals[0].Id != "challenges" ||
+                openingGoals[1].Id != "contracts" || openingGoals[2].Id != "bosses")
+                throw new InvalidOperationException("Next-run goals are not ordered by actionable progression.");
+
+            var completedProgression = new DeliveryArchiveData
+            {
+                ChallengeProgress = challenges.Where(definition => definition.Id != ChallengeId.Standard)
+                    .Select(definition => new ChallengeProgressRecord
+                    {
+                        Challenge = (int)definition.Id,
+                        Attempts = 1,
+                        Completions = 1,
+                        BestHull = 20,
+                        BestCargo = 2,
+                        BestTurns = 30
+                    }).ToList(),
+                ContractMastery = contracts.Select(contract => new ContractMasteryRecord
+                {
+                    Contract = (int)contract,
+                    Runs = 1,
+                    Deliveries = 1,
+                    PristineDeliveries = 1,
+                    BossVictories = 1
+                }).ToList(),
+                BossDossiers = new System.Collections.Generic.List<BossDossierRecord>
+                {
+                    new BossDossierRecord
+                    {
+                        Boss = (int)EnemyKind.StormManta,
+                        Encounters = 1,
+                        Victories = 1
+                    },
+                    new BossDossierRecord
+                    {
+                        Boss = (int)EnemyKind.CloudWyrm,
+                        Encounters = 1,
+                        Victories = 1
+                    }
+                },
+                DiscoveredEndings = finaleEndings.Select(ending => (int)ending).ToList()
+            };
+            if (Enum.GetValues(typeof(AchievementId)).Cast<AchievementId>()
+                    .Any(achievement => !LongTermProgressionRules.AchievementUnlocked(
+                        completedProgression, achievement)) ||
+                LongTermProgressionRules.NextGoals(completedProgression).Count != 0 ||
+                completedProgression.ContractMastery.Any(record =>
+                    LongTermProgressionRules.MasteryLevel(record) != 2))
+                throw new InvalidOperationException("Long-term achievements, mastery, or completion goals are invalid.");
 
             Debug.Log("SKY_COURIER_RULE_VALIDATION_COMPLETE");
         }
