@@ -60,23 +60,45 @@ namespace SkyCourierEditor
             int victories = results.Count(result => result.Victory);
             bool everyBuildViable = results.GroupBy(result => result.Name).All(group => group.Any(result => result.Victory));
             var report = new StringBuilder();
-            report.AppendLine("# 《云海邮差》v0.25 一页式试玩与平衡报告");
+            report.AppendLine("# 《云海邮差》v0.44 一页式试玩与平衡报告");
             report.AppendLine();
             report.AppendLine($"> 生成日期：{DateTime.Now:yyyy-MM-dd}　|　自动构筑模拟：{victories}/{results.Count} 通关");
             report.AppendLine();
             report.AppendLine("## 真人试玩结论与本轮目标");
             report.AppendLine();
-            report.AppendLine("v0.25 将固定五节点航线替换为可滚动的八段分支图，验证安全补给路线与高压战斗路线是否都能支持主要构筑通关；本轮仍不加入试玩数据采集。");
+            report.AppendLine("v0.44 完成终局前哨、可继承航线情报与六类分支结局；本轮只验证机制闭环、存档兼容和信息可见性，所有数值继续沿用 v0.41 基线，留待后续真人试玩。");
             report.AppendLine();
             report.AppendLine("## 已实施改动");
             report.AppendLine();
+            report.AppendLine("- 新增版本化单局存档、上一代备份和损坏回退；地图、战斗入口、商店、事件、维修和奖励节点自动保存。");
+            report.AppendLine("- 新增窗口/无边框/独占全屏、五档分辨率、垂直同步、帧率上限，以及音乐、音效、震屏和闪光强度设置。");
+            report.AppendLine("- 标题至结算的全部关键流程支持手柄导航，并持续显示当前焦点和控制器按键提示。");
+            report.AppendLine("- 每局生成可见种子；同一航点的编队、洗牌和战斗随机行为可稳定复现，恢复战斗不会改变开局状态。");
+            report.AppendLine("- 本地 JSONL 诊断记录版本、种子、界面、航点、合同、战损和关键流程；Unity 错误另存最后错误上下文，所有记录均不上传。");
+            report.AppendLine("- 标题页新增邮政档案，长期记录出发、送达、失事、战斗胜利、最佳货物、累计回合和累计出牌。");
+            report.AppendLine("- 新增合同、卡牌、模块和敌机发现图鉴，以及不提供属性加成的邮差等级与五枚荣誉签章。");
+            report.AppendLine("- 最近八次送达或失事记录保留合同、航点、种子、回合、牌组等摘要；档案使用独立主文件、备份和安全替换。");
+            report.AppendLine("- 规则层区分同航道攻击、航道封锁、全航道风暴、航迹追踪、灾变蓄力、首领正面/溅射和引擎过热八类致命来源。");
+            report.AppendLine("- 失败页显示致命敌机、最后机体损失、对应战术建议、本次档案增量与种子，并提供同合同新种子快速再试。");
+            report.AppendLine("- 邮政档案 v2 为失败记录保存致命来源；v1 档案自动迁移并保留既有统计和历史记录。");
+            report.AppendLine("- 新增统一 TSV 双语词表与运行时本地化服务，设置中可即时切换简体中文 / English，语言选择独立持久化。");
+            report.AppendLine("- 首批英文覆盖标题、设置、暂停、邮政档案、失败复盘，以及合同、卡牌、模块和敌机等核心名称。");
+            report.AppendLine("- 构建前扫描已接入的静态文本键并验证双语字段，同时验证全部动态卡牌名称、设置迁移和中英切换。");
+            report.AppendLine("- 四份合同不再同时平铺，改为中央聚焦、两侧后退、远端暗化的伪 3D 机库轮盘，突出本局构筑身份。");
+            report.AppendLine("- 当前合同集中显示风险条件、推荐构筑路线、玩法说明和报酬；支持鼠标、滚轮、方向键、数字键与手柄切换。");
+            report.AppendLine("- 设置页步进箭头脱离通用装饰按钮，使用对称专用按钮和独立点击区域，消除窄宽度下的括号拥挤与错位。");
             report.AppendLine("- 连续换道累积航迹暴露；第二个连续机动回合会预告并触发一次5点追踪射击。停留会降低暴露。");
             report.AppendLine("- 新增信号扰频、逆向追猎、矢量刹车、航道雷网4张牌，以及围绕航迹管理的幽灵黑匣合同。");
             report.AppendLine("- 合同各自携带一张开局核心牌；长航线加入追迹者空域，并保留多次补给与维修选择。");
             report.AppendLine("- 新增首次战斗提示、暂停、重新开始以及独立音乐/音效音量设置。");
             report.AppendLine("- 12种攻击牌获得独立弹道、命中节奏、震屏强度与分层音效；点射、轨炮、制导、冲角、冰枪、热浪、飞弹和雷网可直接从动作轮廓区分。");
-            report.AppendLine("- 航线扩展为8个阶段、19个节点，包含普通战、精英、追猎、商店、事件、维修坞与首领，并按连线形成多条可选路径。");
+            report.AppendLine("- 航线扩展为8个阶段、20个节点，包含普通战、精英、追猎、商店、事件、维修坞与两个终局首领，并按连线形成多条可选路径。");
             report.AppendLine("- 地图支持滚轮、方向按钮和滚动条浏览；只解析当前节点之后两层，未到达情报由信号遮罩隐藏。");
+            report.AppendLine("- 高空疾风走廊、中层静电锋面、低空残骸潮分别绑定可复现的敌方编队池，并在地图与战斗顶部持续显示。");
+            report.AppendLine("- 获得合同签名牌后，普通战奖励会按当前空域偏向机动/低热、控制/调度或爆发/生存路线。");
+            report.AppendLine("- 终局前新增雷幕先导、磁针鳐卫与双频先遣队，以较低压力提前教授两个首领相反的航道判读规则。");
+            report.AppendLine("- 击破终局前哨会截获雷幕密钥、磁针罗盘或双频解码器；情报随单局存档继承，并重写对应首领首轮锁定。");
+            report.AppendLine("- 两名首领与信标纪事的中立、盟约、敌对阵营组合为六种独立终局，并进入邮政档案收藏与最近配送摘要。");
             report.AppendLine("- 自动模拟改为4战安全路线与7战高压路线两类配置，覆盖分支带来的成长和战损差异。");
             report.AppendLine();
             report.AppendLine("## 构筑模拟摘要");
@@ -98,7 +120,7 @@ namespace SkyCourierEditor
                 ? $"通过：{victories}/{results.Count} 条压力路线通关，且8套主要构筑均至少通过一种完整编队。两个失败样本保留了灾变编队和高风险合同的失败压力；换道仍能规避高额攻击，但连续使用会产生可观测代价，专用卡牌可以把代价转化为收益。"
                 : $"未通过：当前有 {results.Count - victories} 条路线失败，或存在完全不可行的主要构筑，需要继续调整。");
 
-            string path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Docs/Playtest_Report_v0.25.md"));
+            string path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Docs/Playtest_Report_v0.44.md"));
             File.WriteAllText(path, report.ToString(), new UTF8Encoding(false));
             AssetDatabase.Refresh();
             Debug.Log($"BALANCE_REPORT_WRITTEN|{path}");
@@ -313,8 +335,12 @@ namespace SkyCourierEditor
         private static bool TryPressureCalamity(BattleState state)
         {
             EnemyState drone = state.Enemies.FirstOrDefault(enemy => enemy.Alive &&
-                (enemy.Kind == EnemyKind.CalamityDrone || enemy.Kind == EnemyKind.StormManta) && !enemy.ChargeInterrupted &&
-                enemy.ChargeTargetLane == state.PlayerLane && enemy.Lane == state.PlayerLane);
+                (enemy.Kind == EnemyKind.CalamityDrone || enemy.Kind == EnemyKind.StormManta ||
+                    enemy.Kind == EnemyKind.CloudWyrm) && !enemy.ChargeInterrupted &&
+                (enemy.Kind == EnemyKind.CloudWyrm
+                    ? enemy.ChargeTargetLane != state.PlayerLane
+                    : enemy.ChargeTargetLane == state.PlayerLane) &&
+                enemy.Lane == state.PlayerLane);
             if (drone == null)
                 return false;
 
@@ -383,6 +409,13 @@ namespace SkyCourierEditor
                         threat += enemy.Phase == 1 ? BattleState.BossPhaseOneStrikeDamage : BattleState.BossPhaseTwoStrikeDamage;
                     else if (enemy.Phase == 2 && distance == 1)
                         threat += BattleState.BossPhaseTwoSplashDamage;
+                }
+                else if (enemy.Kind == EnemyKind.CloudWyrm && !enemy.ChargeInterrupted &&
+                    enemy.ChargeTargetLane >= 0 && enemy.ChargeTargetLane != lane)
+                {
+                    threat += enemy.Phase == 1
+                        ? BattleState.CloudWyrmPhaseOneStrikeDamage
+                        : BattleState.CloudWyrmPhaseTwoStrikeDamage;
                 }
                 else if (enemy.Kind == EnemyKind.StormBalloon)
                     threat += enemy.Damage;

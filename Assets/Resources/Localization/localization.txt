@@ -1,0 +1,333 @@
+# key	zh-CN	en
+language.name	简体中文	English
+title.game	云海邮差	SKY COURIER
+title.subtitle	三航道空战卡牌肉鸽	THREE-LANE AERIAL DECKBUILDING ROGUELITE
+title.pitch	运送不可能送达的包裹，穿越风暴云海。\n观察敌人意图，灵活切换航道。\n压榨老旧引擎——但别让它烧起来。	Carry impossible cargo across a stormbound sky.\nRead enemy intents and switch lanes with purpose.\nPush the old engine hard—but do not burn it out.
+title.continue	继续配送	CONTINUE DELIVERY
+title.new	新配送	NEW DELIVERY
+title.start	开始配送	START DELIVERY
+title.archive	邮政档案	POSTAL ARCHIVE
+title.settings	系统设置	SETTINGS
+title.version	v0.44.0  //  FINALE DEPTH COMPLETE	v0.44.0  //  FINALE DEPTH COMPLETE
+settings.title	系统设置	SETTINGS
+settings.section	ACCESS // DISPLAY	ACCESS // DISPLAY
+settings.language	语言	LANGUAGE
+settings.display	显示模式	DISPLAY MODE
+settings.resolution	分辨率	RESOLUTION
+settings.vsync	垂直同步	VSYNC
+settings.framerate	帧率上限	FRAME-RATE LIMIT
+settings.music	音乐音量	MUSIC VOLUME
+settings.sfx	音效音量	SFX VOLUME
+settings.shake	震屏强度	SCREEN SHAKE
+settings.flash	闪光强度	FLASH INTENSITY
+settings.on	开启	ON
+settings.off	关闭	OFF
+settings.monitor	由显示器同步	DISPLAY SYNC
+settings.back_pause	返回暂停菜单	BACK TO PAUSE
+settings.save_back	保存并返回	SAVE AND BACK
+display.windowed	窗口	WINDOWED
+display.borderless	无边框全屏	BORDERLESS
+display.exclusive	独占全屏	EXCLUSIVE FULLSCREEN
+pause.title	系统暂停	SYSTEM PAUSED
+pause.resume	继续配送	RESUME DELIVERY
+pause.settings	系统设置	SETTINGS
+pause.guide	操作指南	HOW TO PLAY
+pause.restart	重新开始本次配送	RESTART DELIVERY
+pause.title_button	返回标题	RETURN TO TITLE
+archive.title	群岛邮政档案	ARCHIPELAGO POSTAL ARCHIVE
+archive.career	邮差履历	COURIER CAREER
+archive.collection	发现图鉴	DISCOVERY INDEX
+archive.recent	最近记录	RECENT RUNS
+archive.started	出发 {0}	RUNS {0}
+archive.delivered	送达 {0}	DELIVERED {0}
+archive.lost	失事 {0}	LOST {0}
+archive.battles	战斗胜利 {0}	BATTLES WON {0}
+archive.best_cargo	最佳货物 {0}	BEST CARGO {0}
+archive.best_credits	最高邮票 {0}	BEST STAMPS {0}
+archive.total_turns	累计回合 {0}	TOTAL TURNS {0}
+archive.total_cards	累计出牌 {0}	CARDS PLAYED {0}
+archive.contracts	合同	CONTRACTS
+archive.cards	卡牌	CARDS
+archive.modules	模块	MODULES
+archive.enemies	敌机	HOSTILES
+archive.known_contracts	已登记合同	LOGGED CONTRACTS
+archive.recent_cards	最近发现卡牌	RECENT CARD DISCOVERIES
+archive.known_enemies	已发现敌机	IDENTIFIED HOSTILES
+archive.empty	尚无配送记录。\n完成一次配送或遭遇失事后，\n航线摘要会保存在这里。	NO DELIVERY RECORDS YET.\nCompleted deliveries and lost attempts\nwill be archived here.
+archive.back	返回标题	RETURN TO TITLE
+archive.wait_contract	等待首次合同登记	AWAITING FIRST CONTRACT
+archive.wait_deck	等待首次牌组登记	AWAITING FIRST DECK
+archive.wait_enemy	等待首次敌情登记	AWAITING FIRST CONTACT
+archive.locked_badge	未解锁签章	LOCKED STAMP
+archive.unknown_contract	未知合同	UNKNOWN CONTRACT
+archive.unknown_encounter	未知遭遇	UNKNOWN ENCOUNTER
+archive.unknown_reason	未知原因	UNKNOWN CAUSE
+badge.first.title	首航签章	FIRST FLIGHT
+badge.first.desc	完成第一次出发登记	Log your first departure
+badge.boss.title	风暴见证	STORM WITNESS
+badge.boss.desc	亲眼发现任意终局首领	Identify either finale boss
+badge.perfect.title	完好送达	PRISTINE DELIVERY
+badge.perfect.desc	以完整货物完成配送	Deliver cargo intact
+badge.resolve.title	不屈航线	UNBROKEN ROUTE
+badge.resolve.desc	失事后仍完成过配送	Deliver after a lost attempt
+badge.contracts.title	四方合同	FOUR CONTRACTS
+badge.contracts.desc	登记全部四种合同	Log every contract
+archive.delivered_result	送达 · {0}级货物	DELIVERED · GRADE {0}
+archive.lost_result	失事 · {0}	LOST · {0}
+archive.run_line	{0}　航点 {1:00}　回合 {2}　牌组 {3}	{0}  NODE {1:00}  TURNS {2}  DECK {3}
+encounter.standard	航线拦截	ROUTE INTERCEPTION
+encounter.elite	精英封锁	ELITE BLOCKADE
+encounter.hunt	追猎空域	HUNTING GROUNDS
+encounter.boss	终局核心	FINALE CORE
+rank.trainee	见习分拣员	TRAINEE SORTER
+rank.courier	正式邮差	LICENSED COURIER
+rank.storm	风暴信使	STORM MESSENGER
+rank.navigator	云海航路员	SKYWAY NAVIGATOR
+rank.chief	群岛首席邮差	ARCHIPELAGO POSTMASTER
+cargo.pristine	完好	PRISTINE
+cargo.light	轻微受损	LIGHT DAMAGE
+cargo.heavy	严重受损	HEAVY DAMAGE
+cargo.destroyed	货物损毁	DESTROYED
+failure.title	航线失事复盘	ROUTE FAILURE DEBRIEF
+failure.cause	致命原因 // {0}	FATAL CAUSE // {0}
+failure.damage	{0} 造成最后 {1} 点机体损失	{0} dealt the final {1} hull damage
+failure.next	下一次可执行动作	NEXT ACTION
+failure.archived	档案已记录 // 第 {0} 次失事尝试 · SEED {1}	ARCHIVED // LOST ATTEMPT {0} · SEED {1}
+failure.retry	同合同再试	RETRY CONTRACT
+failure.change	更换合同	CHANGE CONTRACT
+failure.title_button	返回标题	RETURN TO TITLE
+failure.retry_note	快速再试将保留【{0}】并生成新种子；返回标题仍可继续本场入口存档。	Quick retry keeps [{0}] and generates a new seed. Return to title to retry this encounter seed.
+failure.unknown	未知威胁	UNKNOWN THREAT
+failure.direct	同航道直接攻击	DIRECT LANE ATTACK
+failure.block	航道封锁	LANE BLOCK
+failure.storm	全航道风暴	ALL-LANE STORM
+failure.tracking	航迹追踪	TRACKING FIRE
+failure.calamity	灾变蓄力	CALAMITY CHARGE
+failure.boss	首领核心冲击	BOSS CORE STRIKE
+failure.splash	吞界磁暴溅射	MAGNETIC SPLASH
+failure.overheat	引擎过热	ENGINE OVERHEAT
+failure.hand_jam	手牌干扰反噬	HAND JAM BACKLASH
+failure.heat_seek	高热追踪	HEAT-SEEKING STRIKE
+failure.boss_wideband	首领宽频干扰	BOSS WIDEBAND JAM
+failure.boss_thermal	首领热源锁定	BOSS THERMAL LOCK
+failure.boss_curtain	雷幕封航	THUNDER CURTAIN
+failure.advice.direct	结束回合前再次检查全部敌人意图。换离攻击航道，或用护盾把即将承受的机体伤害降到安全范围。	Recheck every enemy intent before ending the turn. Leave the attacked lane or build enough shield to absorb the hit.
+failure.advice.block	噬邮兽只会重击自己封锁的航道。结束回合前离开它所在航道，或先用护盾吸收伤害。	Mail Eaters only strike their blocked lane. Leave that lane before ending the turn or absorb the hit with shield.
+failure.advice.storm	风暴气囊会覆盖全部航道，换道无法规避。优先击落它，或在结束回合前建立足够护盾。	Storm Balloons hit every lane. Prioritize them or build enough shield before ending the turn.
+failure.advice.tracking	连续回合换道会提高航迹暴露。停留一回合，或使用信号扰频、矢量刹车主动清除暴露。	Changing lanes on consecutive turns raises exposure. Hold position, use Signal Scrambler, or Air Brake to clear it.
+failure.advice.calamity	观察紫色锁定航道：提前换道即可规避，也可以在蓄力回合集中伤害打断灾变无人机。	Watch the marked purple lane. Evade before the strike or focus damage during the charge to interrupt the drone.
+failure.advice.boss	磁暴鳐会提前标记核心冲击航道。离开标记区，或集中火力达到打断阈值。	The Storm Manta marks its core-strike lane in advance. Leave it or focus enough damage to interrupt the charge.
+failure.advice.splash	首领第二阶段会伤及相邻航道。不要只移动一格；尽量与锁定航道拉开两格距离或打断蓄力。	Phase two also hits adjacent lanes. Move two lanes away from the mark or interrupt the charge.
+failure.advice.overheat	红线出牌会直接损伤机体。为应急冷却或低温泵保留行动顺序，在打出高热牌前检查热量。	Crossing the red line damages your hull. Sequence coolant before high-heat cards and check heat before committing.
+failure.advice.hand_jam	噪声织网只会在你以5张以上手牌结束回合时开火。主动打出低费牌，把手牌降至4张以下。	The Noise Lattice fires only if you end the turn holding 5+ cards. Play cheap cards and reduce your hand to 4 or fewer.
+failure.advice.heat_seek	热寻隼会锁定4点以上热量。结束回合前主动冷却，或优先击落它以保留高热爆发窗口。	The Heat-Seeker locks on at 4+ Heat. Cool before ending the turn or destroy it before committing to a redline burst.
+failure.advice.boss_wideband	开放航电会让首领读取结束回合手牌。将手牌降至4张以下，再处理已预告的核心冲击。	Open Avionics lets the boss read your end-turn hand. Reduce it to 4 or fewer, then answer the telegraphed core strike.
+failure.advice.boss_thermal	红线涡轮会让首领锁定4点以上热量。结束回合前冷却到安全范围，再处理核心冲击航道。	Redline Turbine lets the boss lock onto 4+ Heat. Cool below the threshold before answering the core-strike lane.
+failure.advice.boss_curtain	雷幕云龙标出的不是危险区，而是唯一安全航道。结束回合前进入青色航道，或集中伤害打断雷幕。	The Cloud Wyrm marks the only safe corridor, not the danger zone. Enter the cyan lane before ending the turn or focus damage to interrupt the curtain.
+contract.FragileMedicine	易碎药剂	FRAGILE MEDICINE
+contract.CryoSerum	零度血清	CRYO SERUM
+contract.StormCore	风暴核心	STORM CORE
+contract.BlackBoxRelay	幽灵黑匣	GHOST BLACK BOX
+contract_select.title	选择配送合同	SELECT DELIVERY CONTRACT
+contract_select.hangar	HANGAR // CARGO ASSIGNMENT	HANGAR // CARGO ASSIGNMENT
+contract_select.subtitle	每份合同同时带来专属被动与货物风险；利用被动构筑牌组，并保护3格完整度。	Each contract grants a unique passive and cargo risk. Build around its benefit and protect all 3 integrity.
+contract_select.controls	点击两侧货舱切换　滚轮 / 方向键浏览　1—4 快速定位	CLICK SIDE CARGO TO SWITCH  WHEEL / ARROWS BROWSE  1—4 LOCATE
+contract_select.integrity	货物完整度　■■■　3/3	CARGO INTEGRITY  ■■■  3/3
+contract_select.fail	合同风险	FAILURE CONDITION
+contract_select.passive	专属被动 // {0}	UNIQUE PASSIVE // {0}
+contract_select.build	推荐构筑 // {0}	BUILD ROUTES // {0}
+contract_select.sign	签署合同	SIGN CONTRACT
+contract_select.passive_name.FragileMedicine	密封缓冲	SEALED BUFFER
+contract_select.passive_name.CryoSerum	低温回收	CRYO RECOVERY
+contract_select.passive_name.StormCore	矢量电荷	VECTOR CHARGE
+contract_select.passive_name.BlackBoxRelay	幽灵译码	GHOST DECODE
+contract_select.passive_desc.FragileMedicine	每回合首次用护盾完全抵消敌方攻击时，获得1层锁定。	The first enemy hit fully blocked by shield each turn grants 1 Lock-On.
+contract_select.passive_desc.CryoSerum	每回合首次由卡牌降低至少3点热量时，获得1点能量。	The first card each turn to remove at least 3 Heat grants 1 Energy.
+contract_select.passive_desc.StormCore	每回合打出的第一张机动牌额外获得1层动量。	The first Maneuver card played each turn grants 1 extra Momentum.
+contract_select.passive_desc.BlackBoxRelay	每回合首次主动清除航迹暴露时，获得1层锁定。	The first active Trace clear each turn grants 1 Lock-On.
+contract_hud.passive.FragileMedicine	密封缓冲 · 完全格挡 → 锁定+1	SEALED BUFFER · FULL BLOCK → LOCK+1
+contract_hud.passive.CryoSerum	低温回收 · 单牌降温3+ → 能量+1	CRYO RECOVERY · COOL 3+ → ENERGY+1
+contract_hud.passive.StormCore	矢量电荷 · 首次机动 → 额外动量+1	VECTOR CHARGE · FIRST MANEUVER → MOMENTUM+1
+contract_hud.passive.BlackBoxRelay	幽灵译码 · 主动清轨 → 锁定+1	GHOST DECODE · CLEAR TRACE → LOCK+1
+contract_select.build.FragileMedicine	护盾冲角 / 锁定狙击	AEGIS RAM / LOCK SNIPER
+contract_select.build.CryoSerum	零度循环 / 熔炉爆发	CRYO LOOP / MELTDOWN
+contract_select.build.StormCore	矢量追猎 / 蜂群弹幕	VECTOR HUNT / SWARM
+contract_select.build.BlackBoxRelay	航迹欺骗 / 逆向追猎	TRACE DECEPTION / COUNTER HUNT
+contract_select.desc.FragileMedicine	积累护盾转化重击，或叠加锁定打出高倍率轨炮。	Convert shield into a heavy ram or stack locks for a decisive rail shot.
+contract_select.desc.CryoSerum	降温返还能量保持低热，也能主动积热后一次清场。	Recycle coolant for low-heat efficiency or bank heat for a single clearing burst.
+contract_select.desc.StormCore	换道积累动量完成追击，或用多段弹幕覆盖全部航道。	Build momentum through lane changes or cover every lane with multi-hit barrages.
+contract_select.desc.BlackBoxRelay	主动控制航迹暴露，把敌方锁定反转为爆发窗口。	Control trace exposure and turn enemy tracking into a burst window.
+contract_select.reward.FragileMedicine	基础报酬	BASE PAY
+contract_select.reward.CryoSerum	报酬 +15%	PAY +15%
+contract_select.reward.StormCore	报酬 +25%	PAY +25%
+contract_select.reward.BlackBoxRelay	报酬 +30%	PAY +30%
+contract_select.rule.FragileMedicine	单次受到6点以上未抵消伤害，则失去1格完整度。	Lose 1 integrity when a single hit deals 6+ unblocked damage.
+contract_select.rule.CryoSerum	回合结束时热量达到6点，则失去1格完整度。	Lose 1 integrity if heat is 6+ at the end of the turn.
+contract_select.rule.StormCore	连续两回合没有切换航道，则失去1格完整度。	Lose 1 integrity after two consecutive turns without changing lanes.
+contract_select.rule.BlackBoxRelay	回合结束时航迹暴露达到2层，则失去1格完整度。	Lose 1 integrity if trace exposure is 2+ at the end of the turn.
+enemy.RustKite	锈翼鸢	RUST KITE
+enemy.MailEater	噬邮兽	MAIL EATER
+enemy.StormBalloon	风暴气囊	STORM BALLOON
+enemy.StormManta	磁暴鳐	STORM MANTA
+enemy.CloudWyrm	雷幕云龙	THUNDER-CURTAIN WYRM
+enemy.CalamityDrone	灾变无人机	CALAMITY DRONE
+enemy.ShieldLeech	盾蚀水蛭	SHIELD LEECH
+enemy.HandJammer	噪声织网	NOISE LATTICE
+enemy.HeatSeeker	热寻隼	HEAT-SEEKER
+enemy.SignalHijacker	协议劫持机	SIGNAL HIJACKER
+event.open.FragileMedicine.title	失压医疗驳船	DEPRESSURIZED MEDICAL BARGE
+event.open.CryoSerum.title	冻裂冷却塔	FRACTURED COOLING TOWER
+event.open.StormCore.title	雷暴走私信标	STORM SMUGGLER BEACON
+event.open.BlackBoxRelay.title	失联侦察黑匣	LOST RECON BLACK BOX
+event.open.FragileMedicine.desc	一艘医疗驳船在乱流中失压，求救信号与货舱坐标同时暴露。	A medical barge is losing pressure in the turbulence; its distress call also exposes its cargo coordinates.
+event.open.CryoSerum.desc	废弃冷却塔仍有一枚低温核心，但外壳正在快速崩裂。	An abandoned cooling tower still holds a cryogenic core, but its shell is collapsing fast.
+event.open.StormCore.desc	非法信标标出穿越雷暴的短路，同时广播一笔无人认领的高额邮资。	An illegal beacon marks a shortcut through the storm and broadcasts a large unclaimed payment.
+event.open.BlackBoxRelay.desc	失联侦察机留下加密黑匣；敌方追踪波束正沿着广播信号逼近。	A missing scout left an encrypted black box; hostile tracking beams are closing along its broadcast.
+event.wreckage.desc	破碎舰体在雷云中漂流。稳定供能单元仍可回收，但深入残骸会暴露货舱坐标。	A shattered hull drifts inside the thundercloud. Its stable power cell can be recovered, but entering the wreck exposes your cargo.
+event.observatory.desc	废弃观测站保存着磁暴鳐的放电记录，也有一条穿越高压云墙的危险捷径。	The abandoned station holds Storm Manta discharge records and a dangerous shortcut through a high-voltage cloud wall.
+event.story.mid.promise.title	回声二：漂流救援舱	ECHO II: DRIFTING RELIEF HOLD
+event.story.mid.debt.title	回声二：追债者残骸带	ECHO II: DEBT COLLECTOR WRECKAGE
+event.story.final.promise.title	回声终章：风眼护航	FINAL ECHO: EYE ESCORT
+event.story.final.debt.title	回声终章：债务封锁	FINAL ECHO: DEBT BLOCKADE
+event.story.mid.promise.desc	你曾回应的信号再次出现。获救信使正守着一座补给舱，等待你确认这条互助航线。	The signal you answered has returned. A rescued courier guards a relief hold and waits for you to confirm the mutual-aid route.
+event.story.mid.debt.desc	从旧信标取走的核心带有追踪码。债权人的无人艇已经先一步抵达残骸带。	The core taken from the old beacon carried a tracer. The creditor's drones have reached the wreckage first.
+event.story.final.promise.desc	一路响应你的信使组成临时船队，正在风眼外等待最后一次护航。兑现承诺会换来完整的援助网络。	Couriers who answered you have formed a convoy outside the eye. One final escort will establish a permanent aid network.
+event.story.final.debt.desc	被你带走的残骸资产终于引来债务封锁。现在可以交还收益终止追踪，或烧毁应答器强行突围。	The salvage you took has drawn a debt blockade. Return the proceeds to end the pursuit or burn the transponder and break through.
+event.story.status.none	尚未建立信标纪事	NO SIGNAL THREAD
+event.story.status.promise	援助承诺待兑现	AID PROMISE PENDING
+event.story.status.debt	残骸债务正在追踪	SALVAGE DEBT TRACKING
+event.story.status.promise_strong	护航盟约已确认	ESCORT PACT CONFIRMED
+event.story.status.debt_deep	高额债务已经锁定	ESCALATED DEBT LOCKED
+event.story.status.fulfilled	互助航线已经建立	MUTUAL-AID ROUTE ESTABLISHED
+event.story.status.betrayed	救援坐标已经售出	RELIEF COORDINATES SOLD
+event.story.status.repaid	残骸债务已经结清	SALVAGE DEBT REPAID
+event.story.status.defied	追债应答器已经烧毁	COLLECTION TRANSPONDER BURNED
+event.story.chapter.open	SIGNAL THREAD // ORIGIN	SIGNAL THREAD // ORIGIN
+event.story.chapter.mid	SIGNAL THREAD // ECHO II	SIGNAL THREAD // ECHO II
+event.story.chapter.final	SIGNAL THREAD // FINAL	SIGNAL THREAD // FINAL
+event.story.thread	信标纪事 // {0}	SIGNAL THREAD // {0}
+event.story.mid.promise.safe	守住援助频段	PROTECT THE RELIEF BAND
+event.story.mid.promise.risk	拆走救援核心	STRIP THE RELIEF CORE
+event.story.mid.debt.safe	归还追踪识别码	RETURN THE TRACKING CODE
+event.story.mid.debt.risk	洗劫黑匣舱	LOOT THE BLACK-BOX HOLD
+event.story.final.promise.safe	兑现护航承诺	HONOR THE ESCORT PROMISE
+event.story.final.promise.risk	出售救援航标	SELL THE RELIEF BEACON
+event.story.final.debt.safe	归还残骸收益	RETURN THE SALVAGE PROCEEDS
+event.story.final.debt.risk	烧毁追债应答器	BURN THE COLLECTION TRANSPONDER
+event.story.final.promise.safe_desc	强化全部【{0}】，修复8点机体，并恢复1格货物完整度。	Upgrade every [{0}], repair 8 Hull, and restore 1 Cargo Integrity.
+event.story.final.debt.safe_desc	交出最多30枚邮票，修复8点机体，并恢复1格货物完整度。	Surrender up to 30 Stamps, repair 8 Hull, and restore 1 Cargo Integrity.
+event.wreckage.safe	回收稳定单元	RECOVER THE STABLE CELL
+event.wreckage.risk	深入残骸核心	ENTER THE WRECKAGE CORE
+event.observatory.safe	解析磁暴周期	DECODE THE MAGNETIC CYCLE
+event.standard.safe	执行合同协议	FOLLOW CONTRACT PROTOCOL
+event.standard.risk	强穿危险航路	FORCE THE DANGEROUS ROUTE
+event.choice.cooperative	协作路线	COOPERATIVE ROUTE
+event.choice.opportunist	机会路线	OPPORTUNIST ROUTE
+event.standard.safe_desc	强化全部【{0}】并修复{1}点机体。\n货物完整度不会下降。	Upgrade every [{0}] and repair {1} Hull.\nCargo Integrity will not fall.
+event.standard.risk_desc	立即获得{0}枚邮票。\n机体损失{1}点，货物完整度损失1格。	Gain {0} Stamps immediately.\nLose {1} Hull and 1 Cargo Integrity.
+event.result.safe	协议完成：{0}+，机体修复{1}点	Protocol complete: {0}+, repaired {1} Hull
+event.result.risk	危险穿越：+{0}邮票，机体-{1}，货物完整度-1	Dangerous passage: +{0} Stamps, Hull -{1}, Cargo Integrity -1
+event.story.result.fulfilled	承诺兑现：{0}+，机体修复{1}，货物完整度恢复{2}格	Promise honored: {0}+, repaired {1} Hull, restored {2} Cargo Integrity
+event.story.result.betrayed	坐标售出：+{0}邮票，机体-2，货物完整度-1；援助网络终止	Coordinates sold: +{0} Stamps, Hull -2, Cargo Integrity -1; aid network terminated
+event.story.result.repaid	债务结清：-{0}邮票，机体修复{1}，货物完整度恢复{2}格	Debt repaid: -{0} Stamps, repaired {1} Hull, restored {2} Cargo Integrity
+event.story.result.defied	强行突围：+{0}邮票，机体-5，货物完整度-1；追债信标已烧毁	Forced breakout: +{0} Stamps, Hull -5, Cargo Integrity -1; collection beacon burned
+event.continue	继续航行	CONTINUE
+event.irreversible	事件选择不可撤销，并会改变后续信标纪事。	This choice cannot be undone and will alter later Signal Thread events.
+event.confirm	确认选择	CONFIRM
+map.route_status	区域 {0}/{1} // 情报范围 2 // 信标纪事：{2}	SECTOR {0}/{1} // INTEL RANGE 2 // SIGNAL THREAD: {2}
+complete.story_seed	信标纪事 // {0}　|　RUN SEED // {1}	SIGNAL THREAD // {0}  |  RUN SEED // {1}
+boss.matrix.summary	BOSS MATRIX // {0} · {1} · {2}	BOSS MATRIX // {0} · {1} · {2}
+boss.matrix.contract_line	合同反制 // {0}	CONTRACT COUNTER // {0}
+boss.matrix.airframe_line	改装反制 // {0}	AIRFRAME COUNTER // {0}
+boss.matrix.phase_two	PHASE 2 待机 // {0}	PHASE 2 STANDBY // {0}
+boss.protocol.contract.SealMirror.name	密封镜像	SEAL MIRROR
+boss.protocol.contract.CryoInversion.name	低温逆转	CRYO INVERSION
+boss.protocol.contract.VectorIntercept.name	矢量截获	VECTOR INTERCEPT
+boss.protocol.contract.GhostTrace.name	幽灵追迹	GHOST TRACE
+boss.protocol.contract.SealMirror.rule	保留锁定 → 锁定-1，首领装甲+3	HELD LOCK-ON → LOCK-ON -1, BOSS ARMOR +3
+boss.protocol.contract.CryoInversion.rule	热量≤1 → 首领装甲+3	HEAT ≤1 → BOSS ARMOR +3
+boss.protocol.contract.VectorIntercept.rule	保留动量 → 动量-1，首领装甲+3	HELD MOMENTUM → MOMENTUM -1, BOSS ARMOR +3
+boss.protocol.contract.GhostTrace.rule	航迹暴露1+ → 暴露+1，首领装甲+3	TRACE 1+ → TRACE +1, BOSS ARMOR +3
+boss.protocol.airframe.ShieldCrack.name	裂盾回波	SHIELD-CRACK ECHO
+boss.protocol.airframe.WidebandJam.name	宽频干扰	WIDEBAND JAM
+boss.protocol.airframe.ThermalLock.name	热源锁定	THERMAL LOCK
+boss.protocol.airframe.None.name	标准扫描	STANDARD SCAN
+boss.protocol.airframe.ShieldCrack.rule	护盾5+ → 清空当前护盾	SHIELD 5+ → CLEAR ALL SHIELD
+boss.protocol.airframe.WidebandJam.rule	保留5+张手牌 → 4点干扰伤害	HOLD 5+ CARDS → 4 JAM DAMAGE
+boss.protocol.airframe.ThermalLock.rule	热量4+ → 4点热寻伤害	HEAT 4+ → 4 THERMAL DAMAGE
+boss.protocol.airframe.None.rule	没有额外改装反制	NO EXTRA AIRFRAME COUNTER
+boss.story.Allied	盟友反向脉冲	ALLIED COUNTER-PULSE
+boss.story.Hostile	敌对航路上传	HOSTILE ROUTE UPLOAD
+boss.story.Neutral	无信标支援	NO SIGNAL SUPPORT
+module.VectorThruster	矢量回流器	VECTOR RECIRCULATOR
+module.PrismBulkhead	棱镜隔舱	PRISM BULKHEAD
+module.CryoHeart	零度炉心	CRYO HEART
+module.ExecutionChip	处决芯片	EXECUTION CHIP
+module.PrecisionMatrix	精密矩阵	PRECISION MATRIX
+module.MomentumFlywheel	动量飞轮	MOMENTUM FLYWHEEL
+module.AegisCapacitor	神盾电容	AEGIS CAPACITOR
+module.ZeroPointReactor	零点反应堆	ZERO-POINT REACTOR
+module.RedlineReactor	红线反应堆	REDLINE REACTOR
+module.SwarmUplink	蜂群上行链路	SWARM UPLINK
+module.GhostDecoder	幽灵解码器	GHOST DECODER
+card.BurstFire.name	点射	BURST FIRE
+card.BankUp.name	拉升	CLIMB
+card.BankDown.name	俯冲	DIVE
+card.EmergencyCoolant.name	应急冷却	EMERGENCY COOLANT
+card.BroadsideVolley.name	弹幕齐射	BROADSIDE VOLLEY
+card.WindGuard.name	防风挡板	WIND GUARD
+card.OverloadAim.name	过载瞄准	OVERLOAD AIM
+card.EngineOverclock.name	引擎超频	ENGINE OVERCLOCK
+card.TargetLock.name	目标锁定	TARGET LOCK
+card.RailPiercer.name	穿甲轨炮	RAIL PIERCER
+card.VectorDash.name	矢量突进	VECTOR DASH
+card.PursuitShot.name	追猎射击	PURSUIT SHOT
+card.ReactivePlating.name	反应装甲	REACTIVE PLATING
+card.AegisRam.name	护盾冲角	AEGIS RAM
+card.CryoPump.name	低温泵	CRYO PUMP
+card.FrostLance.name	霜脉长枪	FROST LANCE
+card.HeatCharge.name	热能充注	HEAT CHARGE
+card.MeltdownBurst.name	熔毁脉冲	MELTDOWN BURST
+card.Scattershot.name	散射弹幕	SCATTERSHOT
+card.MissileSwarm.name	蜂群飞弹	MISSILE SWARM
+card.SignalScrambler.name	信号扰频	SIGNAL SCRAMBLER
+card.CounterPursuit.name	逆向追猎	COUNTER PURSUIT
+card.AirBrake.name	矢量刹车	AIR BRAKE
+card.InterceptMine.name	航道雷网	INTERCEPT MINE
+card.LockCascade.name	连锁标定	LOCK CASCADE
+card.SlipstreamStrike.name	尾流收割	SLIPSTREAM STRIKE
+card.PrismEcho.name	棱镜回响	PRISM ECHO
+card.ZeroPointCalibration.name	零点校准	ZERO-POINT CALIBRATION
+card.RedlineIgnition.name	红线点火	REDLINE IGNITION
+card.SwarmBeacon.name	蜂群信标	SWARM BEACON
+card.GhostProtocol.name	幽灵协议	GHOST PROTOCOL
+card.ReactiveSeal.name	再生密封	REGENERATIVE SEAL
+card.PhaseExchange.name	相变置换	PHASE EXCHANGE
+card.EyeTransit.name	风眼穿越	EYE TRANSIT
+card.FalseTelemetry.name	伪造遥测	FALSE TELEMETRY
+retrofit.title	永久机体改装	PERMANENT AIRFRAME RETROFIT
+retrofit.header	MID-RUN AIRFRAME REWRITE	MID-RUN AIRFRAME REWRITE
+retrofit.subtitle	航线已进入后半程。选择一项改装焊入机体：本局不可拆除，也不能跳过。	The route has entered its second half. Weld one retrofit into the aircraft; it cannot be removed or skipped this run.
+retrofit.warning	IRREVERSIBLE // 确认后将改变之后每场战斗的基础规则	IRREVERSIBLE // THIS CHANGES THE BASE RULES OF EVERY REMAINING BATTLE
+retrofit.contract	当前合同 // {0}　专属牌与改装规则可以交叉组合	ACTIVE CONTRACT // {0}  SIGNATURE CARDS CAN COMBINE WITH RETROFIT RULES
+retrofit.controls	方向键 / 1—3 选择　ENTER 焊接确认	ARROWS / 1—3 SELECT  ENTER TO WELD
+retrofit.benefit	结构增益	STRUCTURAL BENEFIT
+retrofit.cost	永久代价	PERMANENT COST
+retrofit.install	焊入机体	WELD INTO AIRFRAME
+retrofit.name.None	未改装	STANDARD AIRFRAME
+retrofit.name.SealedBulkhead	密封隔舱	SEALED BULKHEAD
+retrofit.name.OpenAvionics	开放航电	OPEN AVIONICS
+retrofit.name.RedlineTurbine	红线涡轮	REDLINE TURBINE
+retrofit.doctrine.SealedBulkhead	DEFENSE DOCTRINE // 防御循环	DEFENSE DOCTRINE // SHIELD LOOP
+retrofit.doctrine.OpenAvionics	HAND DOCTRINE // 扩展循环	HAND DOCTRINE // EXPANDED LOOP
+retrofit.doctrine.RedlineTurbine	ENERGY DOCTRINE // 高热循环	ENERGY DOCTRINE // REDLINE LOOP
+retrofit.benefit.SealedBulkhead	每场战斗及每回合开始获得5点护盾。	Start each battle and turn with 5 Shield.
+retrofit.benefit.OpenAvionics	每回合将手牌补至6张。	Refill your hand to 6 cards each turn.
+retrofit.benefit.RedlineTurbine	每回合拥有4点基础能量。	Start each turn with 4 base Energy.
+retrofit.cost.SealedBulkhead	每回合只将手牌补至4张。	Refill your hand to only 4 cards each turn.
+retrofit.cost.OpenAvionics	每场战斗及每回合开始获得1层航迹暴露。	Start each battle and turn with 1 Trace Exposure.
+retrofit.cost.RedlineTurbine	回合结束时不再自然降低热量。	Heat no longer cools naturally at turn end.
+retrofit.hud.None	标准机体	STANDARD AIRFRAME
+retrofit.hud.SealedBulkhead	回合护盾5 / 手牌4	5 SHIELD / 4 CARDS
+retrofit.hud.OpenAvionics	手牌6 / 回合暴露+1	6 CARDS / +1 TRACE
+retrofit.hud.RedlineTurbine	能量4 / 无自然冷却	4 ENERGY / NO PASSIVE COOLING

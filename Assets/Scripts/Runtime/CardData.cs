@@ -35,7 +35,11 @@ namespace SkyCourier
         ZeroPointCalibration,
         RedlineIgnition,
         SwarmBeacon,
-        GhostProtocol
+        GhostProtocol,
+        ReactiveSeal,
+        PhaseExchange,
+        EyeTransit,
+        FalseTelemetry
     }
 
     public enum CardFamily
@@ -80,7 +84,7 @@ namespace SkyCourier
         public CardSpec(CardId id, string name, string rules, int cost, int heat, CardFamily family)
         {
             Id = id;
-            Name = name;
+            Name = LocalizationService.Text($"card.{id}.name", name);
             Rules = rules;
             Cost = cost;
             Heat = heat;
@@ -156,6 +160,14 @@ namespace SkyCourier
                     return new CardSpec(id, "蜂群信标", "校准蜂群链路，使下一张齐射或飞弹牌获得额外伤害。", 1, 1, CardFamily.Utility);
                 case CardId.GhostProtocol:
                     return new CardSpec(id, "幽灵协议", "主动获得1层航迹暴露，追踪最低耐久敌人造成6点加每层暴露5点的伤害。", 1, 1, CardFamily.Weapon);
+                case CardId.ReactiveSeal:
+                    return new CardSpec(id, "再生密封", "获得6点护盾；若有锁定，消耗1层锁定并再获得6点护盾。", 1, 0, CardFamily.Defense);
+                case CardId.PhaseExchange:
+                    return new CardSpec(id, "相变置换", "清空热量；每实际降低3点热量抽1张牌，最多抽2张。", 0, 0, CardFamily.Utility);
+                case CardId.EyeTransit:
+                    return new CardSpec(id, "风眼穿越", "直接穿越至另一侧外航道；每跨越1条航道获得1层动量。", 1, 1, CardFamily.Maneuver);
+                case CardId.FalseTelemetry:
+                    return new CardSpec(id, "伪造遥测", "主动获得2层航迹暴露，然后抽2张牌。", 0, 1, CardFamily.Utility);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(id), id, null);
             }
@@ -170,6 +182,26 @@ namespace SkyCourier
                 case CardFamily.Defense: return new Color32(241, 174, 67, 255);
                 default: return new Color32(124, 102, 172, 255);
             }
+        }
+    }
+
+    public static class ContractCardCatalog
+    {
+        public static CardId SignatureCard(CargoContract contract)
+        {
+            return contract switch
+            {
+                CargoContract.FragileMedicine => CardId.ReactiveSeal,
+                CargoContract.CryoSerum => CardId.PhaseExchange,
+                CargoContract.StormCore => CardId.EyeTransit,
+                CargoContract.BlackBoxRelay => CardId.FalseTelemetry,
+                _ => throw new ArgumentOutOfRangeException(nameof(contract), contract, null)
+            };
+        }
+
+        public static bool BelongsTo(CardId card, CargoContract contract)
+        {
+            return card == SignatureCard(contract);
         }
     }
 }

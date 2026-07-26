@@ -10,7 +10,14 @@ namespace SkyCourier
         MailEater,
         StormBalloon,
         StormManta,
-        CalamityDrone
+        CalamityDrone,
+        ShieldLeech,
+        HandJammer,
+        HeatSeeker,
+        SignalHijacker,
+        CloudWyrm,
+        CurtainHerald,
+        FluxSkimmer
     }
 
     public enum EncounterId
@@ -29,6 +36,49 @@ namespace SkyCourier
         BlackBoxRelay
     }
 
+    public enum AirframeModification
+    {
+        None,
+        SealedBulkhead,
+        OpenAvionics,
+        RedlineTurbine
+    }
+
+    public enum PlayerDamageSource
+    {
+        DirectAttack,
+        LaneBlock,
+        StormField,
+        TrackingShot,
+        CalamityStrike,
+        BossStrike,
+        BossSplash,
+        Overheat,
+        HandJam,
+        HeatSeek,
+        BossWidebandJam,
+        BossThermalLock,
+        BossCurtain,
+        PreludeCurtain,
+        PreludeMagnet
+    }
+
+    public enum BossContractProtocol
+    {
+        SealMirror,
+        CryoInversion,
+        VectorIntercept,
+        GhostTrace
+    }
+
+    public enum BossAirframeProtocol
+    {
+        None,
+        ShieldCrack,
+        WidebandJam,
+        ThermalLock
+    }
+
     [Serializable]
     public sealed class EnemyState
     {
@@ -43,6 +93,7 @@ namespace SkyCourier
         public int ChargeTargetLane = -1;
         public int ChargeDamageTaken;
         public bool ChargeInterrupted;
+        public int ChargeCycle;
         public int Phase = 1;
         public bool PhaseTransitionPending;
 
@@ -56,7 +107,8 @@ namespace SkyCourier
             Health = health;
             MaxHealth = health;
             Damage = damage;
-            Armor = kind == EnemyKind.StormManta ? 10 : kind == EnemyKind.MailEater ? 5 :
+            Armor = kind == EnemyKind.StormManta ? 10 : kind == EnemyKind.CloudWyrm ? 8 :
+                kind == EnemyKind.MailEater ? 5 :
                 kind == EnemyKind.CalamityDrone ? 3 : 0;
             MaxArmor = Armor;
         }
@@ -74,8 +126,16 @@ namespace SkyCourier
         public const int BossPhaseOneStrikeDamage = 10;
         public const int BossPhaseTwoStrikeDamage = 14;
         public const int BossPhaseTwoSplashDamage = 5;
+        public const int BossAdaptiveArmor = 3;
+        public const int BossAdaptationDamage = 4;
+        public const int BossStoryArmorShift = 4;
+        public const int CloudWyrmPhaseOneBreakDamage = 8;
+        public const int CloudWyrmPhaseTwoBreakDamage = 12;
+        public const int CloudWyrmPhaseOneStrikeDamage = 9;
+        public const int CloudWyrmPhaseTwoStrikeDamage = 12;
+        public const int PreludeBreakDamage = 6;
 
-        private readonly Random random = new Random(70422);
+        private Random random = new Random(RunSeedUtility.LegacySeed);
         private readonly List<CardId> drawPile = new List<CardId>();
         private readonly List<CardId> discardPile = new List<CardId>();
         private readonly HashSet<CardId> upgradedCards = new HashSet<CardId>();
@@ -93,10 +153,14 @@ namespace SkyCourier
         public int Turn { get; private set; }
         public int CargoIntegrity { get; private set; }
         public CargoContract Cargo { get; private set; }
+        public AirframeModification Modification { get; private set; }
+        public RouteStoryState StoryState { get; private set; }
+        public RouteIntel Intel { get; private set; }
         public string LastCargoDamageReason { get; private set; }
         public string Log { get; private set; }
         public EncounterId Encounter { get; private set; }
         public int EncounterVariant { get; private set; }
+        public int Seed { get; private set; } = RunSeedUtility.LegacySeed;
         public string FormationName { get; private set; }
         public int CardsPlayed { get; private set; }
         public int DamageTaken { get; private set; }
@@ -108,14 +172,30 @@ namespace SkyCourier
         public int Momentum { get; private set; }
         public int EvasionExposure { get; private set; }
         public int TrackingHits { get; private set; }
+        public PlayerDamageSource LastDamageSource { get; private set; }
+        public string LastDamageDealer { get; private set; }
+        public int LastHullDamage { get; private set; }
+        public PlayerDamageSource DefeatSource { get; private set; }
+        public string DefeatDealer { get; private set; }
+        public int DefeatDamage { get; private set; }
+        public bool HasDefeatCause { get; private set; }
         public string LastModuleProc { get; private set; }
         public bool LastAttackCritical { get; private set; }
         public string LastArmorBreak { get; private set; }
         public string LastStatusTrigger { get; private set; }
         public int LastShieldAbsorbed { get; private set; }
         public bool LastShieldBroken { get; private set; }
+        public bool ContractPassiveTriggered { get; private set; }
+        public int ContractPassiveProcs { get; private set; }
+        public int CardsHeldAtEndTurn { get; private set; }
         private bool changedLaneThisTurn;
+        private int armorAtEnemyPhase;
+        private int heatAtEnemyPhase;
+        private int lockOnAtEnemyPhase;
+        private int momentumAtEnemyPhase;
+        private int exposureAtEnemyPhase;
         private int stationaryTurns;
+        private bool contractPassiveUsedThisTurn;
         private bool vectorThrusterUsedThisTurn;
         private bool executionChipUsedThisTurn;
         private bool trackingShotResolvedThisTurn;
@@ -130,6 +210,18 @@ namespace SkyCourier
 
         public int DrawCount => drawPile.Count;
         public int DiscardCount => discardPile.Count;
+        public int HandTarget => Modification == AirframeModification.OpenAvionics ? 6 :
+            Modification == AirframeModification.SealedBulkhead ? 4 : 5;
+        public int TurnEnergy => Modification == AirframeModification.RedlineTurbine ? 4 : 3;
+        public BossContractProtocol ActiveBossContractProtocol => (BossContractProtocol)Cargo;
+        public BossAirframeProtocol ActiveBossAirframeProtocol => Modification switch
+        {
+            AirframeModification.SealedBulkhead => BossAirframeProtocol.ShieldCrack,
+            AirframeModification.OpenAvionics => BossAirframeProtocol.WidebandJam,
+            AirframeModification.RedlineTurbine => BossAirframeProtocol.ThermalLock,
+            _ => BossAirframeProtocol.None
+        };
+        public BossStoryAlignment ActiveBossStoryAlignment => RouteStoryRules.BossAlignment(StoryState);
         public bool Victory => Enemies.Count > 0 && Enemies.All(enemy => !enemy.Alive);
         public bool Defeat => PlayerHealth <= 0;
         public int HeatLimit => MaxHeat + (HasModule(ModuleId.CryoHeart) ? 2 : 0);
@@ -137,6 +229,30 @@ namespace SkyCourier
         public UpgradeBranch UpgradeBranchFor(CardId card) => upgradeBranches.TryGetValue(card, out UpgradeBranch branch)
             ? branch : UpgradeBranch.Alpha;
         public bool HasModule(ModuleId module) => installedModules.Contains(module);
+
+        public bool BossContractProtocolWillTrigger()
+        {
+            if (Modification == AirframeModification.None)
+                return false;
+            return ActiveBossContractProtocol switch
+            {
+                BossContractProtocol.SealMirror => LockOn > 0,
+                BossContractProtocol.CryoInversion => Heat <= 1,
+                BossContractProtocol.VectorIntercept => Momentum > 0,
+                _ => EvasionExposure > 0
+            };
+        }
+
+        public bool BossAirframeProtocolWillTrigger()
+        {
+            return ActiveBossAirframeProtocol switch
+            {
+                BossAirframeProtocol.ShieldCrack => Armor >= 5,
+                BossAirframeProtocol.WidebandJam => Hand.Count >= 5,
+                BossAirframeProtocol.ThermalLock => Heat >= 4,
+                _ => false
+            };
+        }
 
         public void Reset()
         {
@@ -165,8 +281,16 @@ namespace SkyCourier
 
         public void StartEncounter(EncounterId encounter, IList<CardId> deck, int startingHealth, int cargoIntegrity,
             CargoContract cargo, ICollection<CardId> upgrades, ICollection<ModuleId> modules, int encounterVariant = -1,
-            IReadOnlyDictionary<CardId, UpgradeBranch> branches = null)
+            IReadOnlyDictionary<CardId, UpgradeBranch> branches = null, int? seed = null,
+            AirframeModification modification = AirframeModification.None,
+            RouteStoryState storyState = RouteStoryState.None,
+            RouteIntel intel = RouteIntel.None)
         {
+            if (seed.HasValue)
+            {
+                Seed = seed.Value == 0 ? RunSeedUtility.LegacySeed : seed.Value;
+                random = new Random(Seed);
+            }
             upgradedCards.Clear();
             if (upgrades != null)
                 upgradedCards.UnionWith(upgrades);
@@ -182,9 +306,12 @@ namespace SkyCourier
                 installedModules.UnionWith(modules);
             Encounter = encounter;
             Cargo = cargo;
+            Modification = modification;
+            StoryState = storyState;
+            Intel = intel;
             PlayerHealth = Math.Max(1, Math.Min(MaxPlayerHealth, startingHealth));
-            Armor = HasModule(ModuleId.PrismBulkhead) ? 3 : 0;
-            Energy = 3;
+            Armor = StartingArmor();
+            Energy = TurnEnergy;
             Heat = 0;
             PlayerLane = 1;
             Turn = 1;
@@ -192,9 +319,13 @@ namespace SkyCourier
             LastCargoDamageReason = string.Empty;
             LastShieldAbsorbed = 0;
             LastShieldBroken = false;
+            ContractPassiveTriggered = false;
+            ContractPassiveProcs = 0;
+            CardsHeldAtEndTurn = 0;
             LastStatusTrigger = string.Empty;
             changedLaneThisTurn = false;
             stationaryTurns = 0;
+            contractPassiveUsedThisTurn = false;
             vectorThrusterUsedThisTurn = false;
             executionChipUsedThisTurn = false;
             CardsPlayed = 0;
@@ -205,8 +336,15 @@ namespace SkyCourier
             CalamityHits = 0;
             LockOn = 0;
             Momentum = 0;
-            EvasionExposure = 0;
+            EvasionExposure = Modification == AirframeModification.OpenAvionics ? 1 : 0;
             TrackingHits = 0;
+            LastDamageSource = PlayerDamageSource.DirectAttack;
+            LastDamageDealer = string.Empty;
+            LastHullDamage = 0;
+            DefeatSource = PlayerDamageSource.DirectAttack;
+            DefeatDealer = string.Empty;
+            DefeatDamage = 0;
+            HasDefeatCause = false;
             trackingShotResolvedThisTurn = false;
             criticalArmed = false;
             swarmPrimed = false;
@@ -225,8 +363,8 @@ namespace SkyCourier
             Log = "配送航线遭到拦截。观察敌人意图，然后打出卡牌。";
 
             EncounterVariant = encounter == EncounterId.Boss
-                ? 0
-                : encounterVariant >= 0 ? encounterVariant % 2 : random.Next(2);
+                ? encounterVariant >= 0 ? encounterVariant % EncounterCatalog.BossVariantCount : 0
+                : encounterVariant >= 0 ? encounterVariant % EncounterCatalog.VariantCount : random.Next(2);
             ConfigureEnemies(encounter, EncounterVariant);
 
             drawPile.Clear();
@@ -234,7 +372,7 @@ namespace SkyCourier
             Hand.Clear();
             drawPile.AddRange(deck);
             Shuffle(drawPile);
-            DrawToFive();
+            DrawToTarget();
         }
 
         public bool CanPlay(int handIndex)
@@ -284,6 +422,7 @@ namespace SkyCourier
             LastAttackCritical = false;
             LastArmorBreak = string.Empty;
             LastStatusTrigger = string.Empty;
+            ContractPassiveTriggered = false;
             currentAttackIgnoresArmor = id == CardId.RailPiercer && upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta;
             currentCardCritical = damagingCard && (criticalArmed ||
                 (id == CardId.OverloadAim && heatBefore >= 4) ||
@@ -319,11 +458,12 @@ namespace SkyCourier
                 case CardId.BankUp:
                     PlayerLane--;
                     changedLaneThisTurn = true;
+                    TriggerStormCorePassive();
                     Momentum = Math.Min(3, Momentum + 1);
                     GainArmor(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Alpha ? 5 : 3);
                     if (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta)
                     {
-                        EvasionExposure = Math.Max(0, EvasionExposure - 1);
+                        ReduceExposure(1);
                         LastStatusTrigger = "静默变轨：航迹暴露 -1";
                     }
                     if (HasModule(ModuleId.VectorThruster) && !vectorThrusterUsedThisTurn)
@@ -337,11 +477,12 @@ namespace SkyCourier
                 case CardId.BankDown:
                     PlayerLane++;
                     changedLaneThisTurn = true;
+                    TriggerStormCorePassive();
                     Momentum = Math.Min(3, Momentum + 1);
                     GainArmor(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Alpha ? 5 : 3);
                     if (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta)
                     {
-                        EvasionExposure = Math.Max(0, EvasionExposure - 1);
+                        ReduceExposure(1);
                         LastStatusTrigger = "静默变轨：航迹暴露 -1";
                     }
                     if (HasModule(ModuleId.VectorThruster) && !vectorThrusterUsedThisTurn)
@@ -353,7 +494,7 @@ namespace SkyCourier
                     Log = upgraded ? "强化矢量喷口完成俯冲，获得5点护盾。" : "飞机俯冲一条航道，获得了3点护盾。";
                     break;
                 case CardId.EmergencyCoolant:
-                    Heat = Math.Max(0, Heat - (upgraded ? 5 : 3));
+                    ApplyCooling(upgraded ? 5 : 3);
                     if (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta)
                     {
                         criticalArmed = true;
@@ -411,12 +552,13 @@ namespace SkyCourier
                     int oldLane = PlayerLane;
                     PlayerLane = PlayerLane == 2 ? 1 : PlayerLane + 1;
                     changedLaneThisTurn = PlayerLane != oldLane;
+                    TriggerStormCorePassive();
                     Momentum = Math.Min(3, Momentum + (upgraded ? 2 : 1));
                     GainArmor(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Alpha ? 4 : 2);
                     if (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta)
                     {
                         Momentum = Math.Min(3, Momentum - 1);
-                        EvasionExposure = Math.Max(0, EvasionExposure - 1);
+                        ReduceExposure(1);
                         LastStatusTrigger = "幽灵矢量：航迹暴露 -1";
                     }
                     if (HasModule(ModuleId.VectorThruster) && !vectorThrusterUsedThisTurn)
@@ -448,8 +590,7 @@ namespace SkyCourier
                     Armor = upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta ? Armor / 2 : 0;
                     break;
                 case CardId.CryoPump:
-                    int cooled = Math.Min(Heat, upgraded ? 6 : 4);
-                    Heat -= cooled;
+                    int cooled = ApplyCooling(upgraded ? 6 : 4);
                     if (cooled >= 3)
                         Energy += upgraded ? 2 : 1;
                     if (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta && cooled >= 3)
@@ -499,31 +640,30 @@ namespace SkyCourier
                     Log = $"蜂群飞弹完成{missileCount}次随机追踪打击。";
                     break;
                 case CardId.SignalScrambler:
-                    int exposureCleared = EvasionExposure;
-                    EvasionExposure = 0;
+                    int exposureCleared = ReduceExposure(EvasionExposure);
                     GainArmor(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Alpha ? 7 : 5 +
                         (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta ? exposureCleared * 3 : 0));
                     TriggerGhostDecoder(exposureCleared);
                     Log = "扰频脉冲抹除了航迹特征。";
                     break;
                 case CardId.CounterPursuit:
-                    int counterExposure = EvasionExposure;
                     int counterDamage = (upgraded ? 9 : 7) + EvasionExposure * (upgraded ? 8 : 6) +
                         (executionBoost ? 4 : 0);
                     DamageLowestAlive(counterDamage);
-                    EvasionExposure = upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta ? Math.Min(1, EvasionExposure) : 0;
-                    TriggerGhostDecoder(counterExposure - EvasionExposure);
+                    int retainedExposure = upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta
+                        ? Math.Min(1, EvasionExposure) : 0;
+                    int counterCleared = ReduceExposure(EvasionExposure - retainedExposure);
+                    TriggerGhostDecoder(counterCleared);
                     break;
                 case CardId.AirBrake:
-                    int exposureBeforeBrake = EvasionExposure;
                     bool shedExposure = EvasionExposure > 0;
-                    EvasionExposure = Math.Max(0, EvasionExposure - (upgraded ? 2 : 1));
+                    int brakeCleared = ReduceExposure(upgraded ? 2 : 1);
                     GainArmor(upgraded && UpgradeBranchFor(id) == UpgradeBranch.Alpha ? 8 : 5);
                     if (upgraded && UpgradeBranchFor(id) == UpgradeBranch.Beta)
                         Momentum = Math.Min(3, Momentum + 1);
                     if (shedExposure)
                         Energy++;
-                    TriggerGhostDecoder(exposureBeforeBrake - EvasionExposure);
+                    TriggerGhostDecoder(brakeCleared);
                     Log = shedExposure ? "矢量刹车甩脱追踪并回收了能量。" : "矢量刹车展开防御姿态。";
                     break;
                 case CardId.InterceptMine:
@@ -550,8 +690,7 @@ namespace SkyCourier
                     LastStatusTrigger = "棱镜回响：护盾转化射束";
                     break;
                 case CardId.ZeroPointCalibration:
-                    int zeroCooled = Math.Min(Heat, upgraded ? 5 : 3);
-                    Heat -= zeroCooled;
+                    int zeroCooled = ApplyCooling(upgraded ? 5 : 3);
                     if (zeroCooled >= 3)
                         criticalArmed = true;
                     LastStatusTrigger = zeroCooled >= 3 ? "零点校准：下一次攻击必定暴击" : "零点校准：热量下降";
@@ -570,6 +709,39 @@ namespace SkyCourier
                     EvasionExposure = Math.Min(3, EvasionExposure + 1);
                     DamageLowestAlive((upgraded ? 8 : 6) + EvasionExposure * (upgraded ? 6 : 5));
                     LastStatusTrigger = $"幽灵协议：主动暴露 {EvasionExposure}";
+                    break;
+                case CardId.ReactiveSeal:
+                    GainArmor(6);
+                    if (LockOn > 0)
+                    {
+                        LockOn--;
+                        GainArmor(6);
+                        LastStatusTrigger = "再生密封：消耗锁定，密封强度翻倍";
+                    }
+                    else
+                    {
+                        LastStatusTrigger = "再生密封：基础密封展开";
+                    }
+                    break;
+                case CardId.PhaseExchange:
+                    int exchangedHeat = ApplyCooling(Heat);
+                    int exchangeDraw = Math.Min(2, exchangedHeat / 3);
+                    DrawCards(exchangeDraw);
+                    LastStatusTrigger = $"相变置换：降低{exchangedHeat}热量，抽取{exchangeDraw}张牌";
+                    break;
+                case CardId.EyeTransit:
+                    int transitLane = PlayerLane;
+                    PlayerLane = PlayerLane == 0 ? 2 : 0;
+                    int lanesCrossed = Math.Abs(PlayerLane - transitLane);
+                    changedLaneThisTurn = lanesCrossed > 0;
+                    TriggerStormCorePassive();
+                    Momentum = Math.Min(3, Momentum + lanesCrossed);
+                    LastStatusTrigger = $"风眼穿越：跨越{lanesCrossed}条航道，动量 {Momentum}";
+                    break;
+                case CardId.FalseTelemetry:
+                    EvasionExposure = Math.Min(3, EvasionExposure + 2);
+                    DrawCards(2);
+                    LastStatusTrigger = $"伪造遥测：航迹暴露 {EvasionExposure}，抽取2张牌";
                     break;
             }
 
@@ -594,6 +766,16 @@ namespace SkyCourier
                 return;
 
             LastCargoDamageReason = string.Empty;
+            LastShieldAbsorbed = 0;
+            LastShieldBroken = false;
+            ContractPassiveTriggered = false;
+            LastStatusTrigger = string.Empty;
+            CardsHeldAtEndTurn = Hand.Count;
+            armorAtEnemyPhase = Armor;
+            heatAtEnemyPhase = Heat;
+            lockOnAtEnemyPhase = LockOn;
+            momentumAtEnemyPhase = Momentum;
+            exposureAtEnemyPhase = EvasionExposure;
 
             foreach (CardId card in Hand)
                 discardPile.Add(card);
@@ -616,9 +798,12 @@ namespace SkyCourier
             ResolveCargoContract();
 
             Turn++;
-            Armor = HasModule(ModuleId.PrismBulkhead) ? 3 : 0;
-            Energy = 3;
-            Heat = Math.Max(0, Heat - (HasModule(ModuleId.CryoHeart) ? 2 : 1));
+            Armor = StartingArmor();
+            Energy = TurnEnergy;
+            int naturalCooling = Modification == AirframeModification.RedlineTurbine
+                ? 0
+                : HasModule(ModuleId.CryoHeart) ? 2 : 1;
+            Heat = Math.Max(0, Heat - naturalCooling);
             changedLaneThisTurn = false;
             vectorThrusterUsedThisTurn = false;
             executionChipUsedThisTurn = false;
@@ -626,6 +811,7 @@ namespace SkyCourier
             zeroPointReactorUsedThisTurn = false;
             redlineReactorUsedThisTurn = false;
             ghostDecoderUsedThisTurn = false;
+            contractPassiveUsedThisTurn = false;
             if (!HasModule(ModuleId.MomentumFlywheel))
                 Momentum = 0;
             else if (Momentum > 0)
@@ -633,7 +819,9 @@ namespace SkyCourier
                 LastModuleProc = "动量飞轮";
                 LastStatusTrigger = $"动量跨回合保留：{Momentum}";
             }
-            DrawToFive();
+            if (Modification == AirframeModification.OpenAvionics)
+                EvasionExposure = Math.Min(3, EvasionExposure + 1);
+            DrawToTarget();
             Log = $"第{Turn}回合。敌方编队发出了新的行动信号。";
         }
 
@@ -666,8 +854,63 @@ namespace SkyCourier
                     : $"吞界磁暴 {strike}+邻道{BossPhaseTwoSplashDamage} / 航道 {enemy.ChargeTargetLane + 1} · 打断 {enemy.ChargeDamageTaken}/{threshold}";
             }
 
+            if (enemy.Kind == EnemyKind.CloudWyrm)
+            {
+                if (enemy.PhaseTransitionPending)
+                    return "阶段转换 / 雷幕天穹展开";
+                if (enemy.ChargeTargetLane < 0)
+                    return $"阶段 {enemy.Phase} / 重绘安全航道";
+                if (enemy.ChargeInterrupted)
+                    return "雷幕短路 / 大招已打断";
+                int strike = enemy.Phase == 1 ? CloudWyrmPhaseOneStrikeDamage : CloudWyrmPhaseTwoStrikeDamage;
+                int threshold = enemy.Phase == 1 ? CloudWyrmPhaseOneBreakDamage : CloudWyrmPhaseTwoBreakDamage;
+                return enemy.Phase == 1
+                    ? $"双翼雷幕 {strike} / 仅航道 {enemy.ChargeTargetLane + 1} 安全 · 打断 {enemy.ChargeDamageTaken}/{threshold}"
+                    : $"天穹覆写 {strike} / 仅航道 {enemy.ChargeTargetLane + 1} 安全 · 打断 {enemy.ChargeDamageTaken}/{threshold}";
+            }
+
+            if (enemy.Kind == EnemyKind.CurtainHerald)
+            {
+                if (enemy.ChargeTargetLane < 0)
+                    return "重绘雷幕 / 跳过行动";
+                if (enemy.ChargeInterrupted)
+                    return "雷幕短路 / 跳过行动";
+                return $"先导雷幕 {enemy.Damage} / 仅航道 {enemy.ChargeTargetLane + 1} 安全 · 打断 {enemy.ChargeDamageTaken}/{PreludeBreakDamage}";
+            }
+
+            if (enemy.Kind == EnemyKind.FluxSkimmer)
+            {
+                if (enemy.ChargeTargetLane < 0)
+                    return "磁针校准 / 跳过行动";
+                if (enemy.ChargeInterrupted)
+                    return "磁针失衡 / 跳过行动";
+                return $"磁针扫掠 {enemy.Damage} / 航道 {enemy.ChargeTargetLane + 1}+邻道危险 · 打断 {enemy.ChargeDamageTaken}/{PreludeBreakDamage}";
+            }
+
             if (enemy.Kind == EnemyKind.StormBalloon)
                 return $"风暴 {enemy.Damage} / 全航道";
+
+            if (enemy.Kind == EnemyKind.ShieldLeech && Armor >= 5)
+                return $"盾蚀 / 清空当前{Armor}点护盾";
+
+            if (enemy.Kind == EnemyKind.HandJammer)
+                return Hand.Count >= 5
+                    ? $"手牌干扰 {enemy.Damage} / 保留5+张触发"
+                    : "监听手牌 / 少于5张安全";
+
+            if (enemy.Kind == EnemyKind.HeatSeeker && Heat >= 4)
+                return $"热寻 {enemy.Damage} / 当前热量4+";
+
+            if (enemy.Kind == EnemyKind.SignalHijacker)
+            {
+                if (LockOn > 0)
+                    return "劫持锁定 / 锁定-1，敌装甲+3";
+                if (Momentum > 0)
+                    return "劫持动量 / 动量-1，敌装甲+3";
+                if (EvasionExposure > 0)
+                    return "污染航迹 / 暴露+1，敌装甲+3";
+                return "协议扫描 / 无资源可劫持";
+            }
 
             if (enemy.Kind == EnemyKind.RustKite &&
                 changedLaneThisTurn && EvasionExposure >= 1)
@@ -700,7 +943,7 @@ namespace SkyCourier
                 else if (PlayerLane == enemy.ChargeTargetLane)
                 {
                     CalamityHits++;
-                    TakeDamage(CalamityStrikeDamage, true);
+                    TakeDamage(CalamityStrikeDamage, true, PlayerDamageSource.CalamityStrike, enemy.Name);
                 }
                 else
                 {
@@ -724,22 +967,30 @@ namespace SkyCourier
                     BeginBossCharge(enemy);
                     return;
                 }
+                if (enemy.Phase == 2)
+                {
+                    ResolveBossContractProtocol(enemy);
+                    ResolveBossAirframeProtocol(enemy);
+                    if (Defeat)
+                        return;
+                }
                 if (enemy.ChargeInterrupted)
                 {
                     CalamityInterrupts++;
-                    LastStatusTrigger = "BOSS大招已打断";
+                    AppendStatusTrigger("BOSS大招已打断");
                 }
                 else
                 {
                     int laneDistance = Math.Abs(PlayerLane - enemy.ChargeTargetLane);
                     if (laneDistance == 0)
                     {
-                        TakeDamage(enemy.Phase == 1 ? BossPhaseOneStrikeDamage : BossPhaseTwoStrikeDamage, true);
+                        TakeDamage(enemy.Phase == 1 ? BossPhaseOneStrikeDamage : BossPhaseTwoStrikeDamage, true,
+                            PlayerDamageSource.BossStrike, enemy.Name);
                         CalamityHits++;
                     }
                     else if (enemy.Phase == 2 && laneDistance == 1)
                     {
-                        TakeDamage(BossPhaseTwoSplashDamage, false);
+                        TakeDamage(BossPhaseTwoSplashDamage, false, PlayerDamageSource.BossSplash, enemy.Name);
                         CalamityHits++;
                     }
                     else
@@ -751,9 +1002,138 @@ namespace SkyCourier
                 return;
             }
 
+            if (enemy.Kind == EnemyKind.CloudWyrm)
+            {
+                if (enemy.PhaseTransitionPending)
+                {
+                    enemy.PhaseTransitionPending = false;
+                    BeginCloudWyrmCharge(enemy);
+                    LastStatusTrigger = "BOSS PHASE 2：雷幕天穹展开";
+                    return;
+                }
+                if (enemy.ChargeTargetLane < 0)
+                {
+                    BeginCloudWyrmCharge(enemy);
+                    return;
+                }
+                if (enemy.Phase == 2)
+                {
+                    ResolveBossContractProtocol(enemy);
+                    ResolveBossAirframeProtocol(enemy);
+                    if (Defeat)
+                        return;
+                }
+                if (enemy.ChargeInterrupted)
+                {
+                    CalamityInterrupts++;
+                    AppendStatusTrigger("BOSS雷幕已打断");
+                }
+                else if (PlayerLane != enemy.ChargeTargetLane)
+                {
+                    TakeDamage(enemy.Phase == 1 ? CloudWyrmPhaseOneStrikeDamage : CloudWyrmPhaseTwoStrikeDamage,
+                        true, PlayerDamageSource.BossCurtain, enemy.Name);
+                    CalamityHits++;
+                }
+                else
+                {
+                    CalamityEvades++;
+                }
+                EnterCalamityCooldown(enemy);
+                return;
+            }
+
+            if (enemy.Kind == EnemyKind.CurtainHerald)
+            {
+                if (enemy.ChargeTargetLane < 0)
+                {
+                    BeginCurtainHeraldCharge(enemy);
+                    return;
+                }
+                if (enemy.ChargeInterrupted)
+                    CalamityInterrupts++;
+                else if (PlayerLane != enemy.ChargeTargetLane)
+                {
+                    TakeDamage(enemy.Damage, true, PlayerDamageSource.PreludeCurtain, enemy.Name);
+                    CalamityHits++;
+                }
+                else
+                    CalamityEvades++;
+                EnterCalamityCooldown(enemy);
+                return;
+            }
+
+            if (enemy.Kind == EnemyKind.FluxSkimmer)
+            {
+                if (enemy.ChargeTargetLane < 0)
+                {
+                    BeginFluxSkimmerCharge(enemy);
+                    return;
+                }
+                if (enemy.ChargeInterrupted)
+                    CalamityInterrupts++;
+                else if (Math.Abs(PlayerLane - enemy.ChargeTargetLane) <= 1)
+                {
+                    TakeDamage(enemy.Damage, true, PlayerDamageSource.PreludeMagnet, enemy.Name);
+                    CalamityHits++;
+                }
+                else
+                    CalamityEvades++;
+                EnterCalamityCooldown(enemy);
+                return;
+            }
+
             if (enemy.Kind == EnemyKind.StormBalloon)
             {
-                TakeDamage(enemy.Damage, false);
+                TakeDamage(enemy.Damage, false, PlayerDamageSource.StormField, enemy.Name);
+                return;
+            }
+
+            if (enemy.Kind == EnemyKind.ShieldLeech && armorAtEnemyPhase >= 5)
+            {
+                int eroded = Armor;
+                Armor = 0;
+                LastShieldBroken = eroded > 0;
+                LastStatusTrigger = $"盾蚀脉冲：{eroded}点护盾被清除";
+                return;
+            }
+
+            if (enemy.Kind == EnemyKind.HandJammer)
+            {
+                if (CardsHeldAtEndTurn >= 5)
+                    TakeDamage(enemy.Damage, false, PlayerDamageSource.HandJam, enemy.Name);
+                return;
+            }
+
+            if (enemy.Kind == EnemyKind.HeatSeeker && heatAtEnemyPhase >= 4)
+            {
+                TakeDamage(enemy.Damage, false, PlayerDamageSource.HeatSeek, enemy.Name);
+                return;
+            }
+
+            if (enemy.Kind == EnemyKind.SignalHijacker)
+            {
+                string stolen = string.Empty;
+                if (lockOnAtEnemyPhase > 0 && LockOn > 0)
+                {
+                    LockOn--;
+                    stolen = "锁定";
+                }
+                else if (momentumAtEnemyPhase > 0 && Momentum > 0)
+                {
+                    Momentum--;
+                    stolen = "动量";
+                }
+                else if (exposureAtEnemyPhase > 0)
+                {
+                    EvasionExposure = Math.Min(3, EvasionExposure + 1);
+                    stolen = "航迹";
+                }
+                if (!string.IsNullOrEmpty(stolen))
+                {
+                    enemy.Armor += 3;
+                    enemy.MaxArmor = Math.Max(enemy.MaxArmor, enemy.Armor);
+                    LastStatusTrigger = $"协议劫持：{stolen}被篡改，敌装甲 +3";
+                }
                 return;
             }
 
@@ -762,13 +1142,15 @@ namespace SkyCourier
             {
                 trackingShotResolvedThisTurn = true;
                 TrackingHits++;
-                TakeDamage(TrackingShotDamage, false);
+                TakeDamage(TrackingShotDamage, false, PlayerDamageSource.TrackingShot, enemy.Name);
                 return;
             }
 
             if (enemy.Lane == PlayerLane)
             {
-                TakeDamage(enemy.Kind == EnemyKind.MailEater ? enemy.Damage + 2 : enemy.Damage, true);
+                TakeDamage(enemy.Kind == EnemyKind.MailEater ? enemy.Damage + 2 : enemy.Damage, true,
+                    enemy.Kind == EnemyKind.MailEater ? PlayerDamageSource.LaneBlock : PlayerDamageSource.DirectAttack,
+                    enemy.Name);
                 return;
             }
 
@@ -778,7 +1160,83 @@ namespace SkyCourier
             enemy.Lane += enemy.Lane < PlayerLane ? 1 : -1;
         }
 
-        private void TakeDamage(int amount, bool threatensCargo)
+        private void ResolveBossContractProtocol(EnemyState enemy)
+        {
+            if (Modification == AirframeModification.None)
+                return;
+            switch (ActiveBossContractProtocol)
+            {
+                case BossContractProtocol.SealMirror:
+                    if (lockOnAtEnemyPhase <= 0 || LockOn <= 0)
+                        return;
+                    LockOn--;
+                    AddBossAdaptiveArmor(enemy);
+                    AppendStatusTrigger("密封镜像：锁定-1，首领装甲+3");
+                    break;
+                case BossContractProtocol.CryoInversion:
+                    if (heatAtEnemyPhase > 1)
+                        return;
+                    AddBossAdaptiveArmor(enemy);
+                    AppendStatusTrigger("低温逆转：首领装甲+3");
+                    break;
+                case BossContractProtocol.VectorIntercept:
+                    if (momentumAtEnemyPhase <= 0 || Momentum <= 0)
+                        return;
+                    Momentum--;
+                    AddBossAdaptiveArmor(enemy);
+                    AppendStatusTrigger("矢量截获：动量-1，首领装甲+3");
+                    break;
+                case BossContractProtocol.GhostTrace:
+                    if (exposureAtEnemyPhase <= 0)
+                        return;
+                    EvasionExposure = Math.Min(3, EvasionExposure + 1);
+                    AddBossAdaptiveArmor(enemy);
+                    AppendStatusTrigger("幽灵追迹：航迹暴露+1，首领装甲+3");
+                    break;
+            }
+        }
+
+        private void ResolveBossAirframeProtocol(EnemyState enemy)
+        {
+            switch (ActiveBossAirframeProtocol)
+            {
+                case BossAirframeProtocol.ShieldCrack:
+                    if (armorAtEnemyPhase < 5)
+                        return;
+                    int eroded = Armor;
+                    Armor = 0;
+                    LastShieldBroken = eroded > 0;
+                    AppendStatusTrigger($"裂盾回波：清除{eroded}点护盾");
+                    break;
+                case BossAirframeProtocol.WidebandJam:
+                    if (CardsHeldAtEndTurn < 5)
+                        return;
+                    AppendStatusTrigger("宽频干扰：5+张手牌触发");
+                    TakeDamage(BossAdaptationDamage, false, PlayerDamageSource.BossWidebandJam, enemy.Name);
+                    break;
+                case BossAirframeProtocol.ThermalLock:
+                    if (heatAtEnemyPhase < 4)
+                        return;
+                    AppendStatusTrigger("热源锁定：4+热量触发");
+                    TakeDamage(BossAdaptationDamage, false, PlayerDamageSource.BossThermalLock, enemy.Name);
+                    break;
+            }
+        }
+
+        private static void AddBossAdaptiveArmor(EnemyState enemy)
+        {
+            enemy.Armor += BossAdaptiveArmor;
+            enemy.MaxArmor = Math.Max(enemy.MaxArmor, enemy.Armor);
+        }
+
+        private void AppendStatusTrigger(string status)
+        {
+            LastStatusTrigger = string.IsNullOrEmpty(LastStatusTrigger)
+                ? status
+                : $"{LastStatusTrigger}　//　{status}";
+        }
+
+        private void TakeDamage(int amount, bool threatensCargo, PlayerDamageSource source, string dealer)
         {
             int armorBefore = Armor;
             int absorbed = Math.Min(Armor, amount);
@@ -787,9 +1245,27 @@ namespace SkyCourier
             int healthBefore = PlayerHealth;
             PlayerHealth = Math.Max(0, PlayerHealth - hullDamage);
             DamageTaken += healthBefore - PlayerHealth;
+            if (hullDamage > 0)
+            {
+                LastDamageSource = source;
+                LastDamageDealer = dealer ?? string.Empty;
+                LastHullDamage = healthBefore - PlayerHealth;
+            }
+            if (healthBefore > 0 && PlayerHealth <= 0)
+            {
+                DefeatSource = source;
+                DefeatDealer = dealer ?? string.Empty;
+                DefeatDamage = healthBefore - PlayerHealth;
+                HasDefeatCause = true;
+            }
             LastShieldAbsorbed += absorbed;
             if (armorBefore > 0 && Armor == 0 && absorbed > 0)
                 LastShieldBroken = true;
+            if (Cargo == CargoContract.FragileMedicine && source != PlayerDamageSource.Overheat &&
+                absorbed > 0 && hullDamage == 0)
+            {
+                TriggerContractPassiveLock("密封缓冲：完全格挡，锁定 +1");
+            }
 
             if (Cargo == CargoContract.FragileMedicine && threatensCargo && hullDamage >= 6)
                 DamageCargo("单次受到6点以上未抵消伤害");
@@ -873,28 +1349,45 @@ namespace SkyCourier
             int healthBefore = enemy.Health;
             enemy.Health = Math.Max(0, enemy.Health - resolvedDamage);
 
-            if (enemy.Kind == EnemyKind.StormManta && enemy.Alive && enemy.Phase == 1 &&
+            if (IsBossKind(enemy.Kind) && enemy.Alive && enemy.Phase == 1 &&
                 enemy.Health <= enemy.MaxHealth / 2)
             {
                 enemy.Phase = 2;
                 enemy.PhaseTransitionPending = true;
                 enemy.Armor = Math.Max(enemy.Armor, 8);
+                BossStoryAlignment alignment = ActiveBossStoryAlignment;
+                if (alignment == BossStoryAlignment.Allied)
+                    enemy.Armor = Math.Max(0, enemy.Armor - BossStoryArmorShift);
+                else if (alignment == BossStoryAlignment.Hostile)
+                    enemy.Armor += BossStoryArmorShift;
                 enemy.MaxArmor = Math.Max(enemy.MaxArmor, enemy.Armor);
                 EnterCalamityCooldown(enemy);
-                LastStatusTrigger = "BOSS PHASE 2：吞界磁暴上线";
+                LastStatusTrigger = alignment switch
+                {
+                    BossStoryAlignment.Allied => "盟友反向脉冲：二阶段首领装甲-4",
+                    BossStoryAlignment.Hostile => "敌对信标上传航路数据：二阶段首领装甲+4",
+                    _ => enemy.Kind == EnemyKind.CloudWyrm
+                        ? "BOSS PHASE 2：雷幕天穹上线"
+                        : "BOSS PHASE 2：吞界磁暴上线"
+                };
             }
 
             if (enemy.PhaseTransitionPending)
                 return;
 
-            if ((enemy.Kind != EnemyKind.CalamityDrone && enemy.Kind != EnemyKind.StormManta) ||
+            if ((!IsChargedKind(enemy.Kind)) ||
                 enemy.ChargeInterrupted || !enemy.Alive)
                 return;
 
             enemy.ChargeDamageTaken += (armorBefore - enemy.Armor) + (healthBefore - enemy.Health);
-            int breakDamage = enemy.Kind == EnemyKind.StormManta
-                ? enemy.Phase == 1 ? BossPhaseOneBreakDamage : BossPhaseTwoBreakDamage
-                : CalamityBreakDamage;
+            int breakDamage = enemy.Kind switch
+            {
+                EnemyKind.StormManta => enemy.Phase == 1 ? BossPhaseOneBreakDamage : BossPhaseTwoBreakDamage,
+                EnemyKind.CloudWyrm => enemy.Phase == 1 ? CloudWyrmPhaseOneBreakDamage : CloudWyrmPhaseTwoBreakDamage,
+                EnemyKind.CurtainHerald => PreludeBreakDamage,
+                EnemyKind.FluxSkimmer => PreludeBreakDamage,
+                _ => CalamityBreakDamage
+            };
             if (enemy.ChargeDamageTaken >= breakDamage)
                 enemy.ChargeInterrupted = true;
         }
@@ -929,6 +1422,52 @@ namespace SkyCourier
             LastStatusTrigger = "清除航迹：能量 +1";
         }
 
+        private int ApplyCooling(int amount)
+        {
+            int cooled = Math.Min(Heat, Math.Max(0, amount));
+            Heat -= cooled;
+            if (Cargo == CargoContract.CryoSerum && cooled >= 3 && !contractPassiveUsedThisTurn)
+            {
+                Energy++;
+                TriggerContractPassive("低温回收：能量 +1");
+            }
+            return cooled;
+        }
+
+        private int ReduceExposure(int amount)
+        {
+            int before = EvasionExposure;
+            EvasionExposure = Math.Max(0, EvasionExposure - Math.Max(0, amount));
+            int cleared = before - EvasionExposure;
+            if (Cargo == CargoContract.BlackBoxRelay && cleared > 0)
+                TriggerContractPassiveLock("幽灵译码：清除航迹，锁定 +1");
+            return cleared;
+        }
+
+        private void TriggerStormCorePassive()
+        {
+            if (Cargo != CargoContract.StormCore || Momentum >= 3 || contractPassiveUsedThisTurn)
+                return;
+            Momentum++;
+            TriggerContractPassive("矢量电荷：动量 +1");
+        }
+
+        private void TriggerContractPassiveLock(string status)
+        {
+            if (LockOn >= 3 || contractPassiveUsedThisTurn)
+                return;
+            LockOn++;
+            TriggerContractPassive(status);
+        }
+
+        private void TriggerContractPassive(string status)
+        {
+            contractPassiveUsedThisTurn = true;
+            ContractPassiveTriggered = true;
+            ContractPassiveProcs++;
+            LastStatusTrigger = status;
+        }
+
         private void BeginCalamityCharge(EnemyState enemy)
         {
             enemy.ChargeTargetLane = PlayerLane;
@@ -941,6 +1480,44 @@ namespace SkyCourier
             enemy.ChargeTargetLane = PlayerLane;
             enemy.ChargeDamageTaken = 0;
             enemy.ChargeInterrupted = false;
+        }
+
+        private void BeginCloudWyrmCharge(EnemyState enemy)
+        {
+            int offset = enemy.ChargeCycle % 2 == 0 ? 1 : 2;
+            enemy.ChargeTargetLane = (PlayerLane + offset) % 3;
+            enemy.ChargeCycle++;
+            enemy.ChargeDamageTaken = 0;
+            enemy.ChargeInterrupted = false;
+        }
+
+        private void BeginCurtainHeraldCharge(EnemyState enemy)
+        {
+            int offset = enemy.ChargeCycle % 2 == 0 ? 1 : 2;
+            enemy.ChargeTargetLane = (PlayerLane + offset) % 3;
+            enemy.ChargeCycle++;
+            enemy.ChargeDamageTaken = 0;
+            enemy.ChargeInterrupted = false;
+        }
+
+        private void BeginFluxSkimmerCharge(EnemyState enemy)
+        {
+            int offset = enemy.ChargeCycle % 2 == 0 ? 1 : 2;
+            enemy.ChargeTargetLane = (PlayerLane + offset) % 3;
+            enemy.ChargeCycle++;
+            enemy.ChargeDamageTaken = 0;
+            enemy.ChargeInterrupted = false;
+        }
+
+        private static bool IsBossKind(EnemyKind kind)
+        {
+            return kind == EnemyKind.StormManta || kind == EnemyKind.CloudWyrm;
+        }
+
+        private static bool IsChargedKind(EnemyKind kind)
+        {
+            return kind == EnemyKind.CalamityDrone || IsBossKind(kind) ||
+                kind == EnemyKind.CurtainHerald || kind == EnemyKind.FluxSkimmer;
         }
 
         private static void EnterCalamityCooldown(EnemyState enemy)
@@ -956,30 +1533,52 @@ namespace SkyCourier
                 return;
 
             Heat = 4;
-            int healthBefore = PlayerHealth;
-            PlayerHealth = Math.Max(0, PlayerHealth - 5);
-            DamageTaken += healthBefore - PlayerHealth;
+            TakeDamage(5, false, PlayerDamageSource.Overheat, "引擎过热");
             OverheatCount++;
             Log = "引擎过热！机体受到5点伤害。";
         }
 
-        private void DrawToFive()
+        private int StartingArmor()
         {
-            while (Hand.Count < 5)
-            {
-                if (drawPile.Count == 0)
-                {
-                    if (discardPile.Count == 0)
-                        return;
-                    drawPile.AddRange(discardPile);
-                    discardPile.Clear();
-                    Shuffle(drawPile);
-                }
+            int armor = HasModule(ModuleId.PrismBulkhead) ? 3 : 0;
+            if (Modification == AirframeModification.SealedBulkhead)
+                armor = Math.Max(armor, 5);
+            return armor;
+        }
 
-                int last = drawPile.Count - 1;
-                Hand.Add(drawPile[last]);
-                drawPile.RemoveAt(last);
+        private void DrawToTarget()
+        {
+            while (Hand.Count < HandTarget)
+            {
+                if (!DrawOne())
+                    return;
             }
+        }
+
+        private void DrawCards(int amount)
+        {
+            for (int i = 0; i < amount; i++)
+            {
+                if (!DrawOne())
+                    return;
+            }
+        }
+
+        private bool DrawOne()
+        {
+            if (drawPile.Count == 0)
+            {
+                if (discardPile.Count == 0)
+                    return false;
+                drawPile.AddRange(discardPile);
+                discardPile.Clear();
+                Shuffle(drawPile);
+            }
+
+            int last = drawPile.Count - 1;
+            Hand.Add(drawPile[last]);
+            drawPile.RemoveAt(last);
+            return true;
         }
 
         private void Shuffle(List<CardId> pile)
@@ -1005,6 +1604,22 @@ namespace SkyCourier
                 BeginCalamityCharge(enemy);
             foreach (EnemyState enemy in Enemies.Where(enemy => enemy.Kind == EnemyKind.StormManta))
                 BeginBossCharge(enemy);
+            foreach (EnemyState enemy in Enemies.Where(enemy => enemy.Kind == EnemyKind.CloudWyrm))
+                BeginCloudWyrmCharge(enemy);
+            foreach (EnemyState enemy in Enemies.Where(enemy => enemy.Kind == EnemyKind.CurtainHerald))
+                BeginCurtainHeraldCharge(enemy);
+            foreach (EnemyState enemy in Enemies.Where(enemy => enemy.Kind == EnemyKind.FluxSkimmer))
+                BeginFluxSkimmerCharge(enemy);
+
+            EnemyState boss = Enemies.FirstOrDefault(enemy => IsBossKind(enemy.Kind));
+            if (boss != null && FinaleProgressionRules.IntelApplies(Intel, boss.Kind))
+            {
+                boss.ChargeTargetLane = boss.Kind == EnemyKind.CloudWyrm
+                    ? PlayerLane
+                    : (PlayerLane + 2) % 3;
+                boss.ChargeDamageTaken = 0;
+                boss.ChargeInterrupted = false;
+            }
         }
     }
 }

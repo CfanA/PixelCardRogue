@@ -15,12 +15,62 @@ namespace SkyCourier
         Boss
     }
 
+    public enum AirspaceCondition
+    {
+        JetstreamCorridor,
+        StaticFront,
+        WreckageTide
+    }
+
+    public static class AirspaceRuleCatalog
+    {
+        public static string Name(AirspaceCondition condition) => condition switch
+        {
+            AirspaceCondition.JetstreamCorridor => "疾风走廊",
+            AirspaceCondition.StaticFront => "静电锋面",
+            _ => "残骸潮"
+        };
+
+        public static string Band(AirspaceCondition condition) => condition switch
+        {
+            AirspaceCondition.JetstreamCorridor => "高空",
+            AirspaceCondition.StaticFront => "中层",
+            _ => "低空"
+        };
+
+        public static string EncounterRule(AirspaceCondition condition) => condition switch
+        {
+            AirspaceCondition.JetstreamCorridor => "高速拦截与蓄力编队",
+            AirspaceCondition.StaticFront => "灾变单位与协议干扰编队",
+            _ => "机体拆解与信号封锁编队"
+        };
+
+        public static string RewardRule(AirspaceCondition condition) => condition switch
+        {
+            AirspaceCondition.JetstreamCorridor => "奖励偏向机动与低热循环",
+            AirspaceCondition.StaticFront => "奖励偏向控制与资源调度",
+            _ => "奖励偏向爆发与正面生存"
+        };
+
+        public static int EncounterVariant(AirspaceCondition condition, int encounterSeed)
+        {
+            int branch = (encounterSeed & int.MaxValue) % 2;
+            return condition switch
+            {
+                AirspaceCondition.JetstreamCorridor => branch,
+                AirspaceCondition.StaticFront => branch == 0 ? 1 : 3,
+                _ => branch == 0 ? 2 : 3
+            };
+        }
+    }
+
     public sealed class RouteNodeDefinition
     {
         public int Id { get; }
         public int Column { get; }
         public int Lane { get; }
         public RouteNodeKind Kind { get; }
+        public AirspaceCondition Airspace { get; }
         public string Title { get; }
         public string Description { get; }
         public int[] Next { get; }
@@ -32,6 +82,12 @@ namespace SkyCourier
             Column = column;
             Lane = lane;
             Kind = kind;
+            Airspace = lane switch
+            {
+                0 => AirspaceCondition.JetstreamCorridor,
+                1 => AirspaceCondition.StaticFront,
+                _ => AirspaceCondition.WreckageTide
+            };
             Title = title;
             Description = description;
             Next = next ?? Array.Empty<int>();
@@ -108,11 +164,12 @@ namespace SkyCourier
             Node(13, 5, 1, RouteNodeKind.Skirmish, "断流峡谷", "狭窄气流迫使双方正面交火。", 15, 16, 17),
             Node(14, 5, 2, RouteNodeKind.Rest, "应急船坞", "终点前最后一次免费维护机会。", 16, 17),
 
-            Node(15, 6, 0, RouteNodeKind.Hunt, "风眼追猎", "穿过风眼，同时甩掉追踪编队。", 18),
-            Node(16, 6, 1, RouteNodeKind.Elite, "天穹封锁", "核心护航舰队守住终点入口。", 18),
-            Node(17, 6, 2, RouteNodeKind.Skirmish, "残骸伏击", "低风险入口仍潜伏着拾荒者。", 18),
+            Node(15, 6, 0, RouteNodeKind.Hunt, "雷幕先导追猎", "先导机正在演练唯一安全航道，击破后可截获雷幕密钥。", 19),
+            Node(16, 6, 1, RouteNodeKind.Elite, "双频天穹封锁", "两类先遣机共同护航，可截获适配任一首领的双频解码器。", 18, 19),
+            Node(17, 6, 2, RouteNodeKind.Skirmish, "磁针鳐卫伏击", "磁针扫掠覆盖目标邻道，击破后可校准偏航罗盘。", 18),
 
-            Node(18, 7, 1, RouteNodeKind.Boss, "磁暴鳐巢", "完成配送前的最终障碍。")
+            Node(18, 7, 2, RouteNodeKind.Boss, "磁暴鳐巢", "锁定航道与邻道溅射考验远距规避。"),
+            Node(19, 7, 0, RouteNodeKind.Boss, "雷幕龙脊", "雷幕只留下唯一安全航道，逼迫精准换道。")
         );
 
         private static RouteNodeDefinition Node(int id, int column, int lane, RouteNodeKind kind,
