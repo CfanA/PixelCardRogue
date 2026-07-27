@@ -118,7 +118,27 @@ namespace SkyCourier
         ExactChange,
         QueueCollapse,
         FinalAllocation,
-        PostalOverdrive
+        PostalOverdrive,
+
+        EscortAnchor,
+        PrismReticle,
+        AegisRicochet,
+
+        CondenserBeacon,
+        ThermalPendulum,
+        QuenchDetonation,
+
+        SlipstreamGate,
+        OrbitSalvo,
+        VectorMinefield,
+
+        GhostCorridor,
+        DecoyMinefield,
+        SilentLedger,
+
+        EscrowProtocol,
+        QueueCache,
+        DeferredStrike
     }
 
     public enum CardFamily
@@ -148,6 +168,17 @@ namespace SkyCourier
     {
         Alpha,
         Beta
+    }
+
+    public enum LaneFieldKind
+    {
+        None,
+        EscortAnchor,
+        Condenser,
+        Slipstream,
+        Minefield,
+        GhostCorridor,
+        QueueCache
     }
 
     [Serializable]

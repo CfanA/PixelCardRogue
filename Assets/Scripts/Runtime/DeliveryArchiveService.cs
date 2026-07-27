@@ -255,8 +255,7 @@ namespace SkyCourier
             }
 
             if (Enum.IsDefined(typeof(EnemyKind), record.BossKind) &&
-                ((EnemyKind)record.BossKind == EnemyKind.StormManta ||
-                 (EnemyKind)record.BossKind == EnemyKind.CloudWyrm))
+                BattleState.IsBossKind((EnemyKind)record.BossKind))
             {
                 BossDossierRecord dossier = FindOrCreateBossDossier(data, record.BossKind);
                 dossier.Encounters++;
@@ -340,8 +339,7 @@ namespace SkyCourier
             data.BossDossiers ??= new List<BossDossierRecord>();
             data.BossDossiers = data.BossDossiers
                 .Where(record => record != null && Enum.IsDefined(typeof(EnemyKind), record.Boss) &&
-                    ((EnemyKind)record.Boss == EnemyKind.StormManta ||
-                     (EnemyKind)record.Boss == EnemyKind.CloudWyrm))
+                    BattleState.IsBossKind((EnemyKind)record.Boss))
                 .GroupBy(record => record.Boss).Select(group =>
                 {
                     BossDossierRecord first = group.First();
@@ -384,8 +382,7 @@ namespace SkyCourier
                 if (!Enum.IsDefined(typeof(ChallengeId), record.Challenge))
                     record.Challenge = (int)ChallengeId.Standard;
                 if (!Enum.IsDefined(typeof(EnemyKind), record.BossKind) ||
-                    ((EnemyKind)record.BossKind != EnemyKind.StormManta &&
-                     (EnemyKind)record.BossKind != EnemyKind.CloudWyrm))
+                    !BattleState.IsBossKind((EnemyKind)record.BossKind))
                     record.BossKind = -1;
                 record.BuildSnapshots ??= new List<RunBuildSnapshot>();
                 record.BuildSnapshots = record.BuildSnapshots

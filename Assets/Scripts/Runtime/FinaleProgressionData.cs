@@ -16,7 +16,13 @@ namespace SkyCourier
         WyrmBlackout,
         MantaCalmSea,
         MantaPostalShield,
-        MantaScavengerCrown
+        MantaScavengerCrown,
+        CourierClearRoute,
+        CourierMutualProtocol,
+        CourierDeadLetter,
+        WhaleGentleLanding,
+        WhaleSkyHarbor,
+        WhaleCityfall
     }
 
     public static class FinaleProgressionRules
@@ -36,7 +42,9 @@ namespace SkyCourier
         {
             return intel == RouteIntel.DualChannelDecoder ||
                 intel == RouteIntel.CurtainCipher && boss == EnemyKind.CloudWyrm ||
-                intel == RouteIntel.FluxCompass && boss == EnemyKind.StormManta;
+                intel == RouteIntel.CurtainCipher && boss == EnemyKind.InvertedSkyWhale ||
+                intel == RouteIntel.FluxCompass && boss == EnemyKind.StormManta ||
+                intel == RouteIntel.FluxCompass && boss == EnemyKind.CourierZero;
         }
 
         public static FinaleEnding EndingFor(EnemyKind boss, BossStoryAlignment alignment)
@@ -48,6 +56,26 @@ namespace SkyCourier
                     BossStoryAlignment.Allied => FinaleEnding.WyrmSignalCovenant,
                     BossStoryAlignment.Hostile => FinaleEnding.WyrmBlackout,
                     _ => FinaleEnding.WyrmClearSky
+                };
+            }
+
+            if (boss == EnemyKind.CourierZero)
+            {
+                return alignment switch
+                {
+                    BossStoryAlignment.Allied => FinaleEnding.CourierMutualProtocol,
+                    BossStoryAlignment.Hostile => FinaleEnding.CourierDeadLetter,
+                    _ => FinaleEnding.CourierClearRoute
+                };
+            }
+
+            if (boss == EnemyKind.InvertedSkyWhale)
+            {
+                return alignment switch
+                {
+                    BossStoryAlignment.Allied => FinaleEnding.WhaleSkyHarbor,
+                    BossStoryAlignment.Hostile => FinaleEnding.WhaleCityfall,
+                    _ => FinaleEnding.WhaleGentleLanding
                 };
             }
 

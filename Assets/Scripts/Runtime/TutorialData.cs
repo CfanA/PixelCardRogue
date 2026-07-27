@@ -16,7 +16,8 @@ namespace SkyCourier
         Retrofit,
         Chronicle,
         Outpost,
-        Boss
+        Boss,
+        EnemyIntel
     }
 
     [Serializable]
@@ -61,7 +62,8 @@ namespace SkyCourier
             new RuleGlossaryEntry(TutorialTopic.Retrofit, "+", "tutorial.category.build", "构筑"),
             new RuleGlossaryEntry(TutorialTopic.Chronicle, "*", "tutorial.category.route", "路线"),
             new RuleGlossaryEntry(TutorialTopic.Outpost, "$", "tutorial.category.route", "路线"),
-            new RuleGlossaryEntry(TutorialTopic.Boss, "!!", "tutorial.category.danger", "危险")
+            new RuleGlossaryEntry(TutorialTopic.Boss, "!!", "tutorial.category.danger", "危险"),
+            new RuleGlossaryEntry(TutorialTopic.EnemyIntel, "i", "tutorial.category.read", "判读")
         };
 
         public static IReadOnlyList<RuleGlossaryEntry> All => Entries;
@@ -151,6 +153,12 @@ namespace SkyCourier
                 return;
             Normalize(data);
             PlayerPrefs.SetString(ProgressKey, JsonUtility.ToJson(data));
+            PlayerPrefs.Save();
+        }
+
+        public static void Reset()
+        {
+            PlayerPrefs.DeleteKey(ProgressKey);
             PlayerPrefs.Save();
         }
     }

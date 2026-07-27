@@ -31,7 +31,7 @@ namespace SkyCourier
     public static class RunStructureCatalog
     {
         public const int RetrofitColumn = 4;
-        public const int FinalApproachColumn = 6;
+        public const int FinalApproachColumn = 9;
 
         private static readonly ModuleId[] FragileMedicineModules =
         {
@@ -76,6 +76,24 @@ namespace SkyCourier
         }
 
         public static int ActNumber(RunAct act) => (int)act + 1;
+
+        public static int FloorForColumn(int column)
+        {
+            if (column < 2) return 1;
+            if (column < 4) return 2;
+            if (column < 7) return 3;
+            if (column < 9) return 4;
+            return 5;
+        }
+
+        public static string FloorRole(int floor) => floor switch
+        {
+            1 => "启动期",
+            2 => "体检期",
+            3 => "战力分水岭",
+            4 => "高压期",
+            _ => "终局考核"
+        };
 
         public static IReadOnlyList<ModuleId> FinalModulePriority(CargoContract contract)
         {

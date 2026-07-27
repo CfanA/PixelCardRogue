@@ -10,7 +10,7 @@ namespace SkyCourierEditor
 {
     public static class CardPoolValidator
     {
-        [MenuItem("Tools/Sky Courier/Validate 108-Card Pool")]
+        [MenuItem("Tools/Sky Courier/Validate 123-Card Pool")]
         public static void Validate()
         {
             CardId[] enumCards = Enum.GetValues(typeof(CardId)).Cast<CardId>().ToArray();
@@ -21,7 +21,8 @@ namespace SkyCourierEditor
                 $"Card pool count is {catalogCards.Length}, expected {CardPoolCatalog.TotalCardTypes}.");
             Require(enumCards.SequenceEqual(catalogCards), "Card pool catalog does not cover every CardId exactly once.");
             Require((int)CardId.ReserveRouting == 39 && (int)CardId.ThermalBarrier == 40 &&
-                (int)CardId.PostalOverdrive == 107,
+                (int)CardId.PostalOverdrive == 107 && (int)CardId.EscortAnchor == 108 &&
+                (int)CardId.DeferredStrike == 122,
                 "Existing card save ids changed or expanded ids are not append-only.");
 
             var names = new HashSet<string>();
@@ -38,9 +39,12 @@ namespace SkyCourierEditor
             ValidatePartition(enumCards);
             ValidateStarterDecks();
             ValidateOffers();
+            ValidateSynergyScoring();
             ValidateOpeningDamageGuarantee();
             ValidateExpandedCardEffects(enumCards);
             ValidateExpandedTargetSafety();
+            ValidateExpandedUpgrades(enumCards);
+            ValidateLaneFieldsAndDeferredCards();
 
             int damageCards = enumCards.Count(CardPoolCatalog.IsDamageCard);
             int expandedCards = enumCards.Count(ExpandedCardCatalog.Contains);
@@ -62,11 +66,11 @@ namespace SkyCourierEditor
 
             var expectedCounts = new Dictionary<CargoContract, int>
             {
-                [CargoContract.FragileMedicine] = 19,
-                [CargoContract.CryoSerum] = 19,
-                [CargoContract.StormCore] = 19,
-                [CargoContract.BlackBoxRelay] = 18,
-                [CargoContract.SignalSeed] = 17
+                [CargoContract.FragileMedicine] = 22,
+                [CargoContract.CryoSerum] = 22,
+                [CargoContract.StormCore] = 22,
+                [CargoContract.BlackBoxRelay] = 21,
+                [CargoContract.SignalSeed] = 20
             };
             foreach (CargoContract contract in ContractCatalog.All)
             {
@@ -173,6 +177,27 @@ namespace SkyCourierEditor
                 "Opening-hand protection invented a damage card that was not present in the deck.");
         }
 
+        private static void ValidateSynergyScoring()
+        {
+            CardId[] aegisDeck =
+            {
+                CardId.TargetLock, CardId.TargetLock, CardId.WindGuard,
+                CardId.ReactivePlating, CardId.PrecisionSeal
+            };
+            Require(CardSynergyCatalog.SynergyScore(CardId.AegisRicochet, aegisDeck) >
+                CardSynergyCatalog.SynergyScore(CardId.ThermalPendulum, aegisDeck),
+                "Reward synergy does not recognize the shield/lock Aegis bridge.");
+
+            CardId[] escrowDeck =
+            {
+                CardId.ExactChange, CardId.EscrowProtocol, CardId.DeferredVolley,
+                CardId.OnePointPlan, CardId.SpareChannel
+            };
+            Require(CardSynergyCatalog.SynergyScore(CardId.FinalAllocation, escrowDeck) > 0 &&
+                !string.IsNullOrWhiteSpace(CardSynergyCatalog.SynergyLabel(CardId.FinalAllocation, escrowDeck)),
+                "Reward synergy does not expose the Signal Seed escrow payoff.");
+        }
+
         private static void ValidateExpandedCardEffects(IEnumerable<CardId> enumCards)
         {
             foreach (CardId card in enumCards.Where(ExpandedCardCatalog.Contains))
@@ -210,6 +235,92 @@ namespace SkyCourierEditor
             Require(handIndex >= 0, "Crosswind Cut was not drawn for target-safety validation.");
             Require(!state.CanPlay(handIndex),
                 "Crosswind Cut was playable even though its destination lane had no enemy.");
+        }
+
+        private static void ValidateExpandedUpgrades(IEnumerable<CardId> enumCards)
+        {
+            foreach (CardId card in enumCards.Where(ExpandedCardCatalog.Contains))
+            {
+                string baseRules = CardLibrary.Get(card).Rules;
+                string alphaRules = ExpandedUpgradeCatalog.Rules(card, UpgradeBranch.Alpha);
+                string betaRules = ExpandedUpgradeCatalog.Rules(card, UpgradeBranch.Beta);
+                Require(alphaRules != baseRules && betaRules != baseRules && alphaRules != betaRules,
+                    $"{card} does not expose two distinct expanded upgrade branches.");
+            }
+
+            var alpha = PrimedState(CardId.AegisRicochet, CargoContract.FragileMedicine,
+                UpgradeBranch.Alpha);
+            var baseline = PrimedState(CardId.AegisRicochet, CargoContract.FragileMedicine, null);
+            int alphaHealth = alpha.Enemies.Sum(enemy => enemy.Health);
+            int baselineHealth = baseline.Enemies.Sum(enemy => enemy.Health);
+            Require(alphaHealth < baselineHealth,
+                "Expanded Alpha weapon branch did not increase resolved damage.");
+
+            var betaDeferred = PrimedState(CardId.EscrowProtocol, CargoContract.SignalSeed,
+                UpgradeBranch.Beta);
+            Require(betaDeferred.DeferredEnergy == 3,
+                "Expanded Beta deferred branch did not add one escrowed energy.");
+
+            var betaLane = PrimedState(CardId.EscortAnchor, CargoContract.FragileMedicine,
+                UpgradeBranch.Beta);
+            Require(betaLane.LaneFieldAt(1) == LaneFieldKind.EscortAnchor &&
+                betaLane.LaneFieldStrengthAt(1) == 2,
+                "Expanded Beta lane branch did not strengthen the deployed protocol.");
+        }
+
+        private static BattleState PrimedState(CardId card, CargoContract contract, UpgradeBranch? branch)
+        {
+            var upgrades = branch.HasValue ? new HashSet<CardId> { card } : null;
+            var branches = branch.HasValue
+                ? new Dictionary<CardId, UpgradeBranch> { [card] = branch.Value }
+                : null;
+            var state = new BattleState();
+            state.StartEncounter(EncounterId.Skirmish, Enumerable.Repeat(card, 8).ToArray(),
+                BattleState.MaxPlayerHealth, 3, contract, upgrades, null,
+                encounterVariant: 0, branches: branches, seed: 1231);
+            SetBattleProperty(state, nameof(BattleState.Armor), 12);
+            SetBattleProperty(state, nameof(BattleState.Energy), 3);
+            SetBattleProperty(state, nameof(BattleState.Heat), 4);
+            SetBattleProperty(state, nameof(BattleState.LockOn), 2);
+            SetBattleProperty(state, nameof(BattleState.Momentum), 2);
+            SetBattleProperty(state, nameof(BattleState.EvasionExposure), 2);
+            EnemyState laneTarget = state.Enemies.First();
+            laneTarget.Lane = state.PlayerLane;
+            state.Hand.Clear();
+            state.Hand.Add(card);
+            Require(state.CanPlay(0), $"{card} was not playable in upgrade validation.");
+            state.PlayCard(0);
+            return state;
+        }
+
+        private static void ValidateLaneFieldsAndDeferredCards()
+        {
+            var anchor = PrimedState(CardId.EscortAnchor, CargoContract.FragileMedicine, null);
+            int armorBeforeArrival = anchor.Armor;
+            anchor.Hand.Add(CardId.BankUp);
+            anchor.PlayCard(anchor.Hand.Count - 1);
+            anchor.Hand.Add(CardId.BankDown);
+            anchor.PlayCard(anchor.Hand.Count - 1);
+            Require(anchor.LaneFieldAt(1) == LaneFieldKind.None && anchor.Armor >= armorBeforeArrival + 12 &&
+                anchor.LockOn == 3,
+                "Escort Anchor did not persist across lanes and trigger on re-entry.");
+
+            var mine = PrimedState(CardId.VectorMinefield, CargoContract.StormCore, null);
+            EnemyState mineTarget = mine.Enemies.First(enemy => enemy.Alive);
+            mineTarget.Lane = 1;
+            int mineHealth = mineTarget.Health;
+            mine.EndTurn();
+            Require(mineTarget.Health < mineHealth && mine.LaneFieldAt(1) == LaneFieldKind.None,
+                "Vector Minefield did not detonate against an enemy left in its lane.");
+
+            var deferred = PrimedState(CardId.DeferredStrike, CargoContract.SignalSeed, null);
+            EnemyState deferredTarget = deferred.Enemies.OrderBy(enemy => enemy.Health).First();
+            int deferredHealth = deferredTarget.Health;
+            Require(deferred.DeferredSingleDamage >= 10,
+                "Deferred Strike did not schedule next-turn damage.");
+            deferred.EndTurn();
+            Require(deferredTarget.Health < deferredHealth && deferred.DeferredSingleDamage == 0,
+                "Deferred Strike did not resolve and clear at the next turn start.");
         }
 
         private static void SetBattleProperty(BattleState state, string propertyName, int value)

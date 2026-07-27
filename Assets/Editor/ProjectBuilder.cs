@@ -24,31 +24,41 @@ namespace SkyCourierEditor
             EditorSceneManager.SaveScene(scene, ScenePath);
 
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
-            PlayerSettings.productName = "Sky Courier Prototype";
-            PlayerSettings.companyName = "Portfolio Prototype";
+            PlayerSettings.productName = "Sky Courier Playtest";
+            PlayerSettings.companyName = "Sky Courier Team";
             PlayerSettings.defaultScreenWidth = 1600;
             PlayerSettings.defaultScreenHeight = 900;
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
             PlayerSettings.resizableWindow = true;
             PlayerSettings.runInBackground = true;
-            PlayerSettings.bundleVersion = "0.52.0";
+            PlayerSettings.bundleVersion = "0.60.0";
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("SKY_COURIER_SETUP_COMPLETE");
         }
 
-        [MenuItem("Tools/Sky Courier/Build Windows Prototype")]
+        [MenuItem("Tools/Sky Courier/Build Windows Playtest")]
         public static void BuildWindowsPrototype()
         {
-            PlayerSettings.bundleVersion = "0.52.0";
+            BuildWindowsPlayer("SkyCourierPlaytest_v0.60");
+        }
+
+        public static void BuildWindowsTutorialQa()
+        {
+            BuildWindowsPlayer("SkyCourierPlaytest_v0.60_TutorialQA");
+        }
+
+        private static void BuildWindowsPlayer(string outputFolderName)
+        {
+            PlayerSettings.bundleVersion = "0.60.0";
             ValidateCoreRules();
             string outputDirectory = Path.GetFullPath(
-                Path.Combine(Application.dataPath, "../Builds/SkyCourierPrototype_v0.52"));
+                Path.Combine(Application.dataPath, "../Builds", outputFolderName));
             if (Directory.Exists(outputDirectory))
                 Directory.Delete(outputDirectory, true);
             Directory.CreateDirectory(outputDirectory);
-            string executablePath = Path.Combine(outputDirectory, "Sky Courier Prototype.exe");
+            string executablePath = Path.Combine(outputDirectory, "Sky Courier Playtest.exe");
 
             var options = new BuildPlayerOptions
             {
@@ -60,7 +70,7 @@ namespace SkyCourierEditor
 
             BuildReport report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded)
-                throw new InvalidOperationException($"Prototype build failed: {report.summary.result}");
+                throw new InvalidOperationException($"Playtest build failed: {report.summary.result}");
 
             string burstDebugDirectory = Path.Combine(
                 outputDirectory,
@@ -68,9 +78,17 @@ namespace SkyCourierEditor
             if (Directory.Exists(burstDebugDirectory))
                 Directory.Delete(burstDebugDirectory, true);
 
-            CopyReleaseDocument("Acceptance_v0.52.md", "验收报告_v0.52.txt", outputDirectory);
+            CopyReleaseDocument("Acceptance_v0.60.md", "验收报告_v0.60.txt", outputDirectory);
+            WriteTutorialQaLauncher(outputDirectory);
 
-            Debug.Log($"SKY_COURIER_BUILD_COMPLETE|version=0.52.0|path={executablePath}");
+            Debug.Log($"SKY_COURIER_BUILD_COMPLETE|version=0.60.0|path={executablePath}");
+        }
+
+        private static void WriteTutorialQaLauncher(string outputDirectory)
+        {
+            string launcherPath = Path.Combine(outputDirectory, "Reset Tutorials and Play.bat");
+            File.WriteAllText(launcherPath,
+                "@echo off\r\nstart \"\" \"%~dp0Sky Courier Playtest.exe\" --reset-tutorials\r\n");
         }
 
         private static void CopyReleaseDocument(string sourceName, string outputName, string outputDirectory)
@@ -106,7 +124,8 @@ namespace SkyCourierEditor
                 LocalizationService.Text("final_approach.title", "终局进场方案") != "FINAL APPROACH PLAN" ||
                 CardLibrary.Get(CardId.SignalScrambler).Name != "SIGNAL SCRAMBLER" ||
                 !CardLibrary.Get(CardId.SignalScrambler).Rules.StartsWith("CLEAR ALL TRACE", StringComparison.Ordinal) ||
-                RuleGlossaryCatalog.Get(TutorialTopic.Tracking).Title != "TRACKING FIRE")
+                RuleGlossaryCatalog.Get(TutorialTopic.Tracking).Title != "TRACKING FIRE" ||
+                RuleGlossaryCatalog.Get(TutorialTopic.EnemyIntel).Title != "ENEMY INTEL")
                 throw new InvalidOperationException("English localization lookup failed.");
             LocalizationService.SetLanguage(GameLanguage.SimplifiedChinese);
             CardPoolValidator.Validate();
@@ -124,7 +143,8 @@ namespace SkyCourierEditor
                 FlashIntensity = 0f,
                 Language = (int)GameLanguage.English,
                 ContextualTutorials = false,
-                FocusHints = true
+                FocusHints = true,
+                EnemyIntelHold = false
             };
             GameSettingsData restoredSettings =
                 JsonUtility.FromJson<GameSettingsData>(JsonUtility.ToJson(settingsProbe));
@@ -135,8 +155,25 @@ namespace SkyCourierEditor
                 restoredSettings.Language != (int)GameLanguage.English ||
                 !Mathf.Approximately(restoredSettings.ShakeIntensity, 0.25f) ||
                 !Mathf.Approximately(restoredSettings.FlashIntensity, 0f) ||
-                restoredSettings.ContextualTutorials || !restoredSettings.FocusHints)
+                restoredSettings.ContextualTutorials || !restoredSettings.FocusHints ||
+                restoredSettings.EnemyIntelHold)
                 throw new InvalidOperationException("Versioned game settings did not survive JSON round-trip.");
+            if (ReleaseQualityRules.ReleaseResolutionMatrix.Count != 10 ||
+                ReleaseQualityRules.MaximumAmbientPrimitives > 180 ||
+                ReleaseQualityRules.MaximumCombatPrimitives > 420 ||
+                ReleaseQualityRules.MinimumAuxiliaryFontSize < 10 ||
+                ReleaseQualityRules.MinimumBodyFontSize < ReleaseQualityRules.MinimumAuxiliaryFontSize ||
+                ReleaseQualityRules.MinimumDecisionFontSize < ReleaseQualityRules.MinimumBodyFontSize)
+                throw new InvalidOperationException("Release performance or resolution matrix budget changed unexpectedly.");
+            foreach (Vector2Int resolution in ReleaseQualityRules.ReleaseResolutionMatrix)
+            {
+                Rect viewport = ReleaseQualityRules.ContentViewport(resolution.x, resolution.y);
+                if (viewport.width < 1024f || viewport.height < 576f || viewport.x < -0.01f ||
+                    viewport.y < -0.01f || viewport.xMax > resolution.x + 0.01f ||
+                    viewport.yMax > resolution.y + 0.01f ||
+                    !Mathf.Approximately(viewport.width / viewport.height, 16f / 9f))
+                    throw new InvalidOperationException($"Release layout matrix failed at {resolution.x}x{resolution.y}.");
+            }
             var legacySettings = new GameSettingsData
             {
                 Version = 1,
@@ -146,7 +183,7 @@ namespace SkyCourierEditor
             if (legacySettings.Version != GameSettingsService.CurrentVersion ||
                 legacySettings.Language != (int)GameLanguage.SimplifiedChinese)
                 throw new InvalidOperationException("Version 1 settings language migration failed.");
-            if (!RuleGlossaryCatalog.IsComplete || RuleGlossaryCatalog.All.Count != 10)
+            if (!RuleGlossaryCatalog.IsComplete || RuleGlossaryCatalog.All.Count != 11)
                 throw new InvalidOperationException("Tutorial glossary does not cover every progressive rule topic.");
             var tutorialProbe = new TutorialProgressData
             {
@@ -429,11 +466,57 @@ namespace SkyCourierEditor
                     migratedVersionEight.ContractProcs != 0)
                     throw new InvalidOperationException($"Version 8 run save migration failed: {versionEightError}");
 
+                var versionNineSave = new RunSaveData
+                {
+                    Version = 9,
+                    AttemptId = "validation-v9",
+                    RunSeed = 530009,
+                    EncounterSeed = 530019,
+                    Screen = "Map",
+                    Contract = (int)CargoContract.SignalSeed,
+                    Deck = new System.Collections.Generic.List<int> { (int)CardId.StandbyField },
+                    SelectedRouteNodeId = 17,
+                    RouteIndex = 6
+                };
+                File.WriteAllText(Path.Combine(saveValidationDirectory, "run.json"),
+                    JsonUtility.ToJson(versionNineSave));
+                if (!RunSaveService.TryLoadFromDirectory(saveValidationDirectory, out RunSaveData migratedVersionNine,
+                        out _, out string versionNineError) ||
+                    migratedVersionNine.Version != RunSaveService.CurrentVersion ||
+                    migratedVersionNine.CheckpointSerial != 0 || migratedVersionNine.RecoveryCount != 0 ||
+                    migratedVersionNine.CheckpointReason != "migrated_v9")
+                    throw new InvalidOperationException($"Version 9 run save migration failed: {versionNineError}");
+
+                SessionRecoveryService.WriteAtomic(saveValidationDirectory, new SessionRecoveryData
+                {
+                    SessionId = "interrupted-validation",
+                    StartedAtUtc = DateTime.UtcNow.ToString("O"),
+                    LastHeartbeatUtc = DateTime.UtcNow.ToString("O"),
+                    LastScreen = "Battle",
+                    AttemptId = "validation-v9",
+                    CleanExit = false
+                });
+                SessionRecoveryInfo interruptedSession =
+                    SessionRecoveryService.InspectDirectory(saveValidationDirectory);
+                if (!interruptedSession.PreviousSessionInterrupted || interruptedSession.LastScreen != "Battle" ||
+                    interruptedSession.AttemptId != "validation-v9")
+                    throw new InvalidOperationException("Interrupted session recovery marker was not detected.");
+                SessionRecoveryService.WriteAtomic(saveValidationDirectory, new SessionRecoveryData
+                {
+                    SessionId = "clean-validation",
+                    StartedAtUtc = DateTime.UtcNow.ToString("O"),
+                    EndedAtUtc = DateTime.UtcNow.ToString("O"),
+                    LastScreen = "Title",
+                    CleanExit = true
+                });
+                if (SessionRecoveryService.InspectDirectory(saveValidationDirectory).PreviousSessionInterrupted)
+                    throw new InvalidOperationException("Clean session was incorrectly reported as interrupted.");
+
                 var diagnosticProbe = new RunDiagnosticRecord
                 {
                     TimestampUtc = DateTime.UtcNow.ToString("O"),
                     Event = "validation_probe",
-                    GameVersion = "0.52.0",
+                    GameVersion = "0.53.0",
                     RunSeed = 1357911,
                     Screen = "Map"
                 };
@@ -656,11 +739,15 @@ namespace SkyCourierEditor
             if (RunStructureCatalog.ActForColumn(0) != RunAct.Departure ||
                 RunStructureCatalog.ActForColumn(2) != RunAct.Departure ||
                 RunStructureCatalog.ActForColumn(3) != RunAct.Pivot ||
-                RunStructureCatalog.ActForColumn(5) != RunAct.Pivot ||
-                RunStructureCatalog.ActForColumn(6) != RunAct.FinalApproach ||
-                RunStructureCatalog.ActForColumn(7) != RunAct.FinalApproach ||
+                RunStructureCatalog.ActForColumn(8) != RunAct.Pivot ||
+                RunStructureCatalog.ActForColumn(9) != RunAct.FinalApproach ||
+                RunStructureCatalog.ActForColumn(11) != RunAct.FinalApproach ||
                 RunStructureCatalog.RetrofitColumn >= RunStructureCatalog.FinalApproachColumn)
                 throw new InvalidOperationException("Three-act route boundaries are invalid.");
+            if (Enumerable.Range(0, 12).Select(RunStructureCatalog.FloorForColumn).Distinct().Count() != 5 ||
+                RunStructureCatalog.FloorForColumn(0) != 1 || RunStructureCatalog.FloorForColumn(6) != 3 ||
+                RunStructureCatalog.FloorForColumn(11) != 5)
+                throw new InvalidOperationException("Five-floor route progression is invalid.");
             foreach (CargoContract contract in ContractCatalog.All)
             {
                 ModuleId[] priority = RunStructureCatalog.FinalModulePriority(contract).ToArray();
@@ -672,11 +759,16 @@ namespace SkyCourierEditor
                     throw new InvalidOperationException(
                         $"Final approach module priority is invalid for {contract}.");
             }
-            if (route.ColumnCount != 8 || route.Nodes.Count != 20)
-                throw new InvalidOperationException("Branching route must contain 8 columns and 20 nodes.");
-            if (route.AtColumn(0).Count() != 1 || route.AtColumn(route.ColumnCount - 1).Count() != 2 ||
+            if (route.ColumnCount != 12 || route.Nodes.Count != 33)
+                throw new InvalidOperationException("Branching route must contain 12 columns and 33 nodes.");
+            if (RouteMapLayoutRules.ContentWidth(route.ColumnCount) <= 1360f ||
+                RouteMapLayoutRules.MaximumScroll(route.ColumnCount, 1360f) <= 0f ||
+                RouteMapLayoutRules.RevealThrough(0, route.ColumnCount) != 2 ||
+                RouteMapLayoutRules.RevealThrough(10, route.ColumnCount) != 11)
+                throw new InvalidOperationException("Full-route drag canvas or unresolved-intel horizon is invalid.");
+            if (route.AtColumn(0).Count() != 1 || route.AtColumn(route.ColumnCount - 1).Count() != 4 ||
                 route.AtColumn(route.ColumnCount - 1).Any(node => node.Kind != RouteNodeKind.Boss))
-                throw new InvalidOperationException("Branching route must have one start and two finale boss nodes.");
+                throw new InvalidOperationException("Branching route must have one start and four finale boss nodes.");
             if (Enumerable.Range(1, route.ColumnCount - 2).Any(column => route.AtColumn(column).Count() < 2))
                 throw new InvalidOperationException("Every intermediate route column must offer a branch.");
             var reachable = new System.Collections.Generic.HashSet<int>();
@@ -695,8 +787,9 @@ namespace SkyCourierEditor
                 !route.Nodes.Any(node => node.Kind == RouteNodeKind.Event) ||
                 !route.Nodes.Any(node => node.Kind == RouteNodeKind.Rest))
                 throw new InvalidOperationException("Every route node and utility type must be reachable.");
-            if (!route.Get(16).Next.Contains(18) || !route.Get(16).Next.Contains(19))
-                throw new InvalidOperationException("The high-risk penultimate route must offer both finales.");
+            if (route.AtColumn(6).Count() != 3 || route.AtColumn(6).Any(node => node.Kind != RouteNodeKind.MidBoss) ||
+                route.Get(29).Next.Length != 2 || route.Get(30).Next.Length != 2)
+                throw new InvalidOperationException("Mid-boss checkpoint or finale pairing is invalid.");
             if (route.Nodes.Any(node => node.Airspace != (node.Lane switch
                 {
                     0 => AirspaceCondition.JetstreamCorridor,
@@ -1477,9 +1570,13 @@ namespace SkyCourierEditor
 
             EncounterDefinition mantaFinale = EncounterCatalog.Get(EncounterId.Boss, 0);
             EncounterDefinition wyrmFinale = EncounterCatalog.Get(EncounterId.Boss, 1);
+            EncounterDefinition zeroFinale = EncounterCatalog.Get(EncounterId.Boss, 2);
+            EncounterDefinition whaleFinale = EncounterCatalog.Get(EncounterId.Boss, 3);
             if (mantaFinale.Enemies.Single().Kind != EnemyKind.StormManta ||
-                wyrmFinale.Enemies.Single().Kind != EnemyKind.CloudWyrm)
-                throw new InvalidOperationException("Boss encounter variants did not resolve to two distinct finales.");
+                wyrmFinale.Enemies.Single().Kind != EnemyKind.CloudWyrm ||
+                zeroFinale.Enemies.Single().Kind != EnemyKind.CourierZero ||
+                whaleFinale.Enemies.Single().Kind != EnemyKind.InvertedSkyWhale)
+                throw new InvalidOperationException("Boss encounter variants did not resolve to four distinct finales.");
 
             var safeLaneState = new BattleState();
             safeLaneState.StartEncounter(EncounterId.Boss, Enumerable.Repeat(CardId.BankDown, 10).ToArray(),
@@ -1635,11 +1732,17 @@ namespace SkyCourierEditor
                 FinaleProgressionRules.EndingFor(EnemyKind.CloudWyrm, BossStoryAlignment.Hostile),
                 FinaleProgressionRules.EndingFor(EnemyKind.StormManta, BossStoryAlignment.Neutral),
                 FinaleProgressionRules.EndingFor(EnemyKind.StormManta, BossStoryAlignment.Allied),
-                FinaleProgressionRules.EndingFor(EnemyKind.StormManta, BossStoryAlignment.Hostile)
+                FinaleProgressionRules.EndingFor(EnemyKind.StormManta, BossStoryAlignment.Hostile),
+                FinaleProgressionRules.EndingFor(EnemyKind.CourierZero, BossStoryAlignment.Neutral),
+                FinaleProgressionRules.EndingFor(EnemyKind.CourierZero, BossStoryAlignment.Allied),
+                FinaleProgressionRules.EndingFor(EnemyKind.CourierZero, BossStoryAlignment.Hostile),
+                FinaleProgressionRules.EndingFor(EnemyKind.InvertedSkyWhale, BossStoryAlignment.Neutral),
+                FinaleProgressionRules.EndingFor(EnemyKind.InvertedSkyWhale, BossStoryAlignment.Allied),
+                FinaleProgressionRules.EndingFor(EnemyKind.InvertedSkyWhale, BossStoryAlignment.Hostile)
             };
             if (finaleEndings.Any(ending => ending == FinaleEnding.None) ||
-                finaleEndings.Distinct().Count() != 6)
-                throw new InvalidOperationException("Boss and Signal Thread combinations do not resolve to six unique endings.");
+                finaleEndings.Distinct().Count() != 12)
+                throw new InvalidOperationException("Boss and Signal Thread combinations do not resolve to twelve unique endings.");
 
             var emptyProgression = new DeliveryArchiveData();
             ProgressGoal[] openingGoals = LongTermProgressionRules.NextGoals(emptyProgression).ToArray();
@@ -1678,6 +1781,18 @@ namespace SkyCourierEditor
                     new BossDossierRecord
                     {
                         Boss = (int)EnemyKind.CloudWyrm,
+                        Encounters = 1,
+                        Victories = 1
+                    },
+                    new BossDossierRecord
+                    {
+                        Boss = (int)EnemyKind.CourierZero,
+                        Encounters = 1,
+                        Victories = 1
+                    },
+                    new BossDossierRecord
+                    {
+                        Boss = (int)EnemyKind.InvertedSkyWhale,
                         Encounters = 1,
                         Victories = 1
                     }

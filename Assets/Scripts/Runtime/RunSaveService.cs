@@ -10,6 +10,9 @@ namespace SkyCourier
     {
         public int Version = RunSaveService.CurrentVersion;
         public string SavedAtUtc;
+        public int CheckpointSerial;
+        public string CheckpointReason;
+        public int RecoveryCount;
         public string AttemptId;
         public int RunSeed;
         public int EncounterSeed;
@@ -61,7 +64,7 @@ namespace SkyCourier
 
     public static class RunSaveService
     {
-        public const int CurrentVersion = 9;
+        public const int CurrentVersion = 10;
         private const string SaveFileName = "run.json";
         private const string BackupFileName = "run_backup.json";
         private const string TempFileName = "run.tmp";
@@ -231,6 +234,14 @@ namespace SkyCourier
             {
                 data.AttemptId = Guid.NewGuid().ToString("N");
                 data.ContractProcs = 0;
+                data.Version = 9;
+            }
+
+            if (data.Version == 9)
+            {
+                data.CheckpointSerial = 0;
+                data.CheckpointReason = "migrated_v9";
+                data.RecoveryCount = 0;
                 data.Version = CurrentVersion;
             }
 
@@ -242,6 +253,10 @@ namespace SkyCourier
                     data.EncounterSeed = RunSeedUtility.LegacySeed;
                 if (string.IsNullOrWhiteSpace(data.AttemptId))
                     data.AttemptId = Guid.NewGuid().ToString("N");
+                data.CheckpointSerial = Math.Max(0, data.CheckpointSerial);
+                data.RecoveryCount = Math.Max(0, data.RecoveryCount);
+                if (string.IsNullOrWhiteSpace(data.CheckpointReason))
+                    data.CheckpointReason = "legacy_checkpoint";
                 data.ContractProcs = Math.Max(0, data.ContractProcs);
                 if (!Enum.IsDefined(typeof(ChallengeId), data.Challenge))
                     data.Challenge = (int)ChallengeId.Standard;

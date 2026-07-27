@@ -8,7 +8,7 @@ using UnityEngine;
 namespace SkyCourier
 {
     [DefaultExecutionOrder(-100)]
-    public sealed class SkyCourierGame : MonoBehaviour
+    public sealed partial class SkyCourierGame : MonoBehaviour
     {
         private sealed class EnemyDeathFx
         {
@@ -94,6 +94,15 @@ namespace SkyCourier
 
         private const float ReferenceWidth = 1600f;
         private const float ReferenceHeight = 900f;
+        private const float BattlefieldTop = 120f;
+        private const float BattlefieldHeight = 515f;
+        private const float LaneTop = 145f;
+        private const float LaneCenter = 215f;
+        private const float LaneSpacing = 145f;
+        private const float LaneHeight = 125f;
+        private const float HandStripTop = 642f;
+        private const float HandCardTop = 688f;
+        private const float HandCardHeight = 192f;
         private readonly BattleState battle = new BattleState();
         private readonly List<CardId> runDeck = new List<CardId>();
         private readonly HashSet<CardId> runUpgrades = new HashSet<CardId>();
@@ -113,6 +122,10 @@ namespace SkyCourier
         private int selectedRouteNodeId;
         private int lastCompletedRouteNodeId = -1;
         private float routeScroll;
+        private bool routeDragArmed;
+        private bool routeDragging;
+        private Vector2 routeDragStart;
+        private float routeDragStartScroll;
         private bool eventResolved;
         private string eventResult;
         private bool restResolved;
@@ -147,6 +160,12 @@ namespace SkyCourier
         private int runSeed;
         private int activeEncounterSeed;
         private string runAttemptId;
+        private int checkpointSerial;
+        private int recoveryCount;
+        private bool interruptedSessionAvailable;
+        private float nextSessionHeartbeatAt;
+        private float performanceWindowStartedAt;
+        private int performanceFrameCount;
         private bool archiveFailureRecorded;
         private CombatFx combatFx;
         private CardId combatFxCard;
@@ -185,6 +204,10 @@ namespace SkyCourier
         private int laneTransitionTo;
         private int impactDamage;
         private Vector2 impactPoint;
+        private float bossIntroStartedAt = -10f;
+        private const float BossIntroDuration = 4.2f;
+        private float endingSequenceStartedAt = -10f;
+        private const float EndingSequenceDuration = 5.4f;
         private AudioSource audioSource;
         private AudioSource audioLayerSource;
         private AudioSource bgmSource;
@@ -201,10 +224,15 @@ namespace SkyCourier
         private const string FirstBattleGuideKey = "SkyCourier.FirstBattleGuide";
         private static readonly Vector2Int[] SupportedResolutions =
         {
+            new Vector2Int(1024, 768),
             new Vector2Int(1280, 720),
+            new Vector2Int(1366, 768),
             new Vector2Int(1600, 900),
             new Vector2Int(1920, 1080),
+            new Vector2Int(1920, 1200),
+            new Vector2Int(2560, 1080),
             new Vector2Int(2560, 1440),
+            new Vector2Int(3440, 1440),
             new Vector2Int(3840, 2160)
         };
         private GameSettingsData gameSettings;
@@ -230,6 +258,14 @@ namespace SkyCourier
         private TutorialProgressData tutorialProgress;
         private TutorialTopic activeTutorialTopic = TutorialTopic.Intent;
         private bool tutorialRulebookMode;
+        private bool tutorialPending;
+        private TutorialTopic pendingTutorialTopic;
+        private float pendingTutorialReadyAt;
+        private float suppressGameplayInputUntil;
+        private EnemyState enemyIntelHoldTarget;
+        private EnemyState enemyIntelTarget;
+        private float enemyIntelHoldStartedAt = -10f;
+        private const float EnemyIntelHoldDuration = 0.45f;
 #if UNITY_EDITOR
         private int editorAttackPreviewIndex;
 #endif
@@ -261,6 +297,7 @@ namespace SkyCourier
         private GUIStyle neonSubtitleStyle;
         private GUIStyle neonBodyStyle;
         private GUIStyle contractBadgeStyle;
+        private GUIStyle tutorialSymbolStyle;
         private Font uiFont;
         private Font displayFont;
         private Font terminalFont;
@@ -280,6 +317,10 @@ namespace SkyCourier
         private void Awake()
         {
             RunDiagnosticsService.Initialize();
+            SessionRecoveryInfo recovery = SessionRecoveryService.BeginSession();
+            interruptedSessionAvailable = recovery.PreviousSessionInterrupted && RunSaveService.HasSave;
+            nextSessionHeartbeatAt = Time.unscaledTime + 15f;
+            performanceWindowStartedAt = Time.unscaledTime;
             archiveData = DeliveryArchiveService.Load(out bool archiveRestoredBackup, out string archiveError);
             if (archiveRestoredBackup)
             {
@@ -294,7 +335,28 @@ namespace SkyCourier
             }
             gameSettings = GameSettingsService.Load();
             LocalizationService.Initialize((GameLanguage)gameSettings.Language);
+            bool tutorialQaReset = Environment.GetCommandLineArgs().Any(argument =>
+                string.Equals(argument, "--reset-tutorials", StringComparison.OrdinalIgnoreCase));
+            if (tutorialQaReset)
+            {
+                TutorialProgressService.Reset();
+                PlayerPrefs.DeleteKey(FirstBattleGuideKey);
+                PlayerPrefs.Save();
+            }
             tutorialProgress = TutorialProgressService.Load(PlayerPrefs.GetInt(FirstBattleGuideKey, 0) != 0);
+            if (tutorialQaReset)
+            {
+                saveStatusMessage = L("qa.tutorial_reset",
+                    "教学进度已重置；本次配送将重新触发所有情境教学。");
+                saveStatusUntil = Time.unscaledTime + 8f;
+                Debug.Log("SKY_COURIER_TUTORIAL_PROGRESS_RESET");
+            }
+            if (interruptedSessionAvailable)
+            {
+                saveStatusMessage = L("recovery.detected",
+                    "检测到上次异常中断；可从最近安全检查点继续。\n战斗将从遭遇入口重启。");
+                saveStatusUntil = Time.unscaledTime + 9f;
+            }
             musicVolume = gameSettings.MusicVolume;
             sfxVolume = gameSettings.SfxVolume;
             GameSettingsService.Apply(gameSettings, true);
@@ -737,7 +799,24 @@ namespace SkyCourier
 
         private void Update()
         {
+            ProcessPendingTutorial();
+            UpdateEnemyIntelHold();
             HandleControllerInput();
+            performanceFrameCount++;
+            if (Time.unscaledTime >= nextSessionHeartbeatAt)
+            {
+                SessionRecoveryService.Heartbeat(screen.ToString(), runAttemptId);
+                nextSessionHeartbeatAt = Time.unscaledTime + 15f;
+            }
+            if (Time.unscaledTime - performanceWindowStartedAt >= 20f)
+            {
+                float elapsed = Mathf.Max(0.01f, Time.unscaledTime - performanceWindowStartedAt);
+                float averageFps = performanceFrameCount / elapsed;
+                RecordRunDiagnostic("performance_sample",
+                    $"avg_fps={averageFps:0.0}|resolution={Screen.width}x{Screen.height}|target={ReleaseQualityRules.TargetFps}");
+                performanceWindowStartedAt = Time.unscaledTime;
+                performanceFrameCount = 0;
+            }
             if (screen == ScreenMode.Battle && battle.Defeat && !archiveFailureRecorded)
                 RegisterArchiveFailure();
             AudioClip target = MusicForCurrentScreen();
@@ -776,6 +855,9 @@ namespace SkyCourier
                 keyboardFocusActive = false;
             }
             if (!controllerActive)
+                return;
+
+            if (Time.unscaledTime < suppressGameplayInputUntil)
                 return;
 
             string nextContext = settingsOpen ? "Settings" : paused ? "Pause" : showFirstBattleGuide ? "Guide" :
@@ -861,10 +943,10 @@ namespace SkyCourier
             int direction = horizontal != 0 ? horizontal : vertical;
             if (settingsOpen)
             {
-                if (horizontal != 0 && controllerSelection < 11)
+                if (horizontal != 0 && controllerSelection < 12)
                     AdjustControllerSetting(horizontal);
                 else
-                    controllerSelection = WrapSelection(controllerSelection + direction, 12);
+                    controllerSelection = WrapSelection(controllerSelection + direction, 13);
                 PlaySound(clickSound, 1.25f, 0.22f);
                 return;
             }
@@ -951,7 +1033,8 @@ namespace SkyCourier
                 case ScreenMode.CoreUpgrade:
                     count = 3;
                     break;
-                case ScreenMode.Complete:
+                case ScreenMode.Complete when endingSequenceStartedAt < 0f ||
+                    Time.unscaledTime - endingSequenceStartedAt >= EndingSequenceDuration:
                     count = 3;
                     break;
             }
@@ -976,9 +1059,9 @@ namespace SkyCourier
         {
             if (settingsOpen)
             {
-                if (controllerSelection < 11)
+                if (controllerSelection < 12)
                     AdjustControllerSetting(1);
-                else if (controllerSelection == 11)
+                else if (controllerSelection == 12)
                     CloseSettings();
                 return;
             }
@@ -1150,7 +1233,8 @@ namespace SkyCourier
                     else
                         CancelCoreUpgrade();
                     break;
-                case ScreenMode.Complete:
+                case ScreenMode.Complete when endingSequenceStartedAt < 0f ||
+                    Time.unscaledTime - endingSequenceStartedAt >= EndingSequenceDuration:
                     if (controllerSelection == 0)
                         StartNewRun();
                     else if (controllerSelection == 1)
@@ -1189,18 +1273,24 @@ namespace SkyCourier
                     SaveAndApplySettings(false);
                     break;
                 case 7:
-                    musicVolume = Mathf.Clamp01(musicVolume + direction * 0.05f);
+                    gameSettings.EnemyIntelHold = !gameSettings.EnemyIntelHold;
+                    if (!gameSettings.EnemyIntelHold)
+                        ClearEnemyIntelHold();
                     SaveAndApplySettings(false);
                     break;
                 case 8:
-                    sfxVolume = Mathf.Clamp01(sfxVolume + direction * 0.05f);
+                    musicVolume = Mathf.Clamp01(musicVolume + direction * 0.05f);
                     SaveAndApplySettings(false);
                     break;
                 case 9:
-                    gameSettings.ShakeIntensity = Mathf.Clamp01(gameSettings.ShakeIntensity + direction * 0.05f);
+                    sfxVolume = Mathf.Clamp01(sfxVolume + direction * 0.05f);
                     SaveAndApplySettings(false);
                     break;
                 case 10:
+                    gameSettings.ShakeIntensity = Mathf.Clamp01(gameSettings.ShakeIntensity + direction * 0.05f);
+                    SaveAndApplySettings(false);
+                    break;
+                case 11:
                     gameSettings.FlashIntensity = Mathf.Clamp01(gameSettings.FlashIntensity + direction * 0.05f);
                     SaveAndApplySettings(false);
                     break;
@@ -1282,13 +1372,17 @@ namespace SkyCourier
         private void OnApplicationPause(bool pauseStatus)
         {
             if (pauseStatus)
+            {
                 SaveRunCheckpoint();
+                SessionRecoveryService.Heartbeat(screen.ToString(), runAttemptId);
+            }
         }
 
         private void OnApplicationQuit()
         {
             SaveRunCheckpoint();
             RecordRunDiagnostic("session_ended");
+            SessionRecoveryService.MarkCleanExit();
             RunDiagnosticsService.Shutdown();
         }
 
@@ -1329,7 +1423,7 @@ namespace SkyCourier
             if (Event.current.type == EventType.Repaint)
                 hoverKeyThisFrame = null;
 
-            bool modalOpen = paused || showFirstBattleGuide || settingsOpen;
+            bool modalOpen = paused || showFirstBattleGuide || settingsOpen || enemyIntelTarget != null;
             bool previousEnabled = GUI.enabled;
             GUI.enabled = !modalOpen;
             DrawSky();
@@ -1398,7 +1492,7 @@ namespace SkyCourier
             DrawScreenTexture();
 
             if (screen != ScreenMode.Title && screen != ScreenMode.Archive && screen != ScreenMode.Challenge &&
-                !showFirstBattleGuide && !paused && !settingsOpen)
+                !showFirstBattleGuide && !paused && !settingsOpen && enemyIntelTarget == null)
                 DrawSystemButton();
             if (paused && !settingsOpen)
                 DrawPauseOverlay();
@@ -1406,7 +1500,10 @@ namespace SkyCourier
                 DrawFirstBattleGuide();
             if (settingsOpen)
                 DrawSettingsOverlay();
-            if ((controllerActive || keyboardFocusActive) && (gameSettings.FocusHints || settingsOpen))
+            else if (enemyIntelTarget != null)
+                DrawEnemyIntelOverlay(enemyIntelTarget);
+            if ((controllerActive || keyboardFocusActive) && (gameSettings.FocusHints || settingsOpen) &&
+                enemyIntelTarget == null)
                 DrawControllerFocus();
 
             if (Event.current.type == EventType.Repaint)
@@ -1468,7 +1565,7 @@ namespace SkyCourier
             if (!string.IsNullOrEmpty(saveStatusMessage) && Time.unscaledTime < saveStatusUntil)
                 DrawFittedLabel(new Rect(985, 500, 300, 38), saveStatusMessage, tinyStyle, 8);
             DrawFittedLabel(new Rect(630, 710, 650, 32), L("title.version",
-                "v0.52  //  ACCESSIBLE FLIGHT MANUAL"), hudStyle, 11);
+                "v0.60  //  READABILITY UPDATE"), hudStyle, 11);
         }
 
         private void DrawChallengeScreen()
@@ -1609,6 +1706,11 @@ namespace SkyCourier
                 input.Use();
                 return;
             }
+            if (Time.unscaledTime < suppressGameplayInputUntil)
+            {
+                input.Use();
+                return;
+            }
             if (input.keyCode == KeyCode.F1 && screen != ScreenMode.Title)
             {
                 OpenRulebook();
@@ -1621,19 +1723,19 @@ namespace SkyCourier
                 if (input.keyCode == KeyCode.Escape)
                     CloseSettings();
                 else if (input.keyCode == KeyCode.UpArrow || input.keyCode == KeyCode.W)
-                    controllerSelection = WrapSelection(controllerSelection - 1, 12);
+                    controllerSelection = WrapSelection(controllerSelection - 1, 13);
                 else if (input.keyCode == KeyCode.DownArrow || input.keyCode == KeyCode.S)
-                    controllerSelection = WrapSelection(controllerSelection + 1, 12);
+                    controllerSelection = WrapSelection(controllerSelection + 1, 13);
                 else if ((input.keyCode == KeyCode.LeftArrow || input.keyCode == KeyCode.A) &&
-                    controllerSelection < 11)
+                    controllerSelection < 12)
                     AdjustControllerSetting(-1);
                 else if ((input.keyCode == KeyCode.RightArrow || input.keyCode == KeyCode.D) &&
-                    controllerSelection < 11)
+                    controllerSelection < 12)
                     AdjustControllerSetting(1);
                 else if (input.keyCode == KeyCode.Return || input.keyCode == KeyCode.KeypadEnter ||
                     input.keyCode == KeyCode.Space)
                 {
-                    if (controllerSelection == 11)
+                    if (controllerSelection == 12)
                         CloseSettings();
                     else
                         AdjustControllerSetting(1);
@@ -2051,7 +2153,8 @@ namespace SkyCourier
                         handled = true;
                     }
                     break;
-                case ScreenMode.Complete when confirm:
+                case ScreenMode.Complete when confirm && (endingSequenceStartedAt < 0f ||
+                    Time.unscaledTime - endingSequenceStartedAt >= EndingSequenceDuration):
                     StartNewRun();
                     handled = true;
                     break;
@@ -2202,7 +2305,7 @@ namespace SkyCourier
                         rect.width - 36f * scale, 32f * scale),
                     ContractRewardLabel(contract), hudCenteredStyle, 7);
                 bool oldEnabled = GUI.enabled;
-                GUI.enabled = true;
+                GUI.enabled = oldEnabled;
                 if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
                     SetContractPreview((int)contract);
                 GUI.enabled = oldEnabled;
@@ -2546,8 +2649,13 @@ namespace SkyCourier
 
             try
             {
+                bool recoveringInterruptedSession = interruptedSessionAvailable;
                 RestoreRun(data);
-                saveStatusMessage = restoredBackup ? "主存档异常，已恢复备份" : null;
+                saveStatusMessage = recoveringInterruptedSession
+                    ? restoredBackup
+                        ? L("recovery.restored_backup", "异常中断：主存档不可读，已恢复备份安全检查点")
+                        : L("recovery.restored_checkpoint", "异常中断：已恢复最近安全检查点")
+                    : restoredBackup ? "主存档异常，已恢复备份" : null;
                 saveStatusUntil = Time.unscaledTime + 5f;
                 PlaySound(rewardSound, 0.92f, 0.55f);
             }
@@ -2588,6 +2696,8 @@ namespace SkyCourier
             runAttemptId = string.IsNullOrWhiteSpace(data.AttemptId)
                 ? Guid.NewGuid().ToString("N")
                 : data.AttemptId;
+            checkpointSerial = Mathf.Max(0, data.CheckpointSerial);
+            recoveryCount = Mathf.Max(0, data.RecoveryCount) + (interruptedSessionAvailable ? 1 : 0);
             runModification = (AirframeModification)data.AirframeModification;
             routeStoryState = (RouteStoryState)data.RouteStoryState;
             routeIntel = (RouteIntel)data.RouteIntel;
@@ -2705,7 +2815,11 @@ namespace SkyCourier
                     runDeck.Select(card => (int)card), runModules.Select(module => (int)module));
             }
             SaveArchive();
-            RecordRunDiagnostic("run_restored");
+            RecordRunDiagnostic(interruptedSessionAvailable ? "crash_checkpoint_restored" : "run_restored",
+                $"checkpoint={checkpointSerial}|reason={data.CheckpointReason}|recoveries={recoveryCount}");
+            interruptedSessionAvailable = false;
+            SessionRecoveryService.Heartbeat(screen.ToString(), runAttemptId);
+            SaveRunCheckpoint();
         }
 
         private static CardId CardFromSave(int value)
@@ -2723,8 +2837,12 @@ namespace SkyCourier
 
             try
             {
+                checkpointSerial++;
                 var data = new RunSaveData
                 {
+                    CheckpointSerial = checkpointSerial,
+                    CheckpointReason = screen == ScreenMode.Battle ? "encounter_entry" : "screen_transition",
+                    RecoveryCount = recoveryCount,
                     AttemptId = runAttemptId,
                     RunSeed = runSeed,
                     EncounterSeed = activeEncounterSeed,
@@ -2832,6 +2950,10 @@ namespace SkyCourier
                 ? challenge.FixedSeed
                 : forcedSeed ?? RunSeedUtility.Create();
             runAttemptId = Guid.NewGuid().ToString("N");
+            checkpointSerial = 0;
+            recoveryCount = 0;
+            interruptedSessionAvailable = false;
+            SessionRecoveryService.Heartbeat(ScreenMode.DepartureBriefing.ToString(), runAttemptId);
             activeEncounterSeed = 0;
             selectedContract = contract;
             runModification = AirframeModification.None;
@@ -3031,6 +3153,7 @@ namespace SkyCourier
                 case RouteNodeKind.Skirmish:
                 case RouteNodeKind.Elite:
                 case RouteNodeKind.Hunt:
+                case RouteNodeKind.MidBoss:
                 case RouteNodeKind.Boss:
                     if (node.Kind == RouteNodeKind.Boss)
                         CaptureBuildSnapshot(RunBuildSnapshotMoment.BossApproach, $"boss_{node.Id}");
@@ -3106,12 +3229,11 @@ namespace SkyCourier
 
         private void FocusRouteColumn(int column)
         {
-            const float columnSpacing = 250f;
             const float viewportWidth = 1360f;
-            const float contentPadding = 145f;
-            float contentWidth = contentPadding * 2f + route.ColumnCount * columnSpacing;
-            float target = contentPadding + column * columnSpacing - viewportWidth * 0.42f;
-            routeScroll = Mathf.Clamp(target, 0f, Mathf.Max(0f, contentWidth - viewportWidth));
+            float target = RouteMapLayoutRules.ContentPadding + column * RouteMapLayoutRules.ColumnSpacing -
+                viewportWidth * 0.42f;
+            routeScroll = Mathf.Clamp(target, 0f,
+                RouteMapLayoutRules.MaximumScroll(route.ColumnCount, viewportWidth));
         }
 
         private void ResetShopInventory()
@@ -3139,13 +3261,31 @@ namespace SkyCourier
             commandChain = 0;
             commandChainTurn = 0;
             screen = ScreenMode.Battle;
+            bossIntroStartedAt = encounter == EncounterId.Boss ? Time.unscaledTime : -10f;
+            if (encounter == EncounterId.Boss)
+            {
+                battleInputLockUntil = Time.time + BossIntroDuration;
+                PlaySound(warningSound, 0.72f, 0.88f);
+                StartCoroutine(PlayBossArrivalSting());
+            }
             bannerText = encounter == EncounterId.Boss
-                ? battle.EncounterVariant == 1
-                    ? "WARNING // 天穹雷幕展开"
-                    : "WARNING // 巨型磁暴反应"
+                ? battle.EncounterVariant switch
+                {
+                    1 => "WARNING // 天穹雷幕展开",
+                    2 => "WARNING // 零号退件协议",
+                    3 => "WARNING // 重力鲸落倒悬",
+                    _ => "WARNING // 巨型磁暴反应"
+                }
+                : encounter == EncounterId.MidBoss
+                    ? $"CHECKPOINT // {battle.FormationName}"
                 : $"AIRSPACE // {AirspaceRuleCatalog.Name(CurrentAirspace())} · {battle.FormationName}";
             bannerUntil = Time.time + 1.85f;
-            TryShowTutorialOnce(encounter == EncounterId.Boss ? TutorialTopic.Boss : TutorialTopic.Intent);
+            TutorialTopic entryTopic = encounter == EncounterId.Boss
+                ? TutorialTopic.Boss
+                : TutorialTopic.Intent;
+            TryShowTutorialOnce(entryTopic);
+            if (!tutorialPending && !showFirstBattleGuide)
+                TryShowTutorialOnce(TutorialTopic.EnemyIntel);
             DeliveryArchiveService.RegisterBattleStarted(archiveData,
                 battle.Enemies.Select(enemy => (int)enemy.Kind),
                 runDeck.Select(card => (int)card), runModules.Select(module => (int)module));
@@ -3154,14 +3294,43 @@ namespace SkyCourier
             SaveRunCheckpoint();
         }
 
+        private IEnumerator PlayBossArrivalSting()
+        {
+            yield return new WaitForSecondsRealtime(0.85f);
+            PlaySound(lowExplosionSound, 0.66f, 0.72f);
+            TriggerShake(7f, 0.42f);
+            yield return new WaitForSecondsRealtime(1.05f);
+            PlaySound(maneuverLockSound, 0.58f, 0.82f);
+            yield return new WaitForSecondsRealtime(1.05f);
+            PlaySound(impactSound, 0.76f, 0.5f);
+        }
+
         private int EncounterVariantForRun(EncounterId encounter)
         {
             if (encounter == EncounterId.Boss)
-                return selectedRouteNodeId == 19 ? 1 : 0;
-            if (selectedRouteNodeId == 15 || selectedRouteNodeId == 16)
-                return 4;
-            if (selectedRouteNodeId == 17)
-                return 5;
+            {
+                return selectedRouteNodeId switch
+                {
+                    19 => 1,
+                    31 => 2,
+                    32 => 3,
+                    _ => 0
+                };
+            }
+            if (encounter == EncounterId.MidBoss)
+                return selectedRouteNodeId == 16 ? 1 : selectedRouteNodeId == 17 ? 2 : 0;
+            int authoredVariant = selectedRouteNodeId switch
+            {
+                20 => 7,
+                22 => 10,
+                24 => 6,
+                25 => 9,
+                27 => 11,
+                30 => 8,
+                _ => -1
+            };
+            if (authoredVariant >= 0)
+                return authoredVariant;
             return AirspaceRuleCatalog.EncounterVariant(CurrentAirspace(), activeEncounterSeed);
         }
 
@@ -3247,7 +3416,7 @@ namespace SkyCourier
             DrawRect(panel, new Color32(7, 18, 43, 255));
             DrawNeonFrame(panel, NeonCyan, 3f);
             DrawFittedLabel(new Rect(350, 95, 650, 62), L("settings.title", "系统设置"), neonTitleStyle, 26);
-            DrawFittedLabel(new Rect(1000, 108, 245, 36), L("settings.section", "ACCESS // DISPLAY"), hudCenteredStyle, 8);
+            DrawFittedLabel(new Rect(1000, 108, 245, 36), L("settings.section", "ACCESS // DISPLAY"), hudCenteredStyle, 10);
 
             DrawSettingStepper(165, L("settings.display", "显示模式"), DisplayModeLabel(),
                 CycleDisplayModeBackward, CycleDisplayModeForward);
@@ -3268,18 +3437,21 @@ namespace SkyCourier
             DrawSettingStepper(470, L("settings.focus_hints", "焦点提示"),
                 gameSettings.FocusHints ? L("settings.on", "开启") : L("settings.off", "关闭"),
                 ToggleFocusHints, ToggleFocusHints);
+            DrawSettingStepper(520, L("settings.enemy_intel", "长按敌情详解"),
+                gameSettings.EnemyIntelHold ? L("settings.on", "开启") : L("settings.off", "关闭"),
+                ToggleEnemyIntelHold, ToggleEnemyIntelHold);
 
             float previousMusic = musicVolume;
             float previousSfx = sfxVolume;
             float previousShake = gameSettings.ShakeIntensity;
             float previousFlash = gameSettings.FlashIntensity;
-            DrawSettingsSlider(530, L("settings.music", "音乐音量"), ref musicVolume);
-            DrawSettingsSlider(580, L("settings.sfx", "音效音量"), ref sfxVolume);
+            DrawSettingsSlider(575, L("settings.music", "音乐音量"), ref musicVolume);
+            DrawSettingsSlider(620, L("settings.sfx", "音效音量"), ref sfxVolume);
             float shake = gameSettings.ShakeIntensity;
-            DrawSettingsSlider(630, L("settings.shake", "震屏强度"), ref shake);
+            DrawSettingsSlider(665, L("settings.shake", "震屏强度"), ref shake);
             gameSettings.ShakeIntensity = shake;
             float flash = gameSettings.FlashIntensity;
-            DrawSettingsSlider(680, L("settings.flash", "闪光强度"), ref flash);
+            DrawSettingsSlider(710, L("settings.flash", "闪光强度"), ref flash);
             gameSettings.FlashIntensity = flash;
             gameSettings.MusicVolume = musicVolume;
             gameSettings.SfxVolume = sfxVolume;
@@ -3288,18 +3460,18 @@ namespace SkyCourier
                 !Mathf.Approximately(previousFlash, gameSettings.FlashIntensity))
                 SaveAndApplySettings(false);
 
-            DrawPixelButton(new Rect(570, 760, 460, 58), settingsReturnToPause
+            DrawPixelButton(new Rect(570, 785, 460, 50), settingsReturnToPause
                     ? L("settings.back_pause", "返回暂停菜单") : L("settings.save_back", "保存并返回"),
                 NeonCyan, CloseSettings, true, "ESC");
         }
 
         private void DrawSettingStepper(float y, string label, string value, Action previous, Action next)
         {
-            DrawFittedLabel(new Rect(365, y, 265, 48), label, hudStyle, 10);
+            DrawFittedLabel(new Rect(365, y, 265, 48), label, hudStyle, 12);
             Rect valuePanel = new Rect(720, y - 2, 360, 52);
             DrawRect(valuePanel, new Color32(3, 11, 31, 245));
             DrawNeonFrame(valuePanel, NeonViolet, 2f);
-            DrawFittedLabel(valuePanel, value, hudCenteredStyle, 9);
+            DrawFittedLabel(valuePanel, value, hudCenteredStyle, 12);
             DrawStepperArrowButton(new Rect(645, y - 2, 58, 52), "<", previous);
             DrawStepperArrowButton(new Rect(1097, y - 2, 58, 52), ">", next);
         }
@@ -3328,9 +3500,9 @@ namespace SkyCourier
 
         private void DrawSettingsSlider(float y, string label, ref float value)
         {
-            DrawFittedLabel(new Rect(365, y, 265, 42), label, hudStyle, 10);
+            DrawFittedLabel(new Rect(365, y, 265, 42), label, hudStyle, 12);
             float next = GUI.HorizontalSlider(new Rect(650, y + 12, 410, 26), value, 0f, 1f);
-            DrawFittedLabel(new Rect(1080, y, 90, 42), $"{Mathf.RoundToInt(next * 100)}%", hudCenteredStyle, 8);
+            DrawFittedLabel(new Rect(1080, y, 90, 42), $"{Mathf.RoundToInt(next * 100)}%", hudCenteredStyle, 11);
             if (!Mathf.Approximately(next, value))
                 value = next;
         }
@@ -3407,6 +3579,14 @@ namespace SkyCourier
             SaveAndApplySettings(false);
         }
 
+        private void ToggleEnemyIntelHold()
+        {
+            gameSettings.EnemyIntelHold = !gameSettings.EnemyIntelHold;
+            if (!gameSettings.EnemyIntelHold)
+                ClearEnemyIntelHold();
+            SaveAndApplySettings(false);
+        }
+
         private void CycleFrameRate(int direction)
         {
             int[] rates = { 30, 60, 120, 144, 240 };
@@ -3440,10 +3620,11 @@ namespace SkyCourier
                     5 => new Rect(350, 410, 800, 55),
                     6 => new Rect(350, 460, 800, 55),
                     7 => new Rect(350, 520, 800, 50),
-                    8 => new Rect(350, 570, 800, 50),
-                    9 => new Rect(350, 620, 800, 50),
-                    10 => new Rect(350, 670, 800, 50),
-                    _ => new Rect(570, 760, 460, 58)
+                    8 => new Rect(350, 570, 800, 45),
+                    9 => new Rect(350, 615, 800, 45),
+                    10 => new Rect(350, 660, 800, 45),
+                    11 => new Rect(350, 705, 800, 45),
+                    _ => new Rect(570, 785, 460, 50)
                 };
             }
             else if (paused)
@@ -3524,12 +3705,13 @@ namespace SkyCourier
                         }
                         else if (controllerSelection >= battle.Hand.Count)
                         {
-                            focus = new Rect(1360, 705, 180, 72);
+                            focus = new Rect(1360, 726, 180, 64);
                         }
                         else
                         {
                             GetHandLayout(out float cardWidth, out float gap, out float startX);
-                            focus = new Rect(startX + controllerSelection * (cardWidth + gap), 620, cardWidth, 235);
+                            focus = new Rect(startX + controllerSelection * (cardWidth + gap),
+                                HandCardTop, cardWidth, HandCardHeight);
                         }
                         break;
                     case ScreenMode.Reward:
@@ -3649,20 +3831,22 @@ namespace SkyCourier
                 DrawFittedLabel(new Rect(165, 100, 780, 54),
                     L("rulebook.title", "规则说明与术语词典"), neonTitleStyle, 22);
                 DrawFittedLabel(new Rect(1030, 110, 390, 32),
-                    L("rulebook.status", "F1 随时查看 // 方向键切换"), hudCenteredStyle, 8);
+                    L("rulebook.status", "F1 随时查看 // 方向键切换"), hudCenteredStyle, 10);
                 for (int i = 0; i < RuleGlossaryCatalog.All.Count; i++)
                 {
                     RuleGlossaryEntry listed = RuleGlossaryCatalog.All[i];
-                    Rect item = new Rect(165, 172 + i * 52, 325, 44);
+                    Rect item = new Rect(165, 172 + i * 48, 325, 40);
                     bool selected = listed.Topic == activeTutorialTopic;
                     Color listedColor = TutorialTopicColor(listed.Topic);
                     DrawRect(item, selected ? new Color32(20, 52, 82, 255) : new Color32(4, 15, 35, 245));
                     DrawPixelOutline(item, selected ? listedColor : new Color32(47, 83, 116, 255),
                         selected ? 3f : 1f);
-                    DrawFittedLabel(new Rect(item.x + 12, item.y + 7, 45, 30), listed.Symbol,
-                        hudCenteredStyle, 9);
-                    DrawFittedLabel(new Rect(item.x + 62, item.y + 6, 245, 31), listed.Title,
-                        hudStyle, 9);
+                    Rect symbolCell = new Rect(item.x + 7, item.y + 4, 50, 32);
+                    DrawRect(symbolCell, new Color32(8, 25, 48, 255));
+                    DrawPixelOutline(symbolCell, selected ? listedColor : new Color32(38, 72, 105, 255), 1f);
+                    DrawFittedLabel(symbolCell, listed.Symbol, tutorialSymbolStyle, 10);
+                    DrawFittedLabel(new Rect(item.x + 70, item.y + 4, 237, 31), listed.Title,
+                        hudStyle, 11);
                     if (GUI.Button(item, GUIContent.none, GUIStyle.none))
                     {
                         activeTutorialTopic = listed.Topic;
@@ -3675,7 +3859,7 @@ namespace SkyCourier
                     NeonCyan, CloseTutorialOverlay, true, "ESC");
                 DrawFittedLabel(new Rect(550, 715, 450, 38),
                     L("rulebook.controls", "左右方向键 / 左摇杆浏览　ENTER / [A] 返回"),
-                    tinyStyle, 8);
+                    tinyStyle, 10);
                 return;
             }
 
@@ -3696,7 +3880,8 @@ namespace SkyCourier
             Rect symbol = new Rect(rect.x + 26, rect.y + 28, 92, 92);
             DrawRect(symbol, new Color(color.r * 0.22f, color.g * 0.22f, color.b * 0.22f, 1f));
             DrawPixelOutline(symbol, color, 3f);
-            DrawFittedLabel(symbol, entry.Symbol, neonTitleStyle, 24);
+            DrawFittedLabel(new Rect(symbol.x + 10f, symbol.y + 10f, symbol.width - 20f, symbol.height - 20f),
+                entry.Symbol, tutorialSymbolStyle, 18);
             DrawFittedLabel(new Rect(rect.x + 140, rect.y + 22, rect.width - 170, 48), entry.Title,
                 neonTitleStyle, 20);
             DrawFittedLabel(new Rect(rect.x + 140, rect.y + 76, rect.width - 170, 30),
@@ -3712,27 +3897,63 @@ namespace SkyCourier
             }
             else
             {
-                DrawFittedLabel(new Rect(rect.x + 42, rect.y + 145, rect.width - 84, rect.height - 180),
-                    entry.Glossary, neonBodyStyle, 13);
+                Rect bodyPanel = new Rect(rect.x + 26, rect.y + 136, rect.width - 52, rect.height - 162);
+                DrawRect(bodyPanel, new Color32(5, 17, 38, 245));
+                DrawPixelOutline(bodyPanel, new Color32(35, 70, 102, 255), 1f);
+                DrawFittedLabel(new Rect(bodyPanel.x + 20, bodyPanel.y + 16,
+                        bodyPanel.width - 40, bodyPanel.height - 32),
+                    entry.Glossary, neonBodyStyle, 15);
             }
         }
 
         private void TryShowTutorialOnce(TutorialTopic topic)
         {
             tutorialProgress ??= TutorialProgressService.Load();
-            if (!gameSettings.ContextualTutorials || showFirstBattleGuide || settingsOpen || paused ||
+            if (!gameSettings.ContextualTutorials || tutorialPending || showFirstBattleGuide || settingsOpen || paused ||
                 TutorialProgressService.HasSeen(tutorialProgress, topic))
                 return;
-            activeTutorialTopic = topic;
-            firstBattleGuidePage = (int)topic;
+            tutorialPending = true;
+            pendingTutorialTopic = topic;
+            pendingTutorialReadyAt = Time.unscaledTime + TutorialPresentationDelay();
+        }
+
+        private float TutorialPresentationDelay()
+        {
+            if (screen != ScreenMode.Battle)
+                return 0.08f;
+            float feedbackEnd = Mathf.Max(battleInputLockUntil, combatFxStart + combatFxDuration,
+                bannerUntil);
+            return Mathf.Max(0.18f, feedbackEnd - Time.time + 0.08f);
+        }
+
+        private void ProcessPendingTutorial()
+        {
+            if (!tutorialPending || Time.unscaledTime < pendingTutorialReadyAt || showFirstBattleGuide ||
+                settingsOpen || paused || BattleFeedbackActive())
+                return;
+
+            tutorialPending = false;
+            if (!gameSettings.ContextualTutorials || TutorialProgressService.HasSeen(tutorialProgress,
+                    pendingTutorialTopic))
+                return;
+            activeTutorialTopic = pendingTutorialTopic;
+            firstBattleGuidePage = (int)pendingTutorialTopic;
             tutorialRulebookMode = false;
             showFirstBattleGuide = true;
+            suppressGameplayInputUntil = Time.unscaledTime + 0.12f;
             Time.timeScale = 0f;
+        }
+
+        private bool BattleFeedbackActive()
+        {
+            return screen == ScreenMode.Battle && (Time.time < battleInputLockUntil ||
+                Time.time < combatFxStart + combatFxDuration || Time.time < bannerUntil);
         }
 
         private void OpenRulebook()
         {
             tutorialProgress ??= TutorialProgressService.Load();
+            tutorialPending = false;
             firstBattleGuidePage = Mathf.Clamp(firstBattleGuidePage, 0, RuleGlossaryCatalog.All.Count - 1);
             activeTutorialTopic = RuleGlossaryCatalog.All[firstBattleGuidePage].Topic;
             tutorialRulebookMode = true;
@@ -3749,11 +3970,16 @@ namespace SkyCourier
 
         private void CloseTutorialOverlay()
         {
+            TutorialTopic closedTopic = activeTutorialTopic;
             if (!tutorialRulebookMode)
                 TutorialProgressService.MarkSeen(tutorialProgress, activeTutorialTopic);
             tutorialRulebookMode = false;
             showFirstBattleGuide = false;
+            suppressGameplayInputUntil = Time.unscaledTime + 0.16f;
             Time.timeScale = paused ? 0f : 1f;
+            if (screen == ScreenMode.Battle &&
+                (closedTopic == TutorialTopic.Intent || closedTopic == TutorialTopic.Boss))
+                TryShowTutorialOnce(TutorialTopic.EnemyIntel);
         }
 
         private static Color TutorialTopicColor(TutorialTopic topic)
@@ -3769,6 +3995,7 @@ namespace SkyCourier
                 TutorialTopic.Retrofit => NeonViolet,
                 TutorialTopic.Chronicle => new Color32(120, 178, 255, 255),
                 TutorialTopic.Outpost => Gold,
+                TutorialTopic.EnemyIntel => new Color32(99, 231, 208, 255),
                 _ => PostalRed
             };
         }
@@ -3821,7 +4048,7 @@ namespace SkyCourier
             {
                 impactDamage = damageDealt;
                 impactPoint = new Vector2(volleyCard ? 1110f : 1060f,
-                    volleyCard ? 320f : 190f + battle.PlayerLane * 130f);
+                    volleyCard ? LaneCenterY(1) : LaneCenterY(battle.PlayerLane));
                 impactFlashUntil = Time.time + 0.86f;
                 enemyRecoilUntil = Time.time + 0.62f;
                 StartCoroutine(DelayedHitStop(id == CardId.OverloadAim ? 0.27f : 0.23f,
@@ -3838,7 +4065,7 @@ namespace SkyCourier
                     impactPoint = EnemyBasePosition(i, enemy);
                 if (!chargeInterruptedSnapshot[i] && enemy.ChargeInterrupted)
                     interruptedCharge = true;
-                if ((enemy.Kind == EnemyKind.StormManta || enemy.Kind == EnemyKind.CloudWyrm) &&
+                if (BattleState.IsBossKind(enemy.Kind) &&
                     enemy.Phase > enemyPhaseSnapshot[i])
                     bossPhaseTransition = true;
                 if (enemyHealthSnapshot[i] > 0 && !enemy.Alive)
@@ -3882,7 +4109,19 @@ namespace SkyCourier
             if (expandedFeedback)
             {
                 CardSpec expandedCard = CardLibrary.Get(id);
-                if (ExpandedCardCatalog.IsDamaging(id))
+                bool deferredAttack = id == CardId.DeferredVolley || id == CardId.DeferredStrike;
+                if (deferredAttack)
+                {
+                    combatFx = id == CardId.DeferredVolley ? CombatFx.Volley : CombatFx.Overclock;
+                    combatFxPower = 0.7f;
+                    combatFxDuration = 0.72f;
+                    int scheduled = id == CardId.DeferredVolley
+                        ? battle.DeferredVolleyDamage
+                        : battle.DeferredSingleDamage;
+                    combatFxText = $"{expandedCard.Name} // {L("feedback.deferred_value", "下回合 {0}", scheduled)}";
+                    PlaySound(clickSound, 1.18f);
+                }
+                else if (ExpandedCardCatalog.IsDamaging(id))
                 {
                     combatFx = volleyCard ? CombatFx.Volley : CombatFx.Shot;
                     combatFxPower = AttackFxPower(id);
@@ -4104,12 +4343,14 @@ namespace SkyCourier
 
         private bool CanPlayInteractive(int handIndex)
         {
-            return Time.time >= battleInputLockUntil && !battle.Victory && !battle.Defeat && battle.CanPlay(handIndex);
+            return !tutorialPending && !showFirstBattleGuide && Time.unscaledTime >= suppressGameplayInputUntil &&
+                Time.time >= battleInputLockUntil && !battle.Victory && !battle.Defeat && battle.CanPlay(handIndex);
         }
 
         private void EndTurnWithFeedback()
         {
-            if (Time.time < battleInputLockUntil || battle.Victory || battle.Defeat)
+            if (tutorialPending || showFirstBattleGuide || Time.unscaledTime < suppressGameplayInputUntil ||
+                Time.time < battleInputLockUntil || battle.Victory || battle.Defeat)
                 return;
             battleInputLockUntil = Time.time + 0.92f;
             int hullBefore = battle.PlayerHealth;
@@ -4128,7 +4369,8 @@ namespace SkyCourier
                 bool attacks = IntentCreatesAttackFx(enemy, tracking && !trackingQueued);
                 bool chargeEnemy = enemy.Kind == EnemyKind.CalamityDrone ||
                     enemy.Kind == EnemyKind.StormManta || enemy.Kind == EnemyKind.CloudWyrm ||
-                    enemy.Kind == EnemyKind.CurtainHerald || enemy.Kind == EnemyKind.FluxSkimmer;
+                    enemy.Kind == EnemyKind.CurtainHerald || enemy.Kind == EnemyKind.FluxSkimmer ||
+                    enemy.Kind == EnemyKind.CourierZero || enemy.Kind == EnemyKind.InvertedSkyWhale;
                 if (chargeEnemy && (enemy.ChargeTargetLane < 0 || enemy.ChargeInterrupted ||
                     enemy.PhaseTransitionPending))
                     attacks = false;
@@ -4142,6 +4384,8 @@ namespace SkyCourier
                         ? laneDistance == 0 || (enemy.Phase == 2 && laneDistance == 1)
                         : enemy.Kind == EnemyKind.CloudWyrm
                             ? targetLane != battle.PlayerLane
+                            : enemy.Kind == EnemyKind.InvertedSkyWhale
+                                ? enemy.Phase == 1 ? targetLane == battle.PlayerLane : targetLane != battle.PlayerLane
                             : enemy.Kind == EnemyKind.CurtainHerald
                                 ? targetLane != battle.PlayerLane
                             : enemy.Kind == EnemyKind.FluxSkimmer
@@ -4158,6 +4402,12 @@ namespace SkyCourier
                             : enemy.Kind == EnemyKind.CloudWyrm
                                 ? enemy.Phase == 1 ? BattleState.CloudWyrmPhaseOneStrikeDamage :
                                     BattleState.CloudWyrmPhaseTwoStrikeDamage
+                            : enemy.Kind == EnemyKind.CourierZero
+                                ? enemy.Phase == 1 ? BattleState.CourierZeroPhaseOneStrikeDamage :
+                                    BattleState.CourierZeroPhaseTwoStrikeDamage
+                            : enemy.Kind == EnemyKind.InvertedSkyWhale
+                                ? enemy.Phase == 1 ? BattleState.SkyWhalePhaseOneStrikeDamage :
+                                    BattleState.SkyWhalePhaseTwoStrikeDamage
                             : enemy.Kind == EnemyKind.MailEater ? enemy.Damage + 2
                             : enemy.Kind == EnemyKind.ShieldLeech ? 0 : enemy.Damage,
                         TargetLane = targetLane,
@@ -4263,7 +4513,8 @@ namespace SkyCourier
                 return true;
             if (enemy.Kind == EnemyKind.CalamityDrone || enemy.Kind == EnemyKind.StormManta ||
                 enemy.Kind == EnemyKind.CloudWyrm || enemy.Kind == EnemyKind.CurtainHerald ||
-                enemy.Kind == EnemyKind.FluxSkimmer)
+                enemy.Kind == EnemyKind.FluxSkimmer || enemy.Kind == EnemyKind.CourierZero ||
+                enemy.Kind == EnemyKind.InvertedSkyWhale)
                 return true;
             if (enemy.Kind == EnemyKind.StormBalloon)
                 return true;
@@ -4280,28 +4531,27 @@ namespace SkyCourier
 
         private void DrawRouteMap()
         {
-            RunAct currentAct = RunStructureCatalog.ActForColumn(routeIndex);
+            int currentFloor = RunStructureCatalog.FloorForColumn(routeIndex);
             DrawRect(new Rect(70, 58, 1460, 760), new Color32(2, 7, 22, 255));
             DrawRect(new Rect(78, 66, 1444, 744), PanelNight);
             DrawNeonFrame(new Rect(78, 66, 1444, 744), NeonCyan, 3f);
             DrawFittedLabel(new Rect(125, 88, 540, 64),
                 L("map.title", "风车群岛分支航线"), neonTitleStyle, 30);
-            DrawRunActIndicator(currentAct);
+            DrawFloorIndicator(currentFloor);
             DrawFittedLabel(new Rect(128, 147, 830, 38),
-                L("map.act_status", "第 {0} 幕 / 3 · {1}　//　区域 {2}/{3}　//　信标纪事：{4}",
-                    RunStructureCatalog.ActNumber(currentAct), RunActName(currentAct),
+                L("map.floor_status", "第 {0} 层 / 5 · {1}　//　区域 {2}/{3}　//　信标纪事：{4}",
+                    currentFloor, RunStructureCatalog.FloorRole(currentFloor),
                     routeIndex + 1, route.ColumnCount, RouteStoryStatus()), neonBodyStyle, 10);
             DrawRunHud(new Rect(1050, 88, 405, 96));
 
             Rect viewport = new Rect(120, 205, 1360, 405);
-            const float columnSpacing = 250f;
-            const float contentPadding = 145f;
-            float contentWidth = contentPadding * 2f + route.ColumnCount * columnSpacing;
-            int revealThrough = Mathf.Min(route.ColumnCount - 1, routeIndex + 2);
-            float knownContentRight = contentPadding + revealThrough * columnSpacing + 125f;
-            float maxScroll = Mathf.Min(Mathf.Max(0f, contentWidth - viewport.width),
-                Mathf.Max(0f, knownContentRight - viewport.width));
+            float columnSpacing = RouteMapLayoutRules.ColumnSpacing;
+            float contentPadding = RouteMapLayoutRules.ContentPadding;
+            float contentWidth = RouteMapLayoutRules.ContentWidth(route.ColumnCount);
+            int revealThrough = RouteMapLayoutRules.RevealThrough(routeIndex, route.ColumnCount);
+            float maxScroll = RouteMapLayoutRules.MaximumScroll(route.ColumnCount, viewport.width);
             routeScroll = Mathf.Clamp(routeScroll, 0f, maxScroll);
+            HandleRouteMapDrag(viewport, maxScroll);
             if (viewport.Contains(Event.current.mousePosition) && Event.current.type == EventType.ScrollWheel)
             {
                 routeScroll = Mathf.Clamp(routeScroll + Event.current.delta.y * 72f, 0f, maxScroll);
@@ -4327,10 +4577,13 @@ namespace SkyCourier
                     new Color(bandColor.r, bandColor.g, bandColor.b, 0.055f));
             }
 
-            for (int column = 0; column <= revealThrough; column++)
+            for (int column = 0; column < route.ColumnCount; column++)
             {
                 float markerX = offsetX + column * columnSpacing;
-                Color marker = column == routeIndex ? NeonCyan : new Color32(61, 78, 111, 150);
+                bool revealed = column <= revealThrough;
+                Color marker = column == routeIndex ? NeonCyan : revealed
+                    ? new Color32(61, 78, 111, 150)
+                    : new Color32(102, 72, 143, 115);
                 DrawRect(new Rect(markerX - 1f, 22f, 2f, 355f), new Color(marker.r, marker.g, marker.b, 0.16f));
                 DrawRect(new Rect(markerX - 23f, 8f, 46f, 20f), new Color32(5, 14, 35, 245));
                 DrawPixelOutline(new Rect(markerX - 23f, 8f, 46f, 20f), marker, 2f);
@@ -4358,17 +4611,28 @@ namespace SkyCourier
                 }
             }
 
-            foreach (RouteNodeDefinition node in route.Nodes)
+            foreach (RouteNodeDefinition node in route.Nodes.Where(node => node.Column <= revealThrough))
                 DrawRouteNode(node, offsetX, columnSpacing, revealThrough);
 
             float fogX = offsetX + (revealThrough + 0.5f) * columnSpacing;
             if (revealThrough < route.ColumnCount - 1)
             {
-                DrawRect(new Rect(fogX, 0, contentWidth + 500f, 399), new Color32(5, 9, 28, 248));
+                DrawRect(new Rect(fogX, 0, contentWidth + 500f, 399), new Color32(5, 9, 28, 255));
                 DrawRect(new Rect(fogX, 0, 4, 399), NeonViolet);
-                for (int stripe = 0; stripe < 7; stripe++)
+                for (int stripe = 0; stripe < route.ColumnCount * 4; stripe++)
                     DrawRect(new Rect(fogX + 18 + stripe * 54f, 0, 2, 399), new Color32(180, 91, 255, 18));
-                DrawFittedLabel(new Rect(fogX + 28, 164, 270, 58), "SIGNAL LOST\n航路情报未解析", hudCenteredStyle, 10);
+                for (int column = revealThrough + 1; column < route.ColumnCount; column++)
+                {
+                    float unresolvedX = offsetX + column * columnSpacing;
+                    Rect beacon = new Rect(unresolvedX - 25f, 162f, 50f, 50f);
+                    DrawRect(new Rect(beacon.x + 5f, beacon.y + 5f, beacon.width, beacon.height),
+                        new Color32(1, 5, 18, 245));
+                    DrawRect(beacon, new Color32(17, 17, 43, 250));
+                    DrawPixelOutline(beacon, new Color32(143, 83, 194, 220), 2f);
+                    DrawFittedLabel(beacon, "?", tutorialSymbolStyle, 18);
+                    DrawFittedLabel(new Rect(unresolvedX - 82f, 222f, 164f, 24f),
+                        L("map.unresolved", "航路情报未解析"), tinyStyle, 10);
+                }
             }
 
             for (int lane = 0; lane < 3; lane++)
@@ -4384,7 +4648,7 @@ namespace SkyCourier
                 DrawRect(labelRect, new Color32(4, 12, 30, 238));
                 DrawPixelOutline(labelRect, bandColor, 1f);
                 DrawFittedLabel(new Rect(labelRect.x + 3f, labelRect.y, labelRect.width - 6f, labelRect.height),
-                    $"{AirspaceRuleCatalog.Band(condition)}·{AirspaceRuleCatalog.Name(condition)}", tinyStyle, 7);
+                    $"{AirspaceRuleCatalog.Band(condition)}·{AirspaceRuleCatalog.Name(condition)}", tinyStyle, 10);
             }
             GUI.EndGroup();
 
@@ -4410,12 +4674,12 @@ namespace SkyCourier
             DrawPixelOutline(new Rect(detail.x + 151, detail.y + 12, 166, 26), airspaceColor, 2f);
             DrawFittedLabel(new Rect(detail.x + 155, detail.y + 12, 158, 26),
                 $"{AirspaceRuleCatalog.Band(selected.Airspace)} // {AirspaceRuleCatalog.Name(selected.Airspace)}",
-                tinyStyle, 8);
+                tinyStyle, 10);
             Color riskColor = RouteRiskColor(selected.Kind);
             DrawRect(new Rect(detail.x + 327, detail.y + 12, 118, 26), new Color32(9, 27, 55, 250));
             DrawPixelOutline(new Rect(detail.x + 327, detail.y + 12, 118, 26), riskColor, 2f);
             DrawFittedLabel(new Rect(detail.x + 331, detail.y + 12, 110, 26),
-                RouteRiskLabel(selected.Kind), tinyStyle, 8);
+                RouteRiskLabel(selected.Kind), tinyStyle, 10);
             string selectedTitle = selected.Kind == RouteNodeKind.Event ? EventTitleForNode(selected.Id) : selected.Title;
             string selectedDescription = selected.Kind == RouteNodeKind.Event
                 ? EventDescriptionForNode(selected.Id) : selected.Description;
@@ -4425,32 +4689,71 @@ namespace SkyCourier
                 L("map.node_detail", "{0}\n预期产出：{1}　//　空域：{2}",
                     selectedDescription, RouteExpectedReward(selected.Kind),
                     AirspaceRuleCatalog.EncounterRule(selected.Airspace)),
-                neonBodyStyle, 9);
+                neonBodyStyle, 11);
             string enterLabel = selected.Kind == RouteNodeKind.Boss
-                ? L("map.enter_boss", "挑战首领")
+                ? L("map.enter_boss", "挑战终极首领")
+                : selected.Kind == RouteNodeKind.MidBoss
+                    ? L("map.enter_midboss", "挑战中阶首领")
                 : L("map.enter_node", "前往 {0}", selectedTitle);
             DrawPixelButton(new Rect(1060, 683, 350, 72), enterLabel, selectedColor, EnterCurrentNode,
                 IsRouteNodeAvailable(selected), "ENTER");
             DrawFittedLabel(new Rect(1080, 762, 310, 28),
-                L("map.scroll_help", "滚轮 / 航标拖动浏览路线"), tinyStyle, 9);
+                L("map.scroll_help", "按住航图拖动 / 滚轮浏览全航线"), tinyStyle, 10);
         }
 
-        private void DrawRunActIndicator(RunAct currentAct)
+        private void HandleRouteMapDrag(Rect viewport, float maxScroll)
         {
-            RunAct[] acts = { RunAct.Departure, RunAct.Pivot, RunAct.FinalApproach };
-            for (int i = 0; i < acts.Length; i++)
+            Event input = Event.current;
+            if (input.type == EventType.MouseDown && input.button == 0 && viewport.Contains(input.mousePosition))
             {
-                RunAct act = acts[i];
-                bool active = act == currentAct;
-                bool completed = (int)act < (int)currentAct;
+                routeDragArmed = true;
+                routeDragging = false;
+                routeDragStart = input.mousePosition;
+                routeDragStartScroll = routeScroll;
+                return;
+            }
+
+            if (input.type == EventType.MouseDrag && input.button == 0 && routeDragArmed)
+            {
+                if (!routeDragging && Mathf.Abs(input.mousePosition.x - routeDragStart.x) >= 5f)
+                {
+                    routeDragging = true;
+                    GUIUtility.hotControl = 0;
+                }
+                if (routeDragging)
+                {
+                    routeScroll = Mathf.Clamp(routeDragStartScroll -
+                        (input.mousePosition.x - routeDragStart.x), 0f, maxScroll);
+                    input.Use();
+                }
+                return;
+            }
+
+            if (input.rawType == EventType.MouseUp && input.button == 0 && routeDragArmed)
+            {
+                bool consumeRelease = routeDragging;
+                routeDragArmed = false;
+                routeDragging = false;
+                if (consumeRelease)
+                    input.Use();
+            }
+        }
+
+        private void DrawFloorIndicator(int currentFloor)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                int floor = i + 1;
+                bool active = floor == currentFloor;
+                bool completed = floor < currentFloor;
                 Color color = active ? NeonCyan : completed
                     ? new Color32(77, 220, 159, 255)
                     : new Color32(65, 82, 112, 255);
-                Rect rect = new Rect(690 + i * 112, 103, 102, 34);
+                Rect rect = new Rect(680 + i * 70, 103, 62, 34);
                 DrawRect(rect, active ? new Color32(8, 39, 64, 250) : new Color32(5, 17, 37, 238));
                 DrawPixelOutline(rect, color, active ? 3f : 1f);
                 DrawFittedLabel(new Rect(rect.x + 5, rect.y + 3, rect.width - 10, rect.height - 6),
-                    $"{i + 1} // {RunActName(act)}", tinyStyle, 7);
+                    $"F{floor}", tinyStyle, 9);
             }
         }
 
@@ -4474,6 +4777,7 @@ namespace SkyCourier
                 RouteNodeKind.Skirmish => L("map.risk.standard", "标准威胁"),
                 RouteNodeKind.Hunt => L("map.risk.high", "高风险"),
                 RouteNodeKind.Elite => L("map.risk.severe", "严重威胁"),
+                RouteNodeKind.MidBoss => L("map.risk.checkpoint", "阶段考核"),
                 _ => L("map.risk.extreme", "终局威胁")
             };
         }
@@ -4500,6 +4804,7 @@ namespace SkyCourier
                 RouteNodeKind.Rest => L("map.reward.rest", "维修、强化或删牌"),
                 RouteNodeKind.Elite => L("map.reward.elite", "稀有模块与高额邮票"),
                 RouteNodeKind.Hunt => L("map.reward.hunt", "卡牌与追猎报酬"),
+                RouteNodeKind.MidBoss => L("map.reward.midboss", "稀有模块与层级补给"),
                 RouteNodeKind.Boss => L("map.reward.boss", "终局结局与合同精通"),
                 _ => L("map.reward.skirmish", "卡牌与邮票")
             };
@@ -4508,12 +4813,12 @@ namespace SkyCourier
         public static Rect RouteBandLabelRect(int lane)
         {
             int safeLane = Mathf.Clamp(lane, 0, 2);
-            return new Rect(7f, 64f + safeLane * 122f - 43f, 86f, 20f);
+            return new Rect(7f, 64f + safeLane * 122f - 45f, 122f, 24f);
         }
 
         private void DrawRewardScreen()
         {
-            bool moduleReward = battle.Encounter == EncounterId.Elite;
+            bool moduleReward = battle.Encounter == EncounterId.Elite || battle.Encounter == EncounterId.MidBoss;
             DrawRect(new Rect(160, 80, 1280, 730), new Color32(2, 7, 22, 255));
             DrawRect(new Rect(168, 88, 1264, 714), PanelNight);
             DrawNeonFrame(new Rect(168, 88, 1264, 714), NeonViolet, 3f);
@@ -4659,6 +4964,9 @@ namespace SkyCourier
 
         private string RewardSynergy(CardId card)
         {
+            string buildSynergy = CardSynergyCatalog.SynergyLabel(card, runDeck);
+            if (!string.IsNullOrEmpty(buildSynergy))
+                return buildSynergy;
             if (card == AirspacePreferredRewardCard(selectedContract, CurrentAirspace()))
                 return $"{AirspaceRuleCatalog.Name(CurrentAirspace())}适配 · {AirspaceRuleCatalog.RewardRule(CurrentAirspace())}";
             if (ContractCardCatalog.BelongsTo(card, selectedContract))
@@ -4729,6 +5037,9 @@ namespace SkyCourier
 
         private static string UpgradedRules(CardId card, UpgradeBranch branch = UpgradeBranch.Alpha)
         {
+            if (ExpandedCardCatalog.Contains(card))
+                return ExpandedUpgradeCatalog.Rules(card, branch);
+
             if (branch == UpgradeBranch.Beta)
             {
                 return card switch
@@ -5837,7 +6148,7 @@ namespace SkyCourier
                 "删除一张副本", hudCenteredStyle, 7);
 
             bool oldEnabled = GUI.enabled;
-            GUI.enabled = removable;
+            GUI.enabled = oldEnabled && removable;
             if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
                 RemoveCardFromDeck(cardId);
             GUI.enabled = oldEnabled;
@@ -6549,14 +6860,16 @@ namespace SkyCourier
 
         private void DrawArchiveDossierPage()
         {
-            EnemyKind[] bosses = { EnemyKind.StormManta, EnemyKind.CloudWyrm };
+            EnemyKind[] bosses = { EnemyKind.StormManta, EnemyKind.CloudWyrm,
+                EnemyKind.CourierZero, EnemyKind.InvertedSkyWhale };
             for (int i = 0; i < bosses.Length; i++)
             {
                 EnemyKind boss = bosses[i];
                 BossDossierRecord dossier = archiveData.BossDossiers.FirstOrDefault(record =>
                     record.Boss == (int)boss);
-                Rect rect = new Rect(105 + i * 480, 185, 445, 230);
-                Color color = boss == EnemyKind.CloudWyrm ? NeonCyan : NeonViolet;
+                Rect rect = new Rect(105 + i % 2 * 480, 185 + i / 2 * 245, 445, 230);
+                Color color = boss == EnemyKind.CloudWyrm || boss == EnemyKind.InvertedSkyWhale
+                    ? NeonCyan : NeonViolet;
                 DrawRect(rect, new Color32(7, 18, 43, 245));
                 DrawPixelOutline(rect, color, 2f);
                 DrawRect(new Rect(rect.x, rect.y, 8, rect.height), color);
@@ -6741,7 +7054,19 @@ namespace SkyCourier
                 EnemyKind.HeatSeeker => L("enemy.HeatSeeker", "热寻隼"),
                 EnemyKind.SignalHijacker => L("enemy.SignalHijacker", "协议劫持机"),
                 EnemyKind.CurtainHerald => L("enemy.CurtainHerald", "雷幕先导"),
-                _ => L("enemy.FluxSkimmer", "磁针鳐卫")
+                EnemyKind.FluxSkimmer => L("enemy.FluxSkimmer", "磁针鳐卫"),
+                EnemyKind.TimeLagJelly => L("enemy.TimeLagJelly", "时差水母"),
+                EnemyKind.SalvageCorvid => L("enemy.SalvageCorvid", "拾荒鸦艇"),
+                EnemyKind.LaneTailor => L("enemy.LaneTailor", "航道裁缝"),
+                EnemyKind.NullBeacon => L("enemy.NullBeacon", "空白信标"),
+                EnemyKind.PrismStowaway => L("enemy.PrismStowaway", "折光寄舱蟹"),
+                EnemyKind.DebtCollector => L("enemy.DebtCollector", "债务清算官"),
+                EnemyKind.ThunderChoir => L("enemy.ThunderChoir", "雷鸣唱诗班"),
+                EnemyKind.MobiusHangar => L("enemy.MobiusHangar", "莫比乌斯机库"),
+                EnemyKind.CrateHive => L("enemy.CrateHive", "万箱母巢"),
+                EnemyKind.WeatherClock => L("enemy.WeatherClock", "三相气象钟"),
+                EnemyKind.CourierZero => L("enemy.CourierZero", "零号邮差"),
+                _ => L("enemy.InvertedSkyWhale", "倒悬天穹鲸")
             };
         }
 
@@ -6755,6 +7080,12 @@ namespace SkyCourier
                 FinaleEnding.MantaCalmSea => "无磁云海",
                 FinaleEnding.MantaPostalShield => "群岛邮盾",
                 FinaleEnding.MantaScavengerCrown => "残骸王冠",
+                FinaleEnding.CourierClearRoute => "清空退件",
+                FinaleEnding.CourierMutualProtocol => "互投协议",
+                FinaleEnding.CourierDeadLetter => "死信纪元",
+                FinaleEnding.WhaleGentleLanding => "温柔鲸落",
+                FinaleEnding.WhaleSkyHarbor => "鲸背空港",
+                FinaleEnding.WhaleCityfall => "坠城天灾",
                 _ => "未记录的终局"
             };
         }
@@ -6785,11 +7116,17 @@ namespace SkyCourier
 
         private static string BossDossierRule(EnemyKind boss)
         {
-            return boss == EnemyKind.CloudWyrm
-                ? L("dossier.CloudWyrm.rule",
-                    "雷幕标出唯一安全航道。集中火力可打断蓄力，第二阶段会提高打断门槛。")
-                : L("dossier.StormManta.rule",
-                    "磁暴核心标出危险航道。第二阶段会波及邻道，需要拉开距离或打断蓄力。");
+            return boss switch
+            {
+                EnemyKind.CloudWyrm => L("dossier.CloudWyrm.rule",
+                    "雷幕标出唯一安全航道。集中火力可打断蓄力，第二阶段会提高打断门槛。"),
+                EnemyKind.CourierZero => L("dossier.CourierZero.rule",
+                    "零号邮差审计高频出牌。第二阶段还会检查手牌与剩余能量。"),
+                EnemyKind.InvertedSkyWhale => L("dossier.InvertedSkyWhale.rule",
+                    "第一阶段轰击危险航道，第二阶段规则翻转为唯一安全航道。"),
+                _ => L("dossier.StormManta.rule",
+                    "磁暴核心标出危险航道。第二阶段会波及邻道，需要拉开距离或打断蓄力。")
+            };
         }
 
         private static string EndingRouteLabel(FinaleEnding ending)
@@ -6800,9 +7137,17 @@ namespace SkyCourier
                     L("ending.route.allied", "盟约纪事"),
                 FinaleEnding.MantaPostalShield =>
                     L("ending.route.allied", "盟约纪事"),
+                FinaleEnding.CourierMutualProtocol =>
+                    L("ending.route.allied", "盟约纪事"),
+                FinaleEnding.WhaleSkyHarbor =>
+                    L("ending.route.allied", "盟约纪事"),
                 FinaleEnding.WyrmBlackout =>
                     L("ending.route.hostile", "敌对纪事"),
                 FinaleEnding.MantaScavengerCrown =>
+                    L("ending.route.hostile", "敌对纪事"),
+                FinaleEnding.CourierDeadLetter =>
+                    L("ending.route.hostile", "敌对纪事"),
+                FinaleEnding.WhaleCityfall =>
                     L("ending.route.hostile", "敌对纪事"),
                 _ => L("ending.route.neutral", "中立纪事")
             };
@@ -6833,12 +7178,25 @@ namespace SkyCourier
                 FinaleEnding.MantaCalmSea => "磁暴核心沉入云海，风车群岛迎来一段无人能够保证长度的平静期。",
                 FinaleEnding.MantaPostalShield => "互助信号重写磁暴甲壳，巨鳐留下的场域成为保护民用航线的邮盾。",
                 FinaleEnding.MantaScavengerCrown => "债务信标接管磁暴残骸，黑市拾荒者在新风暴中心加冕。",
+                FinaleEnding.CourierClearRoute => "零号邮差停止复制过期航线，群岛终于能为每封信选择新的目的地。",
+                FinaleEnding.CourierMutualProtocol => "新旧邮差交换全部未投递清单，共同维护一套不再拒收任何人的航线协议。",
+                FinaleEnding.CourierDeadLetter => "零号邮局被改写成永不回复的死信中心，所有失约都被永久封存。",
+                FinaleEnding.WhaleGentleLanding => "倒悬巨鲸卸下环城重力，在无人居住的云海完成一次安静的鲸落。",
+                FinaleEnding.WhaleSkyHarbor => "群岛在鲸背铺设空港，迁徙的巨鲸成为连接天空城邦的移动大陆。",
+                FinaleEnding.WhaleCityfall => "重力锚被强行夺取，天空城随鲸落坠入云海，旧航图从此留下巨大空洞。",
                 _ => "配送已经完成，但终局信号没有留下可解析记录。"
             };
         }
 
         private void DrawRunComplete()
         {
+            float endingElapsed = endingSequenceStartedAt < 0f
+                ? EndingSequenceDuration
+                : Time.unscaledTime - endingSequenceStartedAt;
+            DrawEndingSequenceBackdrop(endingElapsed);
+            if (endingElapsed < 2.45f)
+                return;
+
             DrawRect(new Rect(270, 105, 1060, 685), new Color32(2, 7, 22, 255));
             DrawRect(new Rect(278, 113, 1044, 669), PanelNight);
             DrawNeonFrame(new Rect(278, 113, 1044, 669), NeonCyan, 3f);
@@ -6872,11 +7230,57 @@ namespace SkyCourier
             DrawFittedLabel(new Rect(420, 675, 780, 20),
                 L("complete.story_seed", "信标纪事 // {0}　|　RUN SEED // {1}",
                     RouteStoryStatus(), $"{runSeed:X8}"), tinyStyle, 7);
-            DrawPixelButton(new Rect(340, 700, 280, 72), "再次出发", PostalRed, StartNewRun, true, "ENTER");
+            bool previousEnabled = GUI.enabled;
+            GUI.enabled = previousEnabled && endingElapsed >= EndingSequenceDuration;
+            DrawPixelButton(new Rect(340, 700, 280, 72), L("complete.depart_again", "再次出发"), PostalRed,
+                StartNewRun, true, "ENTER");
             DrawPixelButton(new Rect(660, 700, 280, 72), "查看档案", Gold,
                 () => screen = ScreenMode.Archive);
             DrawPixelButton(new Rect(980, 700, 280, 72), "返回标题", Shadow,
                 () => screen = ScreenMode.Title);
+            GUI.enabled = previousEnabled;
+        }
+
+        private void DrawEndingSequenceBackdrop(float elapsed)
+        {
+            float horizon = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / 2.1f));
+            bool wyrm = finaleEnding == FinaleEnding.WyrmClearSky ||
+                finaleEnding == FinaleEnding.WyrmSignalCovenant || finaleEnding == FinaleEnding.WyrmBlackout ||
+                finaleEnding == FinaleEnding.WhaleGentleLanding || finaleEnding == FinaleEnding.WhaleSkyHarbor ||
+                finaleEnding == FinaleEnding.WhaleCityfall;
+            Color accent = wyrm ? NeonCyan : NeonViolet;
+            DrawRect(new Rect(0, 0, ReferenceWidth, ReferenceHeight),
+                new Color(0.005f, 0.01f, 0.035f, 0.76f * (1f - horizon * 0.45f)));
+            DrawRect(new Rect(0, 438, ReferenceWidth, 8), new Color(accent.r, accent.g, accent.b, 0.75f));
+            DrawRect(new Rect(0, 446, ReferenceWidth, 454),
+                wyrm ? new Color32(17, 59, 88, 220) : new Color32(39, 20, 74, 225));
+
+            for (int i = 0; i < 12; i++)
+            {
+                float x = Mathf.Repeat(i * 173f + elapsed * (wyrm ? 24f : -18f), ReferenceWidth + 100f) - 50f;
+                float beaconHeight = 35f + (i % 5) * 22f;
+                DrawRect(new Rect(x, 446 - beaconHeight, 8f, beaconHeight),
+                    new Color(accent.r, accent.g, accent.b, 0.2f + (i % 3) * 0.08f));
+                DrawRect(new Rect(x - 8f, 446 - beaconHeight, 24f, 5f),
+                    new Color(accent.r, accent.g, accent.b, 0.52f));
+            }
+
+            float courierX = Mathf.Lerp(-150f, 415f,
+                Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / 2.2f)));
+            DrawEngineTrail(new Vector2(courierX - 70f, 470f));
+            DrawPixelPlane(new Vector2(courierX, 470f), 1.8f, false);
+
+            if (elapsed < 2.45f)
+            {
+                string transmission = elapsed < 0.85f
+                    ? L("ending.sequence.carrier", "CARRIER ACQUIRED // 货物信号确认")
+                    : elapsed < 1.65f
+                        ? L("ending.sequence.route", "ROUTE STABILIZED // 航线正在稳定")
+                        : L("ending.sequence.delivered", "DELIVERY CONFIRMED // 配送完成");
+                DrawRect(new Rect(350, 350, 900, 126), new Color32(2, 7, 22, 232));
+                DrawNeonFrame(new Rect(350, 350, 900, 126), accent, 4f);
+                DrawFittedLabel(new Rect(390, 378, 820, 68), transmission, neonTitleStyle, 22);
+            }
         }
 
         private void DrawRunHud(Rect rect)
@@ -6933,6 +7337,10 @@ namespace SkyCourier
         private static Vector2 RouteNodeCenter(RouteNodeDefinition node, float offsetX, float columnSpacing)
         {
             float stagger = ((node.Column % 3) - 1) * 6f;
+            if (node.Id == 19)
+                stagger -= 30f;
+            else if (node.Id == 31)
+                stagger += 30f;
             return new Vector2(offsetX + node.Column * columnSpacing, 64f + node.Lane * 122f + stagger);
         }
 
@@ -6995,12 +7403,15 @@ namespace SkyCourier
                 DrawNeonFrame(new Rect(iconRect.x - 4, iconRect.y - 4, iconRect.width + 8, iconRect.height + 8), frame, 2f);
 
             DrawRouteNodeIcon(node, center, completed ? new Color32(83, 220, 158, 255) : kindColor);
-            string status = completed ? "DONE" : selected ? "SELECT" : available ? "OPEN" : missed ? "CLOSED" : "SCAN";
-            DrawRect(new Rect(center.x - 38f, center.y + 36f, 76f, 16f), new Color32(4, 12, 30, 245));
-            DrawFittedLabel(new Rect(center.x - 36f, center.y + 36f, 72f, 16f), status, tinyStyle, 8);
+            string status = completed ? L("map.status.done", "完成") :
+                selected ? L("map.status.current", "当前") :
+                available ? L("map.status.open", "可进入") :
+                missed ? L("map.status.closed", "已错过") : L("map.status.scan", "待解析");
+            DrawRect(new Rect(center.x - 43f, center.y + 35f, 86f, 19f), new Color32(4, 12, 30, 245));
+            DrawFittedLabel(new Rect(center.x - 41f, center.y + 35f, 82f, 19f), status, tinyStyle, 10);
             string displayTitle = node.Kind == RouteNodeKind.Event ? EventTitleForNode(node.Id) : node.Title;
-            DrawFittedLabel(new Rect(center.x - 78f, center.y + 55f, 156f, 22f),
-                revealed ? displayTitle : "信号未解析", hudCenteredStyle, 8);
+            DrawFittedLabel(new Rect(center.x - 82f, center.y + 56f, 164f, 24f),
+                revealed ? displayTitle : L("map.signal_unresolved", "信号未解析"), hudCenteredStyle, 10);
 
             if (!available)
                 return;
@@ -7018,13 +7429,14 @@ namespace SkyCourier
         {
             return kind switch
             {
-                RouteNodeKind.Skirmish => "普通战",
-                RouteNodeKind.Elite => "精英战",
-                RouteNodeKind.Hunt => "追猎战",
-                RouteNodeKind.Shop => "补给站",
-                RouteNodeKind.Event => "航线事件",
-                RouteNodeKind.Rest => "维修坞",
-                _ => "首领"
+                RouteNodeKind.Skirmish => L("map.kind.skirmish", "普通战"),
+                RouteNodeKind.Elite => L("map.kind.elite", "精英战"),
+                RouteNodeKind.Hunt => L("map.kind.hunt", "追猎战"),
+                RouteNodeKind.Shop => L("map.kind.shop", "补给站"),
+                RouteNodeKind.Event => L("map.kind.event", "航线事件"),
+                RouteNodeKind.Rest => L("map.kind.rest", "维修坞"),
+                RouteNodeKind.MidBoss => L("map.kind.midboss", "中阶首领"),
+                _ => L("map.kind.boss", "首领")
             };
         }
 
@@ -7038,6 +7450,7 @@ namespace SkyCourier
                 RouteNodeKind.Shop => new Color32(244, 181, 70, 255),
                 RouteNodeKind.Event => new Color32(180, 91, 255, 255),
                 RouteNodeKind.Rest => new Color32(83, 203, 150, 255),
+                RouteNodeKind.MidBoss => new Color32(239, 126, 64, 255),
                 _ => new Color32(214, 70, 66, 255)
             };
         }
@@ -7053,7 +7466,7 @@ namespace SkyCourier
                 return;
             }
 
-            if (kind == RouteNodeKind.Boss)
+            if (kind == RouteNodeKind.Boss || kind == RouteNodeKind.MidBoss)
             {
                 if (node.Id == 19)
                 {
@@ -7158,7 +7571,7 @@ namespace SkyCourier
                 DrawNeonFrame(new Rect(rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6), NeonCyan, 2f);
 
             bool oldEnabled = GUI.enabled;
-            GUI.enabled = enabled;
+            GUI.enabled = oldEnabled && enabled;
             if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
             {
                 PlaySound(clickSound);
@@ -7208,7 +7621,8 @@ namespace SkyCourier
         {
             if (rewardSelectionLocked)
                 return;
-            credits += battle.Encounter == EncounterId.Elite ? 25 : 15;
+            credits += battle.Encounter == EncounterId.MidBoss ? 30 :
+                battle.Encounter == EncounterId.Elite ? 25 : 15;
             CaptureBuildSnapshot(RunBuildSnapshotMoment.Reward,
                 $"reward_{selectedRouteNodeId}");
             PlaySound(clickSound, 1.25f, 0.7f);
@@ -7235,7 +7649,8 @@ namespace SkyCourier
             runHull = battle.PlayerHealth;
             bool fieldRepairs = ChallengeCatalog.Get(currentChallenge).FieldRepairsEnabled;
             lastFieldRepair = !fieldRepairs || battle.Encounter == EncounterId.Boss ? 0 :
-                battle.Encounter == EncounterId.Hunt ? 12 : battle.Encounter == EncounterId.Elite ? 10 : 6;
+                battle.Encounter == EncounterId.Hunt ? 12 : battle.Encounter == EncounterId.MidBoss ? 8 :
+                battle.Encounter == EncounterId.Elite ? 10 : 6;
             runHull = Mathf.Min(BattleState.MaxPlayerHealth, runHull + lastFieldRepair);
             runCargoIntegrity = battle.CargoIntegrity;
             runTurns += battle.Turn;
@@ -7255,8 +7670,10 @@ namespace SkyCourier
                 EncounterId.Skirmish => 30,
                 EncounterId.Elite => 45,
                 EncounterId.Hunt => 50,
+                EncounterId.MidBoss => 65,
                 _ => 80
             };
+            baseReward = Mathf.Max(0, baseReward - battle.EscapedSalvagers * 10);
             int contractBonus = Mathf.RoundToInt(baseReward * (CargoRewardMultiplier(selectedContract) - 1f));
             credits += baseReward + contractBonus;
             runContractBonus += contractBonus;
@@ -7276,9 +7693,9 @@ namespace SkyCourier
             }
             else
             {
-                EnemyKind defeatedBoss = battle.Enemies.Any(enemy => enemy.Kind == EnemyKind.CloudWyrm)
-                    ? EnemyKind.CloudWyrm
-                    : EnemyKind.StormManta;
+                endingSequenceStartedAt = Time.unscaledTime;
+                EnemyKind defeatedBoss = battle.Enemies.Select(enemy => enemy.Kind)
+                    .FirstOrDefault(BattleState.IsBossKind);
                 finaleEnding = FinaleProgressionRules.EndingFor(defeatedBoss, battle.ActiveBossStoryAlignment);
                 CaptureBuildSnapshot(RunBuildSnapshotMoment.RunResult, "result_delivered", runHull,
                     runCargoIntegrity);
@@ -7334,11 +7751,8 @@ namespace SkyCourier
                 RouteIntel = (int)routeIntel,
                 FinaleEnding = (int)finaleEnding,
                 Challenge = (int)currentChallenge,
-                BossKind = battle.Enemies.Any(enemy => enemy.Kind == EnemyKind.CloudWyrm)
-                    ? (int)EnemyKind.CloudWyrm
-                    : battle.Enemies.Any(enemy => enemy.Kind == EnemyKind.StormManta)
-                        ? (int)EnemyKind.StormManta
-                        : -1,
+                BossKind = battle.Enemies.Select(enemy => enemy.Kind)
+                    .Where(BattleState.IsBossKind).Select(kind => (int)kind).DefaultIfEmpty(-1).First(),
                 DefeatSource = battle.Defeat && battle.HasDefeatCause ? (int)battle.DefeatSource : -1,
                 DefeatDealer = battle.Defeat && battle.HasDefeatCause ? battle.DefeatDealer : string.Empty,
                 DefeatDamage = battle.Defeat && battle.HasDefeatCause ? battle.DefeatDamage : 0,
@@ -7448,6 +7862,7 @@ namespace SkyCourier
             DrawPhaseBanner();
             DrawImpactScreenFlash();
             DrawFullScreenImpact();
+            DrawBossArrivalTransition();
 
             if (Time.time < dangerFlashUntil)
             {
@@ -7463,6 +7878,62 @@ namespace SkyCourier
                 DrawResultOverlay(true);
             else if (battle.Defeat)
                 DrawResultOverlay(false);
+        }
+
+        private void DrawBossArrivalTransition()
+        {
+            if (battle.Encounter != EncounterId.Boss || bossIntroStartedAt < 0f)
+                return;
+            float elapsed = Time.unscaledTime - bossIntroStartedAt;
+            if (elapsed < 0f || elapsed >= BossIntroDuration)
+                return;
+
+            float reveal = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((elapsed - 0.55f) / 1.35f));
+            float exit = 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((elapsed - 3.45f) / 0.7f));
+            float alpha = Mathf.Clamp01(Mathf.Min(reveal + 0.25f, exit));
+            DrawRect(new Rect(0, 0, ReferenceWidth, ReferenceHeight),
+                new Color(0.005f, 0.008f, 0.025f, Mathf.Lerp(0.96f, 0.64f, reveal) * exit));
+
+            for (int line = 0; line < 18; line++)
+            {
+                float y = Mathf.Repeat(line * 61f + Time.unscaledTime * 165f, ReferenceHeight);
+                DrawRect(new Rect(0, y, ReferenceWidth, line % 5 == 0 ? 4f : 1f),
+                    new Color(0.1f, 0.92f, 1f, alpha * (line % 5 == 0 ? 0.12f : 0.045f)));
+            }
+
+            float shutter = (1f - reveal) * ReferenceHeight * 0.5f;
+            DrawRect(new Rect(0, 0, ReferenceWidth, shutter), new Color32(1, 3, 12, 255));
+            DrawRect(new Rect(0, ReferenceHeight - shutter, ReferenceWidth, shutter), new Color32(1, 3, 12, 255));
+            DrawRect(new Rect(70, 384, 1460, 132), new Color(0.02f, 0.06f, 0.14f, 0.94f * alpha));
+            DrawRect(new Rect(70, 384, Mathf.Lerp(0f, 1460f, reveal), 8),
+                battle.EncounterVariant == 1 ? NeonCyan : NeonViolet);
+
+            string threat = battle.EncounterVariant switch
+            {
+                1 => L("boss.transition.wyrm", "THREAT 02 // 雷幕螭龙"),
+                2 => L("boss.transition.zero", "THREAT 03 // 零号邮差"),
+                3 => L("boss.transition.whale", "THREAT 04 // 倒悬天穹鲸"),
+                _ => L("boss.transition.manta", "THREAT 01 // 风暴蝠鲼")
+            };
+            string rule = battle.EncounterVariant switch
+            {
+                1 => L("boss.transition.wyrm_rule", "唯一安全走廊已标定 // 进入 [O] 航道"),
+                2 => L("boss.transition.zero_rule", "退件审计已上线 // 控制出牌与手牌"),
+                3 => L("boss.transition.whale_rule", "重力规则将在第二阶段翻转"),
+                _ => L("boss.transition.manta_rule", "磁暴危险区已标定 // 避开 [X] 航道")
+            };
+            DrawFittedLabel(new Rect(135, 402, 1330, 54), threat, neonTitleStyle, 24);
+            DrawFittedLabel(new Rect(140, 462, 1320, 34), rule, neonSubtitleStyle, 12);
+
+            string phase = elapsed < 1.45f
+                ? L("boss.transition.lock", "SIGNAL LOCK // 信号锁定")
+                : elapsed < 2.75f
+                    ? L("boss.transition.identify", "IDENTITY CONFIRMED // 威胁确认")
+                    : L("boss.transition.engage", "FINAL SORTIE // 终局交战");
+            DrawFittedLabel(new Rect(500, 548, 600, 38), phase, hudCenteredStyle, 10);
+            DrawPixelOutline(new Rect(640 - reveal * 470f, 330 - reveal * 190f,
+                320 + reveal * 940f, 240 + reveal * 380f),
+                battle.EncounterVariant == 1 ? NeonCyan : NeonViolet, 3f);
         }
 
         private bool DeathAnimationActive()
@@ -7494,31 +7965,39 @@ namespace SkyCourier
                 EncounterId.Skirmish => L("encounter.skirmish.name", "废弃风标"),
                 EncounterId.Elite => L("encounter.elite.name", "雷暴封锁线"),
                 EncounterId.Hunt => L("encounter.hunt.name", "追迹者空域"),
-                _ => battle.Enemies.Any(enemy => enemy.Kind == EnemyKind.CloudWyrm)
-                    ? L("encounter.wyrm.name", "雷幕龙脊")
-                    : L("encounter.manta.name", "磁暴鳐巢")
+                EncounterId.MidBoss => L("encounter.midboss.name", "层级考核空域"),
+                _ => battle.Enemies.Select(enemy => enemy.Kind).FirstOrDefault(BattleState.IsBossKind) switch
+                {
+                    EnemyKind.CloudWyrm => L("encounter.wyrm.name", "雷幕龙脊"),
+                    EnemyKind.CourierZero => L("encounter.zero.name", "零号邮局"),
+                    EnemyKind.InvertedSkyWhale => L("encounter.whale.name", "倒悬天穹城"),
+                    _ => L("encounter.manta.name", "磁暴鳐巢")
+                }
             };
             DrawRect(new Rect(34, 24, 1532, 88), new Color32(3, 8, 24, 255));
             DrawRect(new Rect(40, 30, 1518, 76), PanelNight);
             DrawNeonFrame(new Rect(40, 30, 1518, 76), NeonCyan, 2f);
             DrawRect(new Rect(40, 30, 7, 76), NeonViolet);
             DrawFittedLabel(new Rect(62, 38, 320, 34), $"{encounterName} // {battle.FormationName}", hudStyle, 12);
-            DrawFittedLabel(new Rect(62, 73, 330, 22), ContractPassiveHud(selectedContract), tinyStyle, 8);
+            DrawFittedLabel(new Rect(62, 70, 330, 28), ContractPassiveHud(selectedContract), tinyStyle, 10);
+            bool hasDeferredStatus = battle.DeferredEnergy > 0 || battle.DeliveredEnergyThisTurn > 0 ||
+                battle.DeferredSingleDamage > 0 || battle.DeferredVolleyDamage > 0;
+            float ruleWidth = hasDeferredStatus ? 540f : 850f;
             if (battle.Encounter == EncounterId.Boss)
-                DrawFittedLabel(new Rect(400, 75, 850, 18),
+                DrawFittedLabel(new Rect(400, 71, ruleWidth, 27),
                     L("boss.matrix.summary", "BOSS MATRIX // {0} · {1} · {2}",
                         BossContractProtocolName(), BossAirframeProtocolName(), BossStoryAlignmentName()) +
                     $"　|　INTEL // {RouteIntelName(routeIntel)}",
-                    tinyStyle, 7);
+                    tinyStyle, 10);
             else
             {
                 AirspaceCondition condition = CurrentAirspace();
                 string airframe = runModification == AirframeModification.None
                     ? string.Empty
                     : $"　|　AIRFRAME // {AirframeModificationName(runModification)}";
-                DrawFittedLabel(new Rect(400, 75, 850, 18),
+                DrawFittedLabel(new Rect(400, 71, ruleWidth, 27),
                     $"AIRSPACE // {AirspaceRuleCatalog.Name(condition)} · {AirspaceRuleCatalog.EncounterRule(condition)}{airframe}",
-                    tinyStyle, 7);
+                    tinyStyle, 10);
             }
 
             DrawMeter(new Rect(400, 46, 255, 22), battle.PlayerHealth, BattleState.MaxPlayerHealth,
@@ -7533,6 +8012,14 @@ namespace SkyCourier
             DrawResourcePips(new Rect(1125, 42, 130, 34), Mathf.Min(battle.Armor, 3), 3, NeonViolet,
                 L("battle.armor", "护盾 {0}", battle.Armor));
 
+            if (hasDeferredStatus)
+            {
+                string deferredStatus = L("battle.deferred_status", "托管 {0}  返还 {1}  追踪 {2}  齐射 {3}",
+                    battle.DeferredEnergy, battle.DeliveredEnergyThisTurn,
+                    battle.DeferredSingleDamage, battle.DeferredVolleyDamage);
+                DrawFittedLabel(new Rect(950, 71, 305, 27), deferredStatus, tinyStyle, 10);
+            }
+
             Color cargoColor = battle.CargoIntegrity > 1 ? CargoColor(selectedContract) : PostalRed;
             DrawRect(new Rect(1278, 39, 254, 54), new Color32(9, 22, 45, 255));
             DrawNeonFrame(new Rect(1278, 39, 254, 54), cargoColor, 3f);
@@ -7542,9 +8029,9 @@ namespace SkyCourier
 
         private void DrawBattlefield()
         {
-            Rect field = new Rect(40, 128, 1518, 435);
+            Rect field = new Rect(40, BattlefieldTop, 1518, BattlefieldHeight);
             DrawRect(field, new Color32(3, 8, 25, 255));
-            Rect innerField = new Rect(48, 136, 1502, 419);
+            Rect innerField = new Rect(48, BattlefieldTop + 8f, 1502, BattlefieldHeight - 16f);
             DrawRect(innerField, new Color32(13, 38, 66, 255));
             DrawArcadeScrollingBackdrop(innerField, true);
             DrawNeonFrame(field, NeonCyan, 3f);
@@ -7553,21 +8040,31 @@ namespace SkyCourier
 
             for (int lane = 0; lane < 3; lane++)
             {
-                float y = 150 + lane * 130;
+                float y = LaneTopY(lane);
                 Color laneColor = lane == battle.PlayerLane
                     ? new Color32(45, 216, 236, 38)
                     : new Color32(49, 74, 115, 24);
-                DrawRect(new Rect(62, y, 1466, 105), laneColor);
-                DrawRect(new Rect(62, y + 104, 1466, lane == battle.PlayerLane ? 3 : 1),
+                DrawRect(new Rect(62, y, 1466, LaneHeight), laneColor);
+                DrawRect(new Rect(62, y + LaneHeight - 1f, 1466, lane == battle.PlayerLane ? 3 : 1),
                     lane == battle.PlayerLane ? NeonCyan : new Color32(65, 104, 146, 160));
                 if (lane == battle.PlayerLane)
                 {
                     float markerX = 66 + Mathf.Repeat(Time.time * 190f, 1420f);
-                    DrawRect(new Rect(markerX, y + 101, 62, 6), new Color32(145, 255, 248, 210));
+                    DrawRect(new Rect(markerX, y + LaneHeight - 4f, 62, 6), new Color32(145, 255, 248, 210));
                 }
                 GUI.Label(new Rect(76, y + 10, 180, 24), lane == battle.PlayerLane
                     ? L("battle.lane.current", "[>] 航道 {0} // 当前", lane + 1)
                     : L("battle.lane", "航道 {0}", lane + 1), tinyStyle);
+                LaneFieldKind fieldKind = battle.LaneFieldAt(lane);
+                if (fieldKind != LaneFieldKind.None)
+                {
+                    Color fieldColor = LaneFieldColor(fieldKind);
+                    Rect protocol = new Rect(410, y + 9, 250, 25);
+                    DrawRect(protocol, new Color32(3, 13, 31, 225));
+                    DrawPixelOutline(protocol, fieldColor, 2f);
+                    DrawFittedLabel(protocol, $"{LaneFieldLabel(fieldKind)} // {battle.LaneFieldStrengthAt(lane)}",
+                        hudCenteredStyle, 10);
+                }
             }
 
             foreach (EnemyState enemy in battle.Enemies)
@@ -7576,6 +8073,11 @@ namespace SkyCourier
                     continue;
                 if (enemy.Kind == EnemyKind.CalamityDrone)
                     DrawCalamityLaneTelegraph(enemy);
+                else if (enemy.Kind == EnemyKind.CourierZero ||
+                    enemy.Kind == EnemyKind.InvertedSkyWhale && enemy.Phase == 1)
+                    DrawCalamityLaneTelegraph(enemy);
+                else if (enemy.Kind == EnemyKind.InvertedSkyWhale)
+                    DrawCloudWyrmLaneTelegraph(enemy);
                 else if (enemy.Kind == EnemyKind.CloudWyrm || enemy.Kind == EnemyKind.CurtainHerald)
                     DrawCloudWyrmLaneTelegraph(enemy);
                 else if (enemy.Kind == EnemyKind.FluxSkimmer)
@@ -7635,33 +8137,30 @@ namespace SkyCourier
                 }
                 if (enemy.Kind == EnemyKind.CalamityDrone || enemy.Kind == EnemyKind.StormManta ||
                     enemy.Kind == EnemyKind.CloudWyrm || enemy.Kind == EnemyKind.CurtainHerald ||
-                    enemy.Kind == EnemyKind.FluxSkimmer)
+                    enemy.Kind == EnemyKind.FluxSkimmer || enemy.Kind == EnemyKind.CourierZero ||
+                    enemy.Kind == EnemyKind.InvertedSkyWhale)
                     DrawCalamityChargeCore(enemy, new Vector2(x, y));
                 DrawEnemy(enemy, new Vector2(x, y));
                 GUI.matrix = enemyMatrix;
-                if (enemy.Kind == EnemyKind.StormManta || enemy.Kind == EnemyKind.CloudWyrm)
+                if (BattleState.IsBossKind(enemy.Kind))
                     DrawBossProtocolPanels(enemy, new Vector2(x, y));
+                HandleEnemyIntelHold(enemy, new Vector2(x, y));
                 string intent = enemyChangingLane
                     ? L("battle.intent.shift", "变轨至航道 {0}", laneFx.ToLane + 1)
                     : battle.IntentFor(enemy);
-                Color intentColor = IntentColor(intent);
-                Rect intentRect = new Rect(x - 105, y - 58, 210, 25);
-                DrawRect(intentRect, new Color32(9, 14, 34, 245));
-                DrawNeonFrame(intentRect, intentColor, 2f);
-                DrawFittedLabel(new Rect(intentRect.x + 5, intentRect.y + 2, 200, 21),
-                    $"{IntentSymbol(intent)} {intent}", tinyStyle, 9);
-                DrawFittedLabel(new Rect(x - 100, y + 42, 200, 24),
-                    enemy.Kind == EnemyKind.StormManta || enemy.Kind == EnemyKind.CloudWyrm
+                DrawEnemyIntent(enemy, intent, new Vector2(x, y));
+                DrawFittedLabel(new Rect(x - 108, y + 40, 216, 27),
+                    BattleState.IsBossKind(enemy.Kind)
                         ? $"{ArchiveEnemyName(enemy.Kind)} · PHASE {enemy.Phase}  //  {enemy.Health}/{enemy.MaxHealth}"
-                        : $"{ArchiveEnemyName(enemy.Kind)}  //  {enemy.Health}/{enemy.MaxHealth}", hudCenteredStyle, 8);
+                        : $"{ArchiveEnemyName(enemy.Kind)}  //  {enemy.Health}/{enemy.MaxHealth}", hudCenteredStyle, 10);
                 DrawRect(new Rect(x - 64, y + 68, 128, 7), Shadow);
                 DrawRect(new Rect(x - 62, y + 69, 124 * enemy.Health / enemy.MaxHealth, 5), PostalRed);
                 if (enemy.MaxArmor > 0)
                 {
                     DrawRect(new Rect(x - 64, y + 78, 128, 6), new Color32(23, 38, 63, 245));
                     DrawRect(new Rect(x - 62, y + 79, 124 * enemy.Armor / enemy.MaxArmor, 4), NeonCyan);
-                    DrawFittedLabel(new Rect(x - 64, y + 83, 128, 15),
-                        L("battle.enemy_armor", "装甲 {0}/{1}", enemy.Armor, enemy.MaxArmor), tinyStyle, 7);
+                    DrawFittedLabel(new Rect(x - 70, y + 83, 140, 18),
+                        L("battle.enemy_armor", "装甲 {0}/{1}", enemy.Armor, enemy.MaxArmor), tinyStyle, 10);
                 }
             }
 
@@ -7669,11 +8168,57 @@ namespace SkyCourier
             DrawEnemyAttackEffects();
             DrawEnemyDeathEffects();
 
-            DrawRect(new Rect(61, 520, 1468, 27), new Color32(5, 13, 32, 235));
-            DrawRect(new Rect(61, 520, 7, 27), NeonCyan);
-            DrawFittedLabel(new Rect(75, 522, 1438, 23), LocalizationService.IsEnglish
+            DrawRect(new Rect(61, 608, 1468, 21), new Color32(5, 13, 32, 235));
+            DrawRect(new Rect(61, 608, 7, 21), NeonCyan);
+            DrawFittedLabel(new Rect(75, 609, 1438, 19), LocalizationService.IsEnglish
                 ? L("battle.log.summary", "TURN {0} // READ INTENT, THEN PLAY OR SHIFT", battle.Turn)
-                : battle.Log, tinyStyle, 8);
+                : battle.Log, tinyStyle, 10);
+        }
+
+        private void DrawEnemyIntent(EnemyState enemy, string intent, Vector2 center)
+        {
+            SplitIntentText(intent, out string title, out string detail);
+            bool boss = BattleState.IsBossKind(enemy.Kind) || enemy.Kind == EnemyKind.CrateHive ||
+                enemy.Kind == EnemyKind.WeatherClock || enemy.Kind == EnemyKind.MobiusHangar;
+            float width = boss ? 380f : 204f;
+            float height = boss ? 72f : 64f;
+            Rect rect = new Rect(center.x - width * 0.5f, center.y - 100f, width, height);
+            Color color = IntentColor(intent);
+            DrawRect(new Rect(rect.x + 5f, rect.y + 6f, rect.width, rect.height), Shadow);
+            DrawRect(rect, new Color32(7, 13, 32, 248));
+            DrawNeonFrame(rect, color, boss ? 3f : 2f);
+            DrawRect(new Rect(rect.x, rect.y, 6f, rect.height), color);
+
+            Rect symbol = new Rect(rect.x + 11f, rect.y + 7f, 31f, 27f);
+            DrawRect(symbol, new Color(color.r, color.g, color.b, 0.28f));
+            DrawPixelOutline(symbol, color, 2f);
+            DrawReadableLabel(symbol, IntentSymbol(intent), hudCenteredStyle, 17, 14, false);
+            DrawReadableLabel(new Rect(rect.x + 49f, rect.y + 4f, rect.width - 58f, 31f),
+                title, hudStyle, boss ? 19 : 18, boss ? 15 : 14, false);
+            DrawRect(new Rect(rect.x + 12f, rect.y + 37f, rect.width - 24f, 1f),
+                new Color(color.r, color.g, color.b, 0.55f));
+            DrawReadableLabel(new Rect(rect.x + 12f, rect.y + 39f, rect.width - 24f, rect.height - 42f),
+                detail, tinyStyle, boss ? 14 : 13, 11, true);
+        }
+
+        private static void SplitIntentText(string intent, out string title, out string detail)
+        {
+            int separator = intent.IndexOf('/');
+            if (separator >= 0)
+            {
+                title = intent.Substring(0, separator).Trim();
+                detail = intent.Substring(separator + 1).Trim();
+                return;
+            }
+
+            title = intent.Trim();
+            if (intent.Contains("攻击") || intent.Contains("ATTACK"))
+                detail = L("battle.intent.current_lane", "当前航道 · 换道可规避");
+            else if (intent.Contains("上升") || intent.Contains("下降") || intent.Contains("变轨") ||
+                intent.Contains("ASCEND") || intent.Contains("DESCEND") || intent.Contains("SHIFT"))
+                detail = L("battle.intent.reposition", "正在调整攻击航道");
+            else
+                detail = L("battle.intent.resolve", "结束回合后执行");
         }
 
         private void DrawBossProtocolPanels(EnemyState boss, Vector2 center)
@@ -7681,8 +8226,8 @@ namespace SkyCourier
             bool phaseTwo = boss.Phase == 2;
             bool contractActive = phaseTwo && battle.BossContractProtocolWillTrigger();
             bool airframeActive = phaseTwo && battle.BossAirframeProtocolWillTrigger();
-            Rect contractRect = new Rect(center.x - 220, center.y - 119, 440, 24);
-            Rect airframeRect = new Rect(center.x - 220, center.y - 91, 440, 24);
+            Rect contractRect = new Rect(center.x - 650, center.y - 118, 430, 28);
+            Rect airframeRect = new Rect(center.x - 650, center.y - 84, 430, 28);
             DrawBossProtocolLine(contractRect,
                 L("boss.matrix.contract_line", "合同反制 // {0}", BossContractProtocolRule()),
                 contractActive ? PostalRed : NeonCyan, phaseTwo);
@@ -7697,7 +8242,7 @@ namespace SkyCourier
             DrawRect(new Rect(rect.x, rect.y, 6, rect.height), color);
             DrawPixelOutline(rect, color, online ? 2f : 1f);
             DrawFittedLabel(new Rect(rect.x + 13, rect.y + 2, rect.width - 20, rect.height - 4),
-                online ? text : L("boss.matrix.phase_two", "PHASE 2 待机 // {0}", text), tinyStyle, 7);
+                online ? text : L("boss.matrix.phase_two", "PHASE 2 待机 // {0}", text), tinyStyle, 10);
         }
 
         private string BossContractProtocolName()
@@ -7788,13 +8333,17 @@ namespace SkyCourier
             return Mathf.Clamp01((Time.time - laneTransitionStart) / Mathf.Max(0.01f, laneTransitionDuration));
         }
 
+        private static float LaneTopY(int lane) => LaneTop + lane * LaneSpacing;
+
+        private static float LaneCenterY(int lane) => LaneCenter + lane * LaneSpacing;
+
         private Vector2 PlayerVisualPosition(float t)
         {
             if (t >= 1f)
-                return new Vector2(242f, 190f + battle.PlayerLane * 130f);
+                return new Vector2(242f, LaneCenterY(battle.PlayerLane));
 
-            float fromY = 190f + laneTransitionFrom * 130f;
-            float toY = 190f + laneTransitionTo * 130f;
+            float fromY = LaneCenterY(laneTransitionFrom);
+            float toY = LaneCenterY(laneTransitionTo);
             float eased = t * t * (3f - 2f * t);
             float direction = Mathf.Sign(toY - fromY);
             float anticipation = t < 0.16f ? Mathf.Sin(t / 0.16f * Mathf.PI) * -13f * direction : 0f;
@@ -7805,8 +8354,8 @@ namespace SkyCourier
 
         private void DrawLaneTransitionFx(Vector2 playerPosition, float t)
         {
-            float fromY = 190f + laneTransitionFrom * 130f;
-            float toY = 190f + laneTransitionTo * 130f;
+            float fromY = LaneCenterY(laneTransitionFrom);
+            float toY = LaneCenterY(laneTransitionTo);
             float fade = 1f - Mathf.Abs(t * 2f - 1f) * 0.4f;
             float routeY = Mathf.Min(fromY, toY) - 22f;
             float routeHeight = Mathf.Abs(toY - fromY) + 44f;
@@ -7851,7 +8400,7 @@ namespace SkyCourier
         private Vector2 EnemyBasePosition(int index, EnemyState enemy)
         {
             float x = battle.Encounter == EncounterId.Boss ? 1120f : 900f + index * 210f;
-            return new Vector2(x, 188f + enemy.Lane * 130f);
+            return new Vector2(x, LaneCenterY(enemy.Lane));
         }
 
         private Vector2 EnemyVisualPosition(int index, EnemyState enemy, out EnemyLaneFx activeFx, out float t)
@@ -7870,8 +8419,8 @@ namespace SkyCourier
         private Vector2 EnemyLaneTransitionPosition(int index, EnemyLaneFx fx, float t)
         {
             float baseX = battle.Encounter == EncounterId.Boss ? 1120f : 900f + index * 210f;
-            float fromY = 188f + fx.FromLane * 130f;
-            float toY = 188f + fx.ToLane * 130f;
+            float fromY = LaneCenterY(fx.FromLane);
+            float toY = LaneCenterY(fx.ToLane);
             float eased = t * t * (3f - 2f * t);
             float direction = Mathf.Sign(toY - fromY);
             float anticipation = t < 0.14f ? -Mathf.Sin(t / 0.14f * Mathf.PI) * 12f * direction : 0f;
@@ -7883,8 +8432,8 @@ namespace SkyCourier
         private void DrawEnemyLaneTransitionFx(int index, EnemyLaneFx fx, Vector2 position, float t)
         {
             float baseX = battle.Encounter == EncounterId.Boss ? 1120f : 900f + index * 210f;
-            float fromY = 188f + fx.FromLane * 130f;
-            float toY = 188f + fx.ToLane * 130f;
+            float fromY = LaneCenterY(fx.FromLane);
+            float toY = LaneCenterY(fx.ToLane);
             float railTop = Mathf.Min(fromY, toY) - 42f;
             float railHeight = Mathf.Abs(toY - fromY) + 84f;
             byte routeAlpha = (byte)Mathf.Clamp(120f * (1f - t * 0.55f), 35f, 120f);
@@ -7928,19 +8477,19 @@ namespace SkyCourier
 
         private void DrawHand()
         {
-            DrawRect(new Rect(40, 574, 920, 38), new Color32(7, 16, 39, 225));
-            DrawRect(new Rect(40, 574, 6, 38), NeonViolet);
-            GUI.Label(new Rect(58, 577, 885, 34), L("battle.piles",
+            DrawRect(new Rect(40, HandStripTop, 920, 38), new Color32(7, 16, 39, 225));
+            DrawRect(new Rect(40, HandStripTop, 6, 38), NeonViolet);
+            GUI.Label(new Rect(58, HandStripTop + 3f, 885, 34), L("battle.piles",
                 "回合 {0:00} // 手牌 {1} // 抽牌 {2} // 弃牌 {3}",
                 battle.Turn, battle.Hand.Count, battle.DrawCount, battle.DiscardCount), hudStyle);
-            Rect comboStrip = new Rect(965, 574, 170, 38);
+            Rect comboStrip = new Rect(965, HandStripTop, 170, 38);
             DrawRect(comboStrip, new Color32(7, 18, 43, 235));
             DrawNeonFrame(comboStrip, battle.EvasionExposure >= 2 ? PostalRed : battle.LockOn > 0 ? Gold : NeonCyan, 2f);
             DrawFittedLabel(comboStrip, L("battle.resources", "锁定 {0} / 动量 {1} / 航迹 {2}",
-                battle.LockOn, battle.Momentum, battle.EvasionExposure), hudCenteredStyle, 8);
+                battle.LockOn, battle.Momentum, battle.EvasionExposure), hudCenteredStyle, 10);
             if (runModules.Count > 0)
             {
-                Rect moduleStrip = new Rect(1145, 574, 210, 38);
+                Rect moduleStrip = new Rect(1145, HandStripTop, 210, 38);
                 DrawRect(moduleStrip, new Color32(70, 43, 15, 235));
                 DrawNeonFrame(moduleStrip, new Color32(255, 194, 58, 255), 2f);
                 DrawFittedLabel(moduleStrip, $"MODULE // {ModuleName(runModules[0])}", hudCenteredStyle, 11);
@@ -7948,12 +8497,13 @@ namespace SkyCourier
             GetHandLayout(out float cardWidth, out float gap, out float startX);
 
             for (int i = 0; i < battle.Hand.Count; i++)
-                DrawCard(i, new Rect(startX + i * (cardWidth + gap), 620, cardWidth, 235));
+                DrawCard(i, new Rect(startX + i * (cardWidth + gap),
+                    HandCardTop, cardWidth, HandCardHeight));
 
-            Rect endTurn = new Rect(1360, 705, 180, 72);
+            Rect endTurn = new Rect(1360, 726, 180, 64);
             DrawPixelButton(endTurn, L("battle.end_turn", "结束回合"), Shadow, EndTurnWithFeedback,
                 !battle.Victory && !battle.Defeat && Time.time >= battleInputLockUntil, "SPACE");
-            GUI.Label(new Rect(1352, 790, 194, 42),
+            GUI.Label(new Rect(1352, 806, 194, 42),
                 L("battle.intent_warning", "! 敌人将执行\n当前显示的意图"), tinyStyle);
         }
 
@@ -7987,7 +8537,7 @@ namespace SkyCourier
             }
             CardSpec card = CardLibrary.Get(battle.Hand[index]);
             bool upgraded = battle.IsUpgraded(card.Id);
-            bool rulesPlayable = battle.CanPlay(index);
+            CardPlayBlockReason blockReason = battle.GetCardPlayBlockReason(index);
             bool playable = CanPlayInteractive(index);
             Color family = CardLibrary.FamilyColor(card.Family);
             if (upgraded)
@@ -8005,43 +8555,122 @@ namespace SkyCourier
             DrawPixelOutline(rect, new Color32(10, 22, 49, 255), 3f);
             if (upgraded)
                 DrawNeonFrame(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4), new Color32(255, 205, 82, 255), 2f);
-            DrawRect(new Rect(rect.x, rect.y, rect.width, 48), family);
-            const float footerHeight = 28f;
+            DrawRect(new Rect(rect.x, rect.y, rect.width, 40), family);
+            const float footerHeight = 24f;
             DrawRect(new Rect(rect.x, rect.y + rect.height - footerHeight, rect.width, footerHeight), family);
 
             if (playable)
             {
                 float sheenX = rect.x + Mathf.Repeat(Time.time * 95f + index * 47f, rect.width + 70f) - 45f;
-                DrawRect(new Rect(sheenX, rect.y + 50, 14, rect.height - 80), new Color32(255, 255, 255, hovered ? (byte)28 : (byte)16));
-                DrawRect(new Rect(sheenX + 14, rect.y + 50, 5, rect.height - 80), new Color32(75, 238, 245, hovered ? (byte)38 : (byte)22));
+                DrawRect(new Rect(sheenX, rect.y + 42, 14, rect.height - 68), new Color32(255, 255, 255, hovered ? (byte)28 : (byte)16));
+                DrawRect(new Rect(sheenX + 14, rect.y + 42, 5, rect.height - 68), new Color32(75, 238, 245, hovered ? (byte)38 : (byte)22));
             }
 
-            DrawRect(new Rect(rect.x + 12, rect.y + 57, 46, 46), Shadow);
-            GUI.Label(new Rect(rect.x + 12, rect.y + 62, 46, 35), card.Cost.ToString(), tinyStyle);
-            DrawFittedLabel(new Rect(rect.x + 66, rect.y + 60, rect.width - 76, 45), upgraded ? card.Name + "+" : card.Name, cardTitleStyle, 12);
-            DrawFittedLabel(new Rect(rect.x + 14, rect.y + 110, rect.width - 28, 92),
-                upgraded ? UpgradedRules(card.Id, battle.UpgradeBranchFor(card.Id)) : card.Rules, cardBodyStyle, 11);
+            DrawRect(new Rect(rect.x + 12, rect.y + 47, 40, 40), Shadow);
+            GUI.Label(new Rect(rect.x + 12, rect.y + 50, 40, 34), card.Cost.ToString(), tinyStyle);
+            DrawReadableLabel(new Rect(rect.x + 59, rect.y + 45, rect.width - 69, 42),
+                upgraded ? card.Name + "+" : card.Name, cardTitleStyle, 17, 14, true);
+            DrawReadableLabel(new Rect(rect.x + 13, rect.y + 91, rect.width - 26, rect.height - 119),
+                upgraded ? UpgradedRules(card.Id, battle.UpgradeBranchFor(card.Id)) : card.Rules,
+                cardBodyStyle, 14, 12, true);
             GUI.Label(new Rect(rect.x + 14, rect.y + rect.height - footerHeight, rect.width - 28, footerHeight),
                 card.Heat > 0 ? $"+{card.Heat} 热量" : "无热量", tinyStyle);
 
             if (!playable)
             {
+                bool feedbackLocked = tutorialPending || showFirstBattleGuide ||
+                    Time.unscaledTime < suppressGameplayInputUntil || Time.time < battleInputLockUntil;
+                string lockLabel = feedbackLocked
+                    ? L("battle.card_lock.feedback", "动作执行中")
+                    : CardPlayBlockLabel(blockReason);
                 if (underMouse)
-                {
-                    int missing = Mathf.Max(0, card.Cost - battle.Energy);
-                    RegisterHover($"hand-locked-{index}", !rulesPlayable && missing > 0 ? $"还差 {missing} 点能量" : Time.time < battleInputLockUntil ? "动作执行中，请等待反馈完成" : "当前无法打出这张牌");
-                }
-                DrawRect(new Rect(rect.x, rect.y, rect.width, rect.height), new Color32(8, 13, 27, 105));
-                DrawRect(new Rect(rect.x + 18, rect.y + 102, rect.width - 36, 30), new Color32(20, 27, 45, 225));
-                GUI.Label(new Rect(rect.x + 18, rect.y + 104, rect.width - 36, 26),
-                    Time.time < battleInputLockUntil ? "动作执行中" : "能量不足", tinyStyle);
+                    RegisterHover($"hand-locked-{index}", feedbackLocked
+                        ? L("battle.card_lock.feedback_detail", "动作执行中，请等待反馈完成")
+                        : CardPlayBlockDetail(blockReason, card));
+                DrawRect(new Rect(rect.x, rect.y, rect.width, rect.height), new Color32(8, 13, 27, 175));
+                Rect reasonPanel = new Rect(rect.x + 13, rect.y + 78, rect.width - 26, 46);
+                DrawRect(reasonPanel, new Color32(10, 19, 40, 250));
+                DrawPixelOutline(reasonPanel, new Color32(164, 178, 190, 255), 2f);
+                DrawReadableLabel(new Rect(reasonPanel.x + 8, reasonPanel.y + 4,
+                        reasonPanel.width - 16, reasonPanel.height - 8),
+                    lockLabel, hudCenteredStyle, 14, 12, true);
             }
 
             bool oldEnabled = GUI.enabled;
-            GUI.enabled = playable;
+            GUI.enabled = oldEnabled && playable;
             if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
                 PlayCardWithFeedback(index);
             GUI.enabled = oldEnabled;
+        }
+
+        private string CardPlayBlockLabel(CardPlayBlockReason reason)
+        {
+            return reason switch
+            {
+                CardPlayBlockReason.InsufficientEnergy => L("battle.card_lock.energy", "能量不足"),
+                CardPlayBlockReason.NoSameLaneTarget => L("battle.card_lock.same_lane", "当前航道无目标"),
+                CardPlayBlockReason.NoOtherLaneTarget => L("battle.card_lock.other_lane", "其他航道无目标"),
+                CardPlayBlockReason.NoTarget => L("battle.card_lock.no_target", "没有可用目标"),
+                CardPlayBlockReason.RequiresArmor => L("battle.card_lock.armor", "护盾不足"),
+                CardPlayBlockReason.RequiresLockOn => L("battle.card_lock.lock_on", "需要锁定"),
+                CardPlayBlockReason.RequiresMomentum => L("battle.card_lock.momentum", "需要动量"),
+                CardPlayBlockReason.RequiresExposure => L("battle.card_lock.exposure", "需要航迹"),
+                CardPlayBlockReason.RequiresSurplusEnergy => L("battle.card_lock.surplus", "需要2点能量"),
+                CardPlayBlockReason.AtTopLane => L("battle.card_lock.top_lane", "已在最上航道"),
+                CardPlayBlockReason.AtBottomLane => L("battle.card_lock.bottom_lane", "已在最下航道"),
+                _ => L("battle.card_lock.unavailable", "当前无法使用")
+            };
+        }
+
+        private string CardPlayBlockDetail(CardPlayBlockReason reason, CardSpec card)
+        {
+            return reason switch
+            {
+                CardPlayBlockReason.InsufficientEnergy => L("battle.card_lock.energy_detail",
+                    "还差 {0} 点能量", Mathf.Max(0, card.Cost - battle.Energy)),
+                CardPlayBlockReason.NoSameLaneTarget => L("battle.card_lock.same_lane_detail",
+                    "当前航道没有可攻击的敌人"),
+                CardPlayBlockReason.NoOtherLaneTarget => L("battle.card_lock.other_lane_detail",
+                    "其他航道没有符合条件的敌人"),
+                CardPlayBlockReason.NoTarget => L("battle.card_lock.no_target_detail", "战场上没有可用目标"),
+                CardPlayBlockReason.RequiresArmor => L("battle.card_lock.armor_detail", "需要至少 4 点护盾"),
+                CardPlayBlockReason.RequiresLockOn => L("battle.card_lock.lock_on_detail", "需要至少 1 层锁定"),
+                CardPlayBlockReason.RequiresMomentum => L("battle.card_lock.momentum_detail", "需要至少 1 层动量"),
+                CardPlayBlockReason.RequiresExposure => L("battle.card_lock.exposure_detail", "需要至少 1 层航迹"),
+                CardPlayBlockReason.RequiresSurplusEnergy => L("battle.card_lock.surplus_detail",
+                    "需要至少 2 点当前能量才能建立托管"),
+                CardPlayBlockReason.AtTopLane => L("battle.card_lock.top_lane_detail", "飞机已经位于最上方航道"),
+                CardPlayBlockReason.AtBottomLane => L("battle.card_lock.bottom_lane_detail", "飞机已经位于最下方航道"),
+                _ => L("battle.card_lock.unavailable_detail", "当前状态不满足这张牌的使用条件")
+            };
+        }
+
+        private static string LaneFieldLabel(LaneFieldKind kind)
+        {
+            return kind switch
+            {
+                LaneFieldKind.EscortAnchor => L("battle.lane_field.anchor", "[A] 护航锚点"),
+                LaneFieldKind.Condenser => L("battle.lane_field.condenser", "[C] 冷凝区"),
+                LaneFieldKind.Slipstream => L("battle.lane_field.slipstream", "[S] 尾流门"),
+                LaneFieldKind.Minefield => L("battle.lane_field.minefield", "[X] 雷区"),
+                LaneFieldKind.GhostCorridor => L("battle.lane_field.ghost", "[G] 幽灵走廊"),
+                LaneFieldKind.QueueCache => L("battle.lane_field.queue", "[Q] 队列缓存"),
+                _ => L("battle.lane_field.protocol", "航道协议")
+            };
+        }
+
+        private static Color LaneFieldColor(LaneFieldKind kind)
+        {
+            return kind switch
+            {
+                LaneFieldKind.EscortAnchor => new Color32(255, 190, 68, 255),
+                LaneFieldKind.Condenser => new Color32(104, 235, 255, 255),
+                LaneFieldKind.Slipstream => new Color32(62, 224, 181, 255),
+                LaneFieldKind.Minefield => new Color32(255, 80, 151, 255),
+                LaneFieldKind.GhostCorridor => new Color32(184, 112, 255, 255),
+                LaneFieldKind.QueueCache => new Color32(255, 220, 92, 255),
+                _ => Color.white
+            };
         }
 
         private void DrawResultOverlay(bool victory)
@@ -8352,6 +8981,61 @@ namespace SkyCourier
         private void DrawSky()
         {
             DrawArcadeScrollingBackdrop(new Rect(0, 0, ReferenceWidth, ReferenceHeight), screen == ScreenMode.Battle);
+            DrawEnvironmentalLayer();
+        }
+
+        private void DrawEnvironmentalLayer()
+        {
+            int stage = routeIndex >= RunStructureCatalog.FinalApproachColumn ? 2 :
+                routeIndex >= RunStructureCatalog.RetrofitColumn ? 1 : 0;
+            if (screen == ScreenMode.Title || screen == ScreenMode.Archive || screen == ScreenMode.Challenge ||
+                screen == ScreenMode.Contract)
+                stage = 0;
+
+            if (stage == 0)
+            {
+                for (int i = 0; i < 7; i++)
+                {
+                    float x = Mathf.Repeat(i * 267f - Time.time * 18f, ReferenceWidth + 120f) - 60f;
+                    float y = 650f + (i % 3) * 48f;
+                    DrawRect(new Rect(x, y, 96f, 6f), new Color32(76, 224, 222, 35));
+                    DrawRect(new Rect(x + 45f, y - 34f, 6f, 74f), new Color32(255, 197, 74, 35));
+                }
+                return;
+            }
+
+            if (stage == 1)
+            {
+                DrawRect(new Rect(0, 0, ReferenceWidth, ReferenceHeight), new Color32(71, 32, 104, 34));
+                for (int i = 0; i < 18; i++)
+                {
+                    float x = Mathf.Repeat(i * 119f - Time.time * (42f + i % 4 * 11f), ReferenceWidth + 160f) - 80f;
+                    float y = 110f + (i * 83 % 660);
+                    float size = 5f + (i % 4) * 4f;
+                    DrawRect(new Rect(x, y, size * 2.8f, size), i % 3 == 0
+                        ? new Color32(255, 166, 69, 90)
+                        : new Color32(191, 102, 255, 72));
+                }
+                return;
+            }
+
+            float stormPulse = 0.5f + Mathf.Sin(Time.time * 0.9f) * 0.18f;
+            DrawRect(new Rect(0, 0, ReferenceWidth, ReferenceHeight),
+                new Color(0.03f, 0.08f, 0.16f, 0.22f + stormPulse * 0.1f));
+            for (int i = 0; i < 9; i++)
+            {
+                float x = Mathf.Repeat(i * 239f + Time.time * 14f, ReferenceWidth + 180f) - 90f;
+                float top = 36f + (i % 3) * 55f;
+                float length = 90f + (i % 4) * 62f;
+                DrawRect(new Rect(x, top, 3f, length), new Color32(100, 236, 255, (byte)(40 + i % 3 * 24)));
+                DrawRect(new Rect(x - 28f, top + length, 31f, 4f), new Color32(209, 83, 255, 80));
+            }
+            if (screen == ScreenMode.Battle && battle.Encounter == EncounterId.Boss)
+            {
+                float sweep = Mathf.Repeat(Time.time * 210f, ReferenceWidth + 400f) - 200f;
+                DrawRect(new Rect(sweep, 92, 5f, 520f), new Color32(129, 240, 255, 78));
+                DrawRect(new Rect(sweep - 52f, 320, 109f, 5f), new Color32(255, 89, 219, 72));
+            }
         }
 
         private void DrawCombatEffects()
@@ -8361,7 +9045,7 @@ namespace SkyCourier
                 return;
 
             float t = Mathf.Clamp01(elapsed / combatFxDuration);
-            float laneY = 190 + combatFxLane * 130;
+            float laneY = LaneCenterY(combatFxLane);
             Color cyan = new Color32(104, 242, 231, 220);
             Color yellow = new Color32(255, 227, 92, 245);
 
@@ -8378,8 +9062,8 @@ namespace SkyCourier
                     DrawPixelOutline(new Rect(164 - 14 * t, laneY - 62 - 14 * t, 156 + 28 * t, 124 + 28 * t), cyan, 6);
                     break;
                 case CombatFx.Maneuver:
-                    float routeTop = 190 + Mathf.Min(laneTransitionFrom, laneTransitionTo) * 130f;
-                    float routeBottom = 190 + Mathf.Max(laneTransitionFrom, laneTransitionTo) * 130f;
+                    float routeTop = LaneCenterY(Mathf.Min(laneTransitionFrom, laneTransitionTo));
+                    float routeBottom = LaneCenterY(Mathf.Max(laneTransitionFrom, laneTransitionTo));
                     DrawRect(new Rect(226, routeTop, 32, Mathf.Max(4f, routeBottom - routeTop)),
                         new Color32(74, 236, 241, (byte)(55 * (1f - t))));
                     DrawPixelOutline(new Rect(218, routeTop - 12, 48, routeBottom - routeTop + 24),
@@ -8398,7 +9082,8 @@ namespace SkyCourier
                     }
                     break;
                 case CombatFx.EnemyHit:
-                    DrawRect(new Rect(0, 128, ReferenceWidth, 435), new Color32(232, 45, 74, (byte)(60 * (1f - t))));
+                    DrawRect(new Rect(0, BattlefieldTop, ReferenceWidth, BattlefieldHeight),
+                        new Color32(232, 45, 74, (byte)(60 * (1f - t))));
                     DrawPixelOutline(new Rect(175 - 12 * t, laneY - 58 - 12 * t, 145 + 24 * t, 116 + 24 * t), PostalRed, 7);
                     DrawImpactBurst(new Vector2(242, laneY), t, PostalRed);
                     break;
@@ -8541,7 +9226,7 @@ namespace SkyCourier
                     {
                         float local = Mathf.Clamp01((t - lane * 0.08f) / 0.48f);
                         float x = Mathf.Lerp(290f, 1220f, local);
-                        float y = 188f + lane * 130f;
+                        float y = LaneCenterY(lane);
                         DrawRect(new Rect(285f, y - 9f, Mathf.Max(0f, x - 285f), 18f), new Color32(255, 79, 202, 72));
                         DrawRect(new Rect(x - 32f, y - 5f, 108f, 10f), lane == 1 ? Color.white : yellow);
                     }
@@ -8549,7 +9234,7 @@ namespace SkyCourier
                     {
                         float blast = (t - 0.45f) / 0.55f;
                         for (int lane = 0; lane < 3; lane++)
-                            DrawHitExplosion(new Vector2(1130f + lane * 24f, 188f + lane * 130f), blast, violet,
+                            DrawHitExplosion(new Vector2(1130f + lane * 24f, LaneCenterY(lane)), blast, violet,
                                 lane == 1 ? impactDamage : 0, 1.35f);
                     }
                     break;
@@ -8562,7 +9247,7 @@ namespace SkyCourier
                     DrawRect(new Rect(235f, 160f, Mathf.Min(1050f, radius), 340f), new Color(1f, 0.18f, 0.08f, (1f - wave) * 0.12f));
                     for (int lane = 0; lane < 3; lane++)
                     {
-                        float y = 188f + lane * 130f;
+                        float y = LaneCenterY(lane);
                         DrawRect(new Rect(280f, y - 3f, Mathf.Min(radius, 900f), 6f), new Color32(255, 126, 45, 170));
                     }
                     if (t > 0.54f)
@@ -8577,7 +9262,7 @@ namespace SkyCourier
                         int lane = pellet % 3;
                         float x = Mathf.Lerp(295f, 1180f + (pellet % 5) * 11f, travel);
                         float spread = (pellet % 5 - 2) * 13f;
-                        float y = 188f + lane * 130f + spread * travel;
+                        float y = LaneCenterY(lane) + spread * travel;
                         float size = 4f + pellet % 3 * 2f;
                         DrawRect(new Rect(x - size, y - size, size * 2f, size * 2f), pellet % 2 == 0 ? yellow : cyan);
                     }
@@ -8595,7 +9280,7 @@ namespace SkyCourier
                         int lane = missile % 3;
                         float x = Mathf.Lerp(290f, 1160f + lane * 25f, local);
                         float arc = Mathf.Sin(local * Mathf.PI) * (70f + missile * 7f) * (missile % 2 == 0 ? -1f : 1f);
-                        float y = Mathf.Lerp(laneY, 188f + lane * 130f, local) + arc;
+                        float y = Mathf.Lerp(laneY, LaneCenterY(lane), local) + arc;
                         DrawRect(new Rect(x - 30f, y - 2f, 24f, 4f), new Color32(81, 231, 255, 105));
                         DrawRect(new Rect(x - 6f, y - 5f, 18f, 10f), missile % 2 == 0 ? PostalRed : yellow);
                     }
@@ -8610,7 +9295,7 @@ namespace SkyCourier
                     {
                         if (lane == combatFxLane)
                             continue;
-                        float y = 188f + lane * 130f;
+                        float y = LaneCenterY(lane);
                         float x = Mathf.Lerp(340f, 970f + lane * 70f, arm);
                         float pulse = 24f + Mathf.Sin(t * 30f + lane) * 7f;
                         DrawPixelOutline(new Rect(x - pulse, y - pulse, pulse * 2f, pulse * 2f), violet, 5f);
@@ -8691,7 +9376,7 @@ namespace SkyCourier
                     DrawPixelOutline(new Rect(center.x - 82f - t * 70f, center.y - 82f - t * 70f,
                         164f + t * 140f, 164f + t * 140f), new Color(0.85f, 0.22f, 1f, fade), 7f);
                 }
-                else if (fx.Kind == EnemyKind.StormManta || fx.Kind == EnemyKind.CloudWyrm)
+                else if (BattleState.IsBossKind(fx.Kind))
                 {
                     float field = Mathf.Clamp01(elapsed / 1.15f);
                     for (int ring = 0; ring < 5; ring++)
@@ -8778,7 +9463,7 @@ namespace SkyCourier
 
                 float t = Mathf.Clamp01(elapsed / 0.92f);
                 float fade = 1f - t;
-                Vector2 player = new Vector2(242f, 190f + battle.PlayerLane * 130f);
+                Vector2 player = new Vector2(242f, LaneCenterY(battle.PlayerLane));
 
                 if (fx.Kind == EnemyKind.RustKite)
                 {
@@ -8803,7 +9488,7 @@ namespace SkyCourier
                 {
                     for (int lane = 0; lane < 3; lane++)
                     {
-                        float laneY = 188f + lane * 130f;
+                        float laneY = LaneCenterY(lane);
                         float pulse = 0.45f + Mathf.Sin(elapsed * 48f + lane) * 0.35f;
                         DrawRect(new Rect(player.x - 44f + lane * 26f, 140f, 10f, laneY - 118f),
                             new Color(0.3f, 0.9f, 1f, fade * pulse));
@@ -8847,7 +9532,7 @@ namespace SkyCourier
                 }
                 else if (fx.Kind == EnemyKind.CalamityDrone)
                 {
-                    float targetY = 190f + fx.TargetLane * 130f;
+                    float targetY = LaneCenterY(fx.TargetLane);
                     float fire = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.14f) / 0.42f));
                     float beamWidth = Mathf.Lerp(3f, 30f, Mathf.Sin(fire * Mathf.PI));
                     DrawRect(new Rect(62f, targetY - beamWidth * 0.5f, fx.Position.x - 62f, beamWidth),
@@ -8864,7 +9549,7 @@ namespace SkyCourier
                 {
                     for (int lane = 0; lane < 3; lane++)
                     {
-                        float laneY = 190f + lane * 130f;
+                        float laneY = LaneCenterY(lane);
                         bool safe = lane == fx.TargetLane;
                         if (safe)
                         {
@@ -8889,7 +9574,7 @@ namespace SkyCourier
                 {
                     for (int lane = 0; lane < 3; lane++)
                     {
-                        float laneY = 190f + lane * 130f;
+                        float laneY = LaneCenterY(lane);
                         bool swept = Mathf.Abs(lane - fx.TargetLane) <= 1;
                         if (!swept)
                         {
@@ -9517,6 +10202,12 @@ namespace SkyCourier
                 return;
             }
 
+            if (enemy.Kind >= EnemyKind.TimeLagJelly)
+            {
+                DrawExpandedEnemy(enemy, center);
+                return;
+            }
+
             if (enemy.Kind == EnemyKind.RustKite)
             {
                 DrawRect(PixelRect(center, -52, -7, 104, 14, 1.1f), Shadow);
@@ -9540,17 +10231,78 @@ namespace SkyCourier
             DrawRect(PixelRect(center, -7, -20, 15, 12, 1.08f), new Color32(68, 145, 164, 255));
         }
 
+        private void DrawExpandedEnemy(EnemyState enemy, Vector2 center)
+        {
+            Color shell = enemy.Kind switch
+            {
+                EnemyKind.TimeLagJelly => new Color32(64, 198, 208, 255),
+                EnemyKind.SalvageCorvid => new Color32(193, 153, 55, 255),
+                EnemyKind.LaneTailor => new Color32(226, 82, 151, 255),
+                EnemyKind.NullBeacon => new Color32(205, 222, 228, 255),
+                EnemyKind.PrismStowaway => new Color32(113, 221, 191, 255),
+                EnemyKind.DebtCollector => new Color32(219, 75, 68, 255),
+                EnemyKind.ThunderChoir => new Color32(132, 83, 214, 255),
+                EnemyKind.MobiusHangar => new Color32(67, 124, 202, 255),
+                EnemyKind.CrateHive => new Color32(209, 115, 49, 255),
+                EnemyKind.WeatherClock => new Color32(96, 197, 174, 255),
+                EnemyKind.CourierZero => new Color32(238, 231, 199, 255),
+                _ => new Color32(75, 189, 211, 255)
+            };
+            float scale = BattleState.IsBossKind(enemy.Kind) ? 1.34f :
+                enemy.Kind == EnemyKind.CrateHive || enemy.Kind == EnemyKind.WeatherClock ||
+                enemy.Kind == EnemyKind.MobiusHangar ? 1.2f : 1.06f;
+
+            if (enemy.Kind == EnemyKind.InvertedSkyWhale)
+            {
+                DrawRect(PixelRect(center, -78, -22, 156, 44, scale), shell);
+                DrawRect(PixelRect(center, -54, -37, 108, 74, scale), new Color32(39, 116, 156, 255));
+                DrawRect(PixelRect(center, -95, 8, 190, 13, scale), NeonCyan);
+                DrawRect(PixelRect(center, -7, -50, 14, 100, scale), NeonViolet);
+                DrawRect(PixelRect(center, 42, -15, 13, 13, scale), Gold);
+                return;
+            }
+
+            DrawRect(PixelRect(center, -48, -29, 96, 58, scale), Shadow);
+            DrawRect(PixelRect(center, -38, -23, 76, 46, scale), shell);
+            if (enemy.Kind == EnemyKind.TimeLagJelly || enemy.Kind == EnemyKind.ThunderChoir)
+            {
+                DrawRect(PixelRect(center, -48, -8, 96, 16, scale), NeonCyan);
+                for (int x = -25; x <= 25; x += 25)
+                    DrawRect(PixelRect(center, x, 22, 7, 28, scale), shell);
+            }
+            else if (enemy.Kind == EnemyKind.CrateHive)
+            {
+                DrawRect(PixelRect(center, -58, -9, 116, 18, scale), Gold);
+                DrawRect(PixelRect(center, -8, -38, 16, 76, scale), PostalRed);
+            }
+            else if (enemy.Kind == EnemyKind.WeatherClock)
+            {
+                DrawPixelOutline(PixelRect(center, -43, -43, 86, 86, scale), shell, 5f);
+                DrawRect(PixelRect(center, -4, -35, 8, 36, scale), Color.white);
+                DrawRect(PixelRect(center, -2, -2, 29, 7, scale), PostalRed);
+            }
+            else
+            {
+                DrawRect(PixelRect(center, -57, -7, 114, 14, scale), new Color(shell.r, shell.g, shell.b, 1f));
+                DrawRect(PixelRect(center, -7, -39, 14, 78, scale), NeonViolet);
+            }
+            DrawRect(PixelRect(center, -10, -10, 20, 20, scale), new Color32(3, 12, 29, 255));
+            DrawRect(PixelRect(center, -4, -4, 8, 8, scale), Gold);
+        }
+
         private static void DrawCalamityLaneTelegraph(EnemyState enemy)
         {
             if (enemy.ChargeInterrupted || enemy.ChargeTargetLane < 0)
                 return;
 
-            float laneY = 150f + enemy.ChargeTargetLane * 130f;
+            float laneY = LaneTopY(enemy.ChargeTargetLane);
             float pulse = 0.55f + Mathf.Sin(Time.time * 9f) * 0.25f;
-            DrawRect(new Rect(62, laneY, 1466, 105), new Color(1f, 0.08f, 0.62f, 0.035f + pulse * 0.025f));
-            DrawPixelOutline(new Rect(66, laneY + 4, 1458, 97), new Color(1f, 0.15f, 0.72f, 0.22f + pulse * 0.18f), 3f);
+            DrawRect(new Rect(62, laneY, 1466, LaneHeight), new Color(1f, 0.08f, 0.62f, 0.035f + pulse * 0.025f));
+            DrawPixelOutline(new Rect(66, laneY + 4, 1458, LaneHeight - 8f),
+                new Color(1f, 0.15f, 0.72f, 0.22f + pulse * 0.18f), 3f);
             for (int x = 430; x < 1480; x += 150)
-                DrawRect(new Rect(x, laneY + 50, 72, 3), new Color(0.95f, 0.2f, 1f, 0.2f + pulse * 0.22f));
+                DrawRect(new Rect(x, laneY + LaneHeight * 0.5f, 72, 3),
+                    new Color(0.95f, 0.2f, 1f, 0.2f + pulse * 0.22f));
         }
 
         private void DrawCloudWyrmLaneTelegraph(EnemyState enemy)
@@ -9561,7 +10313,7 @@ namespace SkyCourier
             float pulse = 0.55f + Mathf.Sin(Time.time * 9f) * 0.25f;
             for (int lane = 0; lane < 3; lane++)
             {
-                float laneY = 150f + lane * 130f;
+                float laneY = LaneTopY(lane);
                 bool safe = lane == enemy.ChargeTargetLane;
                 Color fill = safe
                     ? new Color(0.12f, 1f, 0.78f, 0.07f + pulse * 0.035f)
@@ -9569,9 +10321,9 @@ namespace SkyCourier
                 Color outline = safe
                     ? new Color(0.2f, 1f, 0.84f, 0.45f + pulse * 0.25f)
                     : new Color(1f, 0.12f, 0.48f, 0.24f + pulse * 0.15f);
-                DrawRect(new Rect(62, laneY, 1466, 105), fill);
-                DrawPixelOutline(new Rect(66, laneY + 4, 1458, 97), outline, safe ? 5f : 2f);
-                DrawFittedLabel(new Rect(385, laneY + 38, 390, 28),
+                DrawRect(new Rect(62, laneY, 1466, LaneHeight), fill);
+                DrawPixelOutline(new Rect(66, laneY + 4, 1458, LaneHeight - 8f), outline, safe ? 5f : 2f);
+                DrawFittedLabel(new Rect(385, laneY + 48, 390, 28),
                     safe ? L("battle.safe_lane", "[O] 唯一安全航道") :
                         L("battle.danger_lane", "[X] 雷幕封锁"),
                     tinyStyle, 9);
@@ -9586,15 +10338,15 @@ namespace SkyCourier
             float pulse = 0.55f + Mathf.Sin(Time.time * 9f) * 0.25f;
             for (int lane = 0; lane < 3; lane++)
             {
-                float laneY = 150f + lane * 130f;
+                float laneY = LaneTopY(lane);
                 bool danger = Mathf.Abs(lane - enemy.ChargeTargetLane) <= 1;
                 Color outline = danger
                     ? new Color(1f, 0.12f, 0.48f, 0.3f + pulse * 0.16f)
                     : new Color(0.18f, 1f, 0.82f, 0.45f + pulse * 0.22f);
-                DrawRect(new Rect(62, laneY, 1466, 105),
+                DrawRect(new Rect(62, laneY, 1466, LaneHeight),
                     new Color(outline.r, outline.g, outline.b, danger ? 0.055f : 0.07f));
-                DrawPixelOutline(new Rect(66, laneY + 4, 1458, 97), outline, danger ? 3f : 5f);
-                DrawFittedLabel(new Rect(385, laneY + 38, 390, 28),
+                DrawPixelOutline(new Rect(66, laneY + 4, 1458, LaneHeight - 8f), outline, danger ? 3f : 5f);
+                DrawFittedLabel(new Rect(385, laneY + 48, 390, 28),
                     danger ? L("battle.magnet_danger", "[X] 磁针扫掠") :
                         L("battle.clear_lane", "[O] 可规避航道"),
                     tinyStyle, 9);
@@ -9611,6 +10363,12 @@ namespace SkyCourier
                 EnemyKind.CloudWyrm => enemy.Phase == 1
                     ? BattleState.CloudWyrmPhaseOneBreakDamage
                     : BattleState.CloudWyrmPhaseTwoBreakDamage,
+                EnemyKind.CourierZero => enemy.Phase == 1
+                    ? BattleState.CourierZeroPhaseOneBreakDamage
+                    : BattleState.CourierZeroPhaseTwoBreakDamage,
+                EnemyKind.InvertedSkyWhale => enemy.Phase == 1
+                    ? BattleState.SkyWhalePhaseOneBreakDamage
+                    : BattleState.SkyWhalePhaseTwoBreakDamage,
                 EnemyKind.CurtainHerald => BattleState.PreludeBreakDamage,
                 EnemyKind.FluxSkimmer => BattleState.PreludeBreakDamage,
                 _ => BattleState.CalamityBreakDamage
@@ -9707,7 +10465,7 @@ namespace SkyCourier
             DrawCyberLabel(labelRect, $"〈 {label} 〉", buttonLabelStyle, hovered ? new Color32(255, 211, 82, 255) : NeonCyan);
 
             bool oldEnabled = GUI.enabled;
-            GUI.enabled = enabled;
+            GUI.enabled = oldEnabled && enabled;
             if (GUI.Button(hitRect, GUIContent.none, GUIStyle.none))
             {
                 PlaySound(clickSound);
@@ -9735,7 +10493,7 @@ namespace SkyCourier
             combatFxDuration = AttackFxDuration(card);
             combatFxLane = battle.PlayerLane;
             combatFxPower = AttackFxPower(card);
-            impactPoint = new Vector2(1080f, 190f + battle.PlayerLane * 130f);
+            impactPoint = new Vector2(1080f, LaneCenterY(battle.PlayerLane));
             impactDamage = 12;
             impactFlashUntil = Time.time + combatFxDuration;
             combatFxText = $"FX PREVIEW // {CardLibrary.Get(card).Name}";
@@ -9956,12 +10714,12 @@ namespace SkyCourier
             bodyStyle = MakeStyle(20, FontStyle.Normal, Ink, TextAnchor.UpperLeft);
             bodyStyle.wordWrap = true;
             smallStyle = MakeStyle(17, FontStyle.Bold, Ink, TextAnchor.MiddleLeft);
-            tinyStyle = MakeStyle(14, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter);
+            tinyStyle = MakeStyle(15, FontStyle.Bold, new Color32(235, 247, 250, 255), TextAnchor.MiddleCenter);
             tinyStyle.font = terminalFont;
             centeredStyle = MakeStyle(15, FontStyle.Bold, Ink, TextAnchor.MiddleCenter);
-            cardTitleStyle = MakeStyle(17, FontStyle.Bold, Ink, TextAnchor.MiddleCenter);
+            cardTitleStyle = MakeStyle(18, FontStyle.Bold, Ink, TextAnchor.MiddleCenter);
             cardTitleStyle.font = displayFont;
-            cardBodyStyle = MakeStyle(16, FontStyle.Normal, Ink, TextAnchor.UpperLeft);
+            cardBodyStyle = MakeStyle(17, FontStyle.Normal, Ink, TextAnchor.UpperLeft);
             cardBodyStyle.wordWrap = true;
             moduleTitleStyle = MakeStyle(18, FontStyle.Bold, new Color32(255, 236, 164, 255), TextAnchor.MiddleCenter);
             moduleTitleStyle.font = displayFont;
@@ -9971,7 +10729,7 @@ namespace SkyCourier
             buttonLabelStyle.font = displayFont;
             hudStyle = MakeStyle(17, FontStyle.Bold, new Color32(222, 248, 248, 255), TextAnchor.MiddleLeft);
             hudStyle.font = terminalFont;
-            hudCenteredStyle = MakeStyle(15, FontStyle.Bold, new Color32(222, 248, 248, 255), TextAnchor.MiddleCenter);
+            hudCenteredStyle = MakeStyle(16, FontStyle.Bold, new Color32(222, 248, 248, 255), TextAnchor.MiddleCenter);
             hudCenteredStyle.font = terminalFont;
             neonTitleStyle = MakeStyle(48, FontStyle.Bold, new Color32(235, 255, 255, 255), TextAnchor.MiddleLeft);
             neonTitleStyle.font = displayFont;
@@ -9983,6 +10741,10 @@ namespace SkyCourier
             contractBadgeStyle.font = terminalFont;
             contractBadgeStyle.wordWrap = false;
             contractBadgeStyle.clipping = TextClipping.Clip;
+            tutorialSymbolStyle = MakeStyle(32, FontStyle.Bold, new Color32(235, 255, 255, 255),
+                TextAnchor.MiddleCenter);
+            tutorialSymbolStyle.font = terminalFont;
+            tutorialSymbolStyle.wordWrap = false;
         }
 
         private GUIStyle MakeStyle(int size, FontStyle fontStyle, Color color, TextAnchor anchor)
@@ -10011,6 +10773,26 @@ namespace SkyCourier
             GUI.Label(rect, text, CreateFittedStyle(rect, text, source, minimumFontSize));
         }
 
+        private static void DrawReadableLabel(Rect rect, string text, GUIStyle source,
+            int preferredFontSize, int minimumFontSize, bool wordWrap)
+        {
+            minimumFontSize = Mathf.Max(ReleaseQualityRules.MinimumAuxiliaryFontSize, minimumFontSize);
+            preferredFontSize = Mathf.Max(minimumFontSize, preferredFontSize);
+            var readable = new GUIStyle(source)
+            {
+                wordWrap = wordWrap,
+                clipping = TextClipping.Clip,
+                fontSize = preferredFontSize
+            };
+            for (int size = preferredFontSize; size >= minimumFontSize; size--)
+            {
+                readable.fontSize = size;
+                if (readable.CalcHeight(new GUIContent(text), rect.width) <= rect.height)
+                    break;
+            }
+            GUI.Label(rect, text, readable);
+        }
+
         private static GUIStyle CreateFittedStyle(Rect rect, string text, GUIStyle source, int preferredMinimumFontSize)
         {
             var fitted = new GUIStyle(source)
@@ -10018,9 +10800,11 @@ namespace SkyCourier
                 wordWrap = true,
                 clipping = TextClipping.Clip
             };
-            int originalSize = Mathf.Max(6, Mathf.Max(preferredMinimumFontSize, source.fontSize));
-            int chosenSize = 6;
-            for (int size = originalSize; size >= 6; size--)
+            int minimumSize = Mathf.Max(ReleaseQualityRules.MinimumAuxiliaryFontSize,
+                preferredMinimumFontSize);
+            int originalSize = Mathf.Max(minimumSize, source.fontSize);
+            int chosenSize = minimumSize;
+            for (int size = originalSize; size >= minimumSize; size--)
             {
                 fitted.fontSize = size;
                 if (fitted.CalcHeight(new GUIContent(text), rect.width) <= rect.height)

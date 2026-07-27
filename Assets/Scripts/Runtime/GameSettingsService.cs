@@ -19,13 +19,15 @@ namespace SkyCourier
         public int Language = (int)GameLanguage.SimplifiedChinese;
         public bool ContextualTutorials = true;
         public bool FocusHints = true;
+        public bool EnemyIntelHold = true;
     }
 
     public static class GameSettingsService
     {
-        public const int CurrentVersion = 3;
-        private const string SettingsKey = "SkyCourier.Settings.v3";
-        private const string PreviousSettingsKey = "SkyCourier.Settings.v2";
+        public const int CurrentVersion = 4;
+        private const string SettingsKey = "SkyCourier.Settings.v4";
+        private const string PreviousSettingsKey = "SkyCourier.Settings.v3";
+        private const string VersionTwoSettingsKey = "SkyCourier.Settings.v2";
         private const string LegacySettingsKey = "SkyCourier.Settings.v1";
         private const string LegacyMusicKey = "SkyCourier.MusicVolume";
         private const string LegacySfxKey = "SkyCourier.SfxVolume";
@@ -35,6 +37,7 @@ namespace SkyCourier
             GameSettingsData settings = null;
             string storedKey = PlayerPrefs.HasKey(SettingsKey) ? SettingsKey :
                 PlayerPrefs.HasKey(PreviousSettingsKey) ? PreviousSettingsKey :
+                PlayerPrefs.HasKey(VersionTwoSettingsKey) ? VersionTwoSettingsKey :
                 PlayerPrefs.HasKey(LegacySettingsKey) ? LegacySettingsKey : null;
             if (!string.IsNullOrEmpty(storedKey))
             {
@@ -46,6 +49,8 @@ namespace SkyCourier
                         settings.ContextualTutorials = true;
                         settings.FocusHints = true;
                     }
+                    if (settings != null && settings.Version < 4)
+                        settings.EnemyIntelHold = true;
                 }
                 catch (Exception exception)
                 {

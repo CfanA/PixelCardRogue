@@ -8,7 +8,22 @@ title.new	新配送	NEW DELIVERY
 title.start	开始配送	START DELIVERY
 title.archive	邮政档案	POSTAL ARCHIVE
 title.settings	系统设置	SETTINGS
-title.version	v0.52  //  ACCESSIBLE FLIGHT MANUAL	v0.52  //  ACCESSIBLE FLIGHT MANUAL
+title.version	v0.60  //  READABILITY UPDATE	v0.60  //  READABILITY UPDATE
+recovery.detected	检测到上次异常中断；可从最近安全检查点继续。\n战斗将从遭遇入口重启。	PREVIOUS SESSION ENDED UNEXPECTEDLY. CONTINUE FROM THE LAST SAFE CHECKPOINT.\nBATTLES RESTART AT ENCOUNTER ENTRY.
+recovery.restored_backup	异常中断：主存档不可读，已恢复备份安全检查点	INTERRUPTED SESSION: PRIMARY SAVE FAILED; BACKUP CHECKPOINT RESTORED
+recovery.restored_checkpoint	异常中断：已恢复最近安全检查点	INTERRUPTED SESSION: LATEST SAFE CHECKPOINT RESTORED
+qa.tutorial_reset	教学进度已重置；本次配送将重新触发所有情境教学。	TUTORIAL PROGRESS RESET. ALL CONTEXTUAL TUTORIALS WILL TRIGGER AGAIN THIS RUN.
+boss.transition.wyrm	THREAT 02 // 雷幕螭龙	THREAT 02 // CLOUD WYRM
+boss.transition.manta	THREAT 01 // 风暴蝠鲼	THREAT 01 // STORM MANTA
+boss.transition.wyrm_rule	唯一安全走廊已标定 // 进入 [O] 航道	SAFE CORRIDOR MARKED // ENTER THE [O] LANE
+boss.transition.manta_rule	磁暴危险区已标定 // 避开 [X] 航道	MAGNETIC HAZARD MARKED // EVADE THE [X] LANE
+boss.transition.lock	SIGNAL LOCK // 信号锁定	SIGNAL LOCK
+boss.transition.identify	IDENTITY CONFIRMED // 威胁确认	IDENTITY CONFIRMED
+boss.transition.engage	FINAL SORTIE // 终局交战	FINAL SORTIE
+ending.sequence.carrier	CARRIER ACQUIRED // 货物信号确认	CARRIER ACQUIRED
+ending.sequence.route	ROUTE STABILIZED // 航线正在稳定	ROUTE STABILIZED
+ending.sequence.delivered	DELIVERY CONFIRMED // 配送完成	DELIVERY CONFIRMED
+complete.depart_again	再次出发	DEPART AGAIN
 settings.title	系统设置	SETTINGS
 settings.section	ACCESS // DISPLAY	ACCESS // DISPLAY
 settings.language	语言	LANGUAGE
@@ -22,6 +37,7 @@ settings.shake	震屏强度	SCREEN SHAKE
 settings.flash	闪光强度	FLASH INTENSITY
 settings.tutorials	情境教学	CONTEXTUAL TUTORIALS
 settings.focus_hints	焦点提示	FOCUS HIGHLIGHTS
+settings.enemy_intel	长按敌情详解	HOLD FOR ENEMY INTEL
 settings.on	开启	ON
 settings.off	关闭	OFF
 settings.monitor	由显示器同步	DISPLAY SYNC
@@ -61,11 +77,48 @@ battle.hull	机体  {0}/{1}	HULL  {0}/{1}
 battle.heat	# 热量  {0}/{1}	# HEAT  {0}/{1}
 battle.energy	能量	ENERGY
 battle.armor	护盾 {0}	SHIELD {0}
+battle.deferred_status	托管 {0}  返还 {1}  追踪 {2}  齐射 {3}	ESCROW {0}  RETURN {1}  TRACK {2}  VOLLEY {3}
+battle.lane_field.anchor	[A] 护航锚点	[A] ESCORT ANCHOR
+battle.lane_field.condenser	[C] 冷凝区	[C] CONDENSER
+battle.lane_field.slipstream	[S] 尾流门	[S] SLIPSTREAM
+battle.lane_field.minefield	[X] 雷区	[X] MINEFIELD
+battle.lane_field.ghost	[G] 幽灵走廊	[G] GHOST CORRIDOR
+battle.lane_field.queue	[Q] 队列缓存	[Q] QUEUE CACHE
+battle.lane_field.protocol	航道协议	LANE PROTOCOL
+battle.card_lock.feedback	动作执行中	ACTION IN PROGRESS
+battle.card_lock.feedback_detail	动作执行中，请等待反馈完成	WAIT FOR THE CURRENT ACTION FEEDBACK TO FINISH
+battle.card_lock.energy	能量不足	NOT ENOUGH ENERGY
+battle.card_lock.energy_detail	还差 {0} 点能量	NEED {0} MORE ENERGY
+battle.card_lock.same_lane	当前航道无目标	NO TARGET IN THIS LANE
+battle.card_lock.same_lane_detail	当前航道没有可攻击的敌人	NO ATTACKABLE ENEMY IN THE CURRENT LANE
+battle.card_lock.other_lane	其他航道无目标	NO TARGET IN OTHER LANES
+battle.card_lock.other_lane_detail	其他航道没有符合条件的敌人	NO ELIGIBLE ENEMY IN ANOTHER LANE
+battle.card_lock.no_target	没有可用目标	NO VALID TARGET
+battle.card_lock.no_target_detail	战场上没有可用目标	THERE IS NO VALID TARGET ON THE FIELD
+battle.card_lock.armor	护盾不足	NOT ENOUGH SHIELD
+battle.card_lock.armor_detail	需要至少 4 点护盾	REQUIRES AT LEAST 4 SHIELD
+battle.card_lock.lock_on	需要锁定	LOCK-ON REQUIRED
+battle.card_lock.lock_on_detail	需要至少 1 层锁定	REQUIRES AT LEAST 1 LOCK-ON
+battle.card_lock.momentum	需要动量	MOMENTUM REQUIRED
+battle.card_lock.momentum_detail	需要至少 1 层动量	REQUIRES AT LEAST 1 MOMENTUM
+battle.card_lock.exposure	需要航迹	TRACE REQUIRED
+battle.card_lock.exposure_detail	需要至少 1 层航迹	REQUIRES AT LEAST 1 TRACE
+battle.card_lock.surplus	需要2点能量	2 ENERGY REQUIRED
+battle.card_lock.surplus_detail	需要至少 2 点当前能量才能建立托管	REQUIRES AT LEAST 2 CURRENT ENERGY TO OPEN ESCROW
+battle.card_lock.top_lane	已在最上航道	ALREADY IN TOP LANE
+battle.card_lock.top_lane_detail	飞机已经位于最上方航道	THE COURIER IS ALREADY IN THE TOP LANE
+battle.card_lock.bottom_lane	已在最下航道	ALREADY IN BOTTOM LANE
+battle.card_lock.bottom_lane_detail	飞机已经位于最下方航道	THE COURIER IS ALREADY IN THE BOTTOM LANE
+battle.card_lock.unavailable	当前无法使用	CURRENTLY UNAVAILABLE
+battle.card_lock.unavailable_detail	当前状态不满足这张牌的使用条件	CURRENT STATE DOES NOT MEET THIS CARD'S REQUIREMENTS
 battle.lane	航道 {0}	LANE {0}
 battle.lane.current	[>] 航道 {0} // 当前	[>] LANE {0} // CURRENT
 battle.courier	邮运-07 // 邮差	POST-07 // COURIER
 battle.courier.shift	邮运-07 // 换至航道 {0}	POST-07 // SHIFT TO LANE {0}
 battle.intent.shift	变轨至航道 {0}	SHIFT TO LANE {0}
+battle.intent.current_lane	当前航道 · 换道可规避	CURRENT LANE · SHIFT TO EVADE
+battle.intent.reposition	正在调整攻击航道	REPOSITIONING ATTACK LANE
+battle.intent.resolve	结束回合后执行	RESOLVES AFTER END TURN
 battle.enemy_armor	装甲 {0}/{1}	ARMOR {0}/{1}
 battle.safe_lane	[O] 唯一安全航道	[O] ONLY SAFE LANE
 battle.danger_lane	[X] 雷幕封锁	[X] THUNDER CURTAIN
@@ -82,6 +135,7 @@ feedback.lane_value	航道 {0}	LANE {0}
 feedback.heat_value	热量 {0}	HEAT {0}
 feedback.shield_value	护盾 {0}	SHIELD {0}
 feedback.command_complete	指令完成	COMMAND COMPLETE
+feedback.deferred_value	下回合 {0}	NEXT TURN {0}
 feedback.shield_online	护盾在线	SHIELD ONLINE
 feedback.lane_locked	航道锁定 // {0}	LANE LOCKED // {0}
 feedback.storm_core_safe	CONTRACT SAFE // 风暴核心稳定计时已重置	CONTRACT SAFE // STORM-CORE TIMER RESET
@@ -164,8 +218,8 @@ tutorial.Cargo.body	货物有3格完整度，影响最终评级与报酬。每�
 glossary.Cargo	货物完整度：本局合同的独立耐久，共3格。它不是机体生命；降到0不会立即失事，但会显著降低配送评价和收益。	CARGO INTEGRITY: THE RUN CONTRACT'S SEPARATE 3-POINT DURABILITY. IT IS NOT HULL; REACHING 0 DOES NOT IMMEDIATELY CRASH YOU, BUT IT GREATLY REDUCES DELIVERY GRADE AND PAY.
 tutorial.LaneShift.title	换道	LANE SHIFT
 tutorial.LaneShift.trigger	你首次通过机动牌切换了航道。	YOU CHANGED LANES WITH A MANEUVER CARD FOR THE FIRST TIME.
-tutorial.LaneShift.body	换道可以避开普通同航道攻击，也可以对准目标。当前航道有青色底、粗线和“[>] 当前”文字；换道动画结束前输入会短暂锁定，避免连续误触。	LANE SHIFTS EVADE NORMAL SAME-LANE ATTACKS AND LINE UP TARGETS. YOUR CURRENT LANE HAS A CYAN FILL, THICK LINE, AND “[>] CURRENT” TEXT. INPUT BRIEFLY LOCKS DURING THE SHIFT TO PREVENT ACCIDENTAL REPEATS.
-glossary.LaneShift	换道：从当前航道移动到另一条航道。普通攻击只命中执行时与敌机同航道的邮差，但灾变、雷幕和追踪有各自的目标规则。	LANE SHIFT: MOVE FROM THE CURRENT LANE TO ANOTHER. NORMAL ATTACKS ONLY HIT IF YOU SHARE THE ENEMY'S LANE AT RESOLUTION, BUT CALAMITY, CURTAIN, AND TRACKING ATTACKS USE THEIR OWN TARGET RULES.
+tutorial.LaneShift.body	换道可以避开普通同航道攻击，也可以对准目标。带字母边框的航道协议会留在航道上，在再次进入、回合开始或回合结束时触发；数字表示当前强度。换道动画结束前输入会短暂锁定，避免连续误触。	LANE SHIFTS EVADE NORMAL SAME-LANE ATTACKS AND LINE UP TARGETS. LETTERED LANE PROTOCOLS PERSIST AND TRIGGER ON RE-ENTRY, TURN START, OR TURN END; THEIR NUMBER SHOWS CURRENT STRENGTH. INPUT BRIEFLY LOCKS DURING THE SHIFT.
+glossary.LaneShift	换道：从当前航道移动到另一条航道。普通攻击只命中执行时与敌机同航道的邮差；航道协议会明确标出锚点、冷凝、尾流、雷区、幽灵或缓存效果，并按各自时机结算。	LANE SHIFT: MOVE FROM THE CURRENT LANE TO ANOTHER. NORMAL ATTACKS ONLY HIT IF YOU SHARE THE ENEMY'S LANE AT RESOLUTION. LANE PROTOCOLS CLEARLY MARK ANCHOR, CONDENSER, SLIPSTREAM, MINEFIELD, GHOST, OR CACHE EFFECTS AND RESOLVE AT THEIR STATED TIMING.
 tutorial.Tracking.title	航迹追踪	TRACKING FIRE
 tutorial.Tracking.trigger	你连续依赖换道，敌方开始锁定暴露航迹。	REPEATED LANE SHIFTS CAUSED ENEMIES TO LOCK ONTO YOUR TRACE.
 tutorial.Tracking.body	连续回合换道会提高航迹暴露。达到2层后，敌人会以“X 追踪”文字预告无法靠再次换道躲避的追踪弹。停留一回合，或用信号扰频、矢量刹车等牌主动清除暴露。	SHIFTING ON CONSECUTIVE TURNS BUILDS TRACE EXPOSURE. AT 2 STACKS, ENEMIES PREVIEW “X TRACKING” FIRE THAT ANOTHER SHIFT CANNOT EVADE. STAY PUT FOR A TURN OR CLEAR EXPOSURE WITH SIGNAL SCRAMBLER, AIR BRAKE, AND SIMILAR CARDS.
@@ -186,6 +240,80 @@ tutorial.Boss.title	Boss规则矩阵	BOSS RULE MATRIX
 tutorial.Boss.trigger	首次进入终局Boss战，第二阶段反制规则已经公开。	YOU ENTERED YOUR FIRST FINALE BOSS; ITS PHASE-TWO COUNTERS ARE VISIBLE.
 tutorial.Boss.body	Boss除航道攻击外，还会在第二阶段同时读取合同、机体改装和纪事阵营。顶部矩阵和首领旁面板会用颜色、双“!!”形状与文字显示当前反制；先看安全航道和打断阈值，再提交回合。	IN ADDITION TO LANE ATTACKS, THE BOSS READS YOUR CONTRACT, AIRFRAME, AND CHRONICLE ALIGNMENT IN PHASE TWO. THE TOP MATRIX AND BOSS PANELS USE COLOR, A DOUBLE “!!” SYMBOL, AND TEXT FOR ACTIVE COUNTERS. READ SAFE LANES AND BREAK THRESHOLDS BEFORE ENDING THE TURN.
 glossary.Boss	Boss矩阵：终局首领第二阶段的三组公开反制，包括合同协议、机体协议和纪事阵营。它们是确定性规则，不是隐藏随机效果。	BOSS MATRIX: THREE PUBLIC PHASE-TWO COUNTERS FOR CONTRACT PROTOCOL, AIRFRAME PROTOCOL, AND CHRONICLE ALIGNMENT. THESE ARE DETERMINISTIC RULES, NOT HIDDEN RANDOM EFFECTS.
+tutorial.EnemyIntel.title	敌情详解	ENEMY INTEL
+tutorial.EnemyIntel.trigger	首次进入战斗：长按任意敌人可展开完整资料。	FIRST BATTLE: HOLD ANY ENEMY TO OPEN ITS COMPLETE INTEL.
+tutorial.EnemyIntel.body	在敌人机体上持续按住鼠标左键约0.45秒，即可查看当前意图、固有机能、实时状态和应对建议；松开鼠标立即关闭。此功能可在系统设置中关闭，也可按F1在词典中随时重看本教程。	HOLD THE LEFT MOUSE BUTTON ON AN ENEMY FOR ABOUT 0.45 SECONDS TO REVIEW ITS CURRENT INTENT, INNATE MECHANIC, LIVE STATUS, AND COUNTERPLAY. RELEASE TO CLOSE. THIS FEATURE CAN BE DISABLED IN SETTINGS, AND THIS TUTORIAL REMAINS AVAILABLE IN THE F1 RULEBOOK.
+glossary.EnemyIntel	敌情详解：长按存活敌人的机体约0.45秒打开。面板读取当前战斗状态，不会暂停或改变敌人的行动；松开即关闭。	ENEMY INTEL: HOLD A LIVING ENEMY FOR ABOUT 0.45 SECONDS TO OPEN IT. THE PANEL READS THE CURRENT BATTLE STATE WITHOUT ALTERING ENEMY ACTIONS; RELEASE TO CLOSE.
+intel.hold.progress	持续按住 // 解析敌情	KEEP HOLDING // DECODING INTEL
+intel.stats	机体 {0}/{1}　装甲 {2}/{3}	HULL {0}/{1}  ARMOR {2}/{3}
+intel.position	航道 {0}　阶段 {1}	LANE {0}  PHASE {1}
+intel.intent.title	本回合意图	CURRENT INTENT
+intel.mechanic.title	固有机能	INNATE MECHANIC
+intel.counter.title	应对建议	COUNTERPLAY
+intel.status.title	实时状态	LIVE STATUS
+intel.release	松开鼠标关闭敌情详解	RELEASE MOUSE TO CLOSE ENEMY INTEL
+intel.class.boss	终局首领 // 公开反制矩阵	FINALE BOSS // PUBLIC COUNTER MATRIX
+intel.class.midboss	中阶首领 // 层级考核	MID-BOSS // FLOOR CHECKPOINT
+intel.class.elite	精英机能单位	ELITE MECHANIC UNIT
+intel.class.standard	航线威胁单位	ROUTE THREAT UNIT
+intel.charge.none	蓄力：未锁定	CHARGE: NO TARGET
+intel.charge.broken	蓄力：已打断	CHARGE: INTERRUPTED
+intel.charge.active	蓄力：航道 {0}，累计受击 {1}	CHARGE: LANE {0}, DAMAGE TAKEN {1}
+intel.live.salvage	逃离倒计时：{0}	ESCAPE COUNTDOWN: {0}
+intel.live.tailor	当前缝合：航道 {0}-{1}	CURRENT SEAM: LANES {0}-{1}
+intel.live.prism.empty	折光记录：等待首击	PRISM RECORD: AWAITING FIRST HIT
+intel.live.prism	折光记录：航道 {0}	PRISM RECORD: LANE {0}
+intel.live.weather	天气相位：{0}/3	WEATHER PHASE: {0}/3
+intel.live.standard	基础伤害：{0}	BASE DAMAGE: {0}
+intel.status.body	生命：{0}/{1}\n装甲：{2}/{3}\n{4}\n{5}	HULL: {0}/{1}\nARMOR: {2}/{3}\n{4}\n{5}
+intel.mechanic.RustKite	追迹猎手：连续换道形成暴露后，会发射无法再次靠换道躲避的追踪弹。	TRACKING HUNTER: REPEATED LANE CHANGES BUILD EXPOSURE, THEN LAUNCH A TRACKING SHOT THAT CANNOT BE EVADED BY MOVING AGAIN.
+intel.mechanic.MailEater	航道封锁：同航道时强化撞击；不同行时向你的航道靠近。自带货舱装甲。	LANE BLOCKADE: RAMS HARDER WHEN SHARING YOUR LANE; OTHERWISE MOVES TOWARD YOU. STARTS WITH CARGO ARMOR.
+intel.mechanic.StormBalloon	全域风暴：无视双方航道，对邮差造成稳定的全航道伤害。	GLOBAL STORM: IGNORES BOTH POSITIONS AND DEALS RELIABLE ALL-LANE DAMAGE.
+intel.mechanic.StormManta	磁暴两阶段：锁定危险航道蓄力；第二阶段命中目标航道并波及邻道，同时启用合同与机体反制。	TWO-STAGE MAGNETIC STORM: LOCKS A HAZARD LANE, THEN STRIKES IT AND ADJACENT LANES WHILE ENABLING CONTRACT AND AIRFRAME COUNTERS.
+intel.mechanic.CloudWyrm	雷幕两阶段：标出唯一安全航道；第二阶段提高伤害和打断门槛，并启用反制矩阵。	TWO-STAGE THUNDER CURTAIN: MARKS THE ONLY SAFE LANE; PHASE TWO RAISES DAMAGE AND BREAK THRESHOLD AND ENABLES ITS COUNTER MATRIX.
+intel.mechanic.CalamityDrone	灾变蓄力：预告锁定航道与打断进度。未在阈值前集中火力便会发动重击。	CALAMITY CHARGE: REVEALS ITS TARGET LANE AND BREAK PROGRESS. FAILURE TO FOCUS ENOUGH DAMAGE TRIGGERS A HEAVY STRIKE.
+intel.mechanic.ShieldLeech	盾蚀：邮差护盾达到5点时优先清空护盾；否则按普通航道攻击行动。	SHIELD LEECH: WHEN YOUR SHIELD REACHES 5, IT DRAINS IT FIRST; OTHERWISE IT USES STANDARD LANE ATTACKS.
+intel.mechanic.HandJammer	手牌干扰：结束回合保留5张以上手牌时触发伤害，少量手牌时只进行监听。	HAND JAMMER: DEALS DAMAGE IF YOU END THE TURN WITH AT LEAST 5 CARDS; WITH A SMALL HAND IT ONLY MONITORS.
+intel.mechanic.HeatSeeker	热源锁定：热量达到4点后触发热寻攻击；低热时按普通航道规则行动。	HEAT LOCK: TRIGGERS A SEEKING ATTACK AT 4 OR MORE HEAT; AT LOW HEAT IT FOLLOWS NORMAL LANE RULES.
+intel.mechanic.SignalHijacker	协议劫持：依次窃取锁定、动量或航迹暴露，并把窃取结果转化为自身装甲。	PROTOCOL HIJACK: STEALS LOCK, MOMENTUM, OR TRACE IN SEQUENCE AND CONVERTS THE STOLEN RESOURCE INTO ARMOR.
+intel.mechanic.CurtainHerald	先导雷幕：提前教学唯一安全航道规则；蓄力可被集中伤害打断。	CURTAIN HERALD: INTRODUCES THE SINGLE SAFE-LANE RULE; ITS CHARGE CAN BE INTERRUPTED WITH FOCUSED DAMAGE.
+intel.mechanic.FluxSkimmer	磁针扫掠：目标航道及相邻航道均危险，仅最远航道可规避；蓄力可打断。	FLUX SWEEP: THE TARGET AND ADJACENT LANE ARE DANGEROUS; ONLY THE FARTHEST LANE IS SAFE. ITS CHARGE CAN BE BROKEN.
+intel.mechanic.TimeLagJelly	时差观测：记录本回合出牌数；打出第4张及更多卡牌后，结束回合释放时差脉冲。	TIME-LAG OBSERVER: COUNTS CARDS PLAYED THIS TURN; PLAYING A FOURTH OR LATER CARD ENABLES AN END-TURN PULSE.
+intel.mechanic.SalvageCorvid	携赃逃离：倒计时归零后离开战场，每艘逃脱的鸦艇都会减少战后邮票。	SALVAGE ESCAPE: LEAVES WHEN ITS COUNTDOWN REACHES ZERO; EACH ESCAPING CORVID REDUCES POST-BATTLE STAMPS.
+intel.mechanic.LaneTailor	缝合航道：轮流连接相邻两条航道；换道穿过缝线会增加航迹暴露。	LANE TAILOR: ALTERNATES A LINK BETWEEN ADJACENT LANES; CROSSING THE LINK ADDS TRACE EXPOSURE.
+intel.mechanic.NullBeacon	空白庇护：每回合为当前最脆弱的友军增加装甲；失去友军后才亲自攻击。	NULL SHELTER: GRANTS ARMOR TO THE MOST VULNERABLE ALLY EACH TURN; ATTACKS DIRECTLY ONLY AFTER ITS ALLIES ARE GONE.
+intel.mechanic.PrismStowaway	折光记录：记住首次受击所在航道，并在下一次行动向该航道发射折射炮。	PRISM RECORD: REMEMBERS THE LANE OF ITS FIRST HIT, THEN FIRES A REFRACTED SHOT AT THAT LANE ON ITS NEXT ACTION.
+intel.mechanic.DebtCollector	债务审计：第4张牌起，每张超额牌都会提高结算伤害并为清算官增加装甲。	DEBT AUDIT: FROM THE FOURTH CARD ON, EACH EXTRA CARD INCREASES SETTLEMENT DAMAGE AND GRANTS THE COLLECTOR ARMOR.
+intel.mechanic.ThunderChoir	雷鸣和声：本回合若未命中至少两条不同航道，便获得装甲并释放共振伤害。	THUNDER HARMONY: IF YOU FAIL TO HIT AT LEAST TWO DIFFERENT LANES THIS TURN, IT GAINS ARMOR AND RELEASES RESONANCE DAMAGE.
+intel.mechanic.MobiusHangar	莫比乌斯折叠：行动后让全部存活敌人的航道循环旋转；同航道时同时发动撞击。	MOBIUS FOLD: ROTATES EVERY SURVIVING ENEMY TO THE NEXT LANE AFTER ACTING; ALSO RAMS WHEN SHARING YOUR LANE.
+intel.mechanic.CrateHive	功能舱母巢：侧舱存活时核心持续重组装甲；侧舱清空后核心暴露，但会发动更强反扑。	MODULE HIVE: WHILE SIDE PODS LIVE, THE CORE REBUILDS ARMOR; ONCE CLEARED, THE CORE IS EXPOSED BUT RETALIATES HARDER.
+intel.mechanic.WeatherClock	三相轮转：赤相检查热量，青相检查是否换道，白相结晶获得大量装甲。	THREE-PHASE CYCLE: RED CHECKS HEAT, CYAN CHECKS WHETHER YOU MOVED, AND WHITE CRYSTALLIZES INTO HEAVY ARMOR.
+intel.mechanic.CourierZero	构筑审计：锁定常用航道蓄力；第二阶段额外检查保留手牌和剩余能量，并启用反制矩阵。	BUILD AUDIT: CHARGES AT YOUR FAVORED LANE; PHASE TWO ALSO CHECKS RETAINED HAND SIZE AND UNUSED ENERGY AND ENABLES ITS COUNTER MATRIX.
+intel.mechanic.InvertedSkyWhale	重力翻转：第一阶段轰击标记航道；第二阶段规则反转，标记航道成为唯一安全区。	GRAVITY INVERSION: PHASE ONE BOMBARDS THE MARKED LANE; PHASE TWO REVERSES THE RULE SO THE MARKED LANE IS THE ONLY SAFE AREA.
+intel.counter.RustKite	不要连续依赖换道；停留一回合或使用清除航迹的卡牌。	DO NOT RELY ON REPEATED LANE CHANGES; HOLD POSITION FOR A TURN OR CLEAR TRACE.
+intel.counter.MailEater	在撞击前换道，或尽快击穿货舱装甲。	CHANGE LANES BEFORE THE RAM OR BREAK THROUGH ITS CARGO ARMOR QUICKLY.
+intel.counter.StormBalloon	无法靠换道规避，优先击破或准备护盾。	MOVEMENT CANNOT EVADE IT; DESTROY IT EARLY OR PREPARE SHIELD.
+intel.counter.StormManta	避开目标及第二阶段邻道，或在公开阈值前集中输出完成打断。	AVOID THE TARGET AND ITS PHASE-TWO ADJACENT LANES, OR FOCUS DAMAGE TO REACH THE PUBLIC BREAK THRESHOLD.
+intel.counter.CloudWyrm	进入标出的安全航道；不能及时换道时，用集中火力打断雷幕。	ENTER THE MARKED SAFE LANE; IF YOU CANNOT MOVE IN TIME, FOCUS FIRE TO BREAK THE CURTAIN.
+intel.counter.CalamityDrone	观察锁定航道，选择换道规避或集中伤害打断。	READ THE LOCKED LANE, THEN MOVE AWAY OR FOCUS DAMAGE TO INTERRUPT.
+intel.counter.ShieldLeech	避免在其行动前堆到5点护盾，或优先消灭水蛭。	AVOID REACHING 5 SHIELD BEFORE IT ACTS, OR REMOVE THE LEECH FIRST.
+intel.counter.HandJammer	结束回合前把手牌降到4张以下。	END THE TURN WITH FEWER THAN 5 CARDS.
+intel.counter.HeatSeeker	在结束回合前把热量控制到4点以下。	KEEP HEAT BELOW 4 BEFORE ENDING THE TURN.
+intel.counter.SignalHijacker	先花掉锁定与动量并清除暴露，减少可被劫持的资源。	SPEND LOCK AND MOMENTUM AND CLEAR EXPOSURE BEFORE IT CAN STEAL THEM.
+intel.counter.CurtainHerald	进入唯一安全航道，或达到显示的打断阈值。	ENTER THE ONLY SAFE LANE OR REACH THE DISPLAYED BREAK THRESHOLD.
+intel.counter.FluxSkimmer	移动到与目标航道距离2的航道，或打断磁针蓄力。	MOVE TWO LANES AWAY FROM THE TARGET OR BREAK ITS FLUX CHARGE.
+intel.counter.TimeLagJelly	把每回合出牌数控制在3张以内，或优先处理水母。	PLAY NO MORE THAN 3 CARDS PER TURN OR REMOVE THE JELLY FIRST.
+intel.counter.SalvageCorvid	在倒计时归零前击破；高爆发比慢速防守更重要。	DESTROY IT BEFORE THE COUNTDOWN EXPIRES; BURST DAMAGE MATTERS MORE THAN SLOW DEFENSE.
+intel.counter.LaneTailor	观察当前缝合区，减少穿越，或准备航迹清除。	WATCH THE CURRENT LINK, CROSS IT LESS OFTEN, OR PREPARE TRACE CLEARING.
+intel.counter.NullBeacon	优先击破信标，阻止装甲持续转移给核心单位。	DESTROY THE BEACON FIRST TO STOP ITS REPEATED ARMOR SUPPORT.
+intel.counter.PrismStowaway	记录自己首次攻击的航道，在折射结算前离开该航道。	REMEMBER THE LANE OF YOUR FIRST ATTACK AND LEAVE IT BEFORE REFRACTION RESOLVES.
+intel.counter.DebtCollector	前三张牌完成关键动作；爆发回合需准备承受债务伤害。	FINISH KEY ACTIONS WITHIN THE FIRST 3 CARDS; EXPECT DEBT DAMAGE ON BURST TURNS.
+intel.counter.ThunderChoir	使用齐射、溅射或跨航道攻击，在同回合命中两条航道。	USE VOLLEY, SPLASH, OR CROSS-LANE ATTACKS TO HIT TWO LANES IN ONE TURN.
+intel.counter.MobiusHangar	按旋转后的下一航道规划攻击，不要只依赖当前站位。	PLAN AROUND THE NEXT ROTATED LANE INSTEAD OF AIMING ONLY AT CURRENT POSITIONS.
+intel.counter.CrateHive	先拆两侧功能舱，再对暴露核心集中爆发。	REMOVE BOTH SIDE PODS, THEN BURST DOWN THE EXPOSED CORE.
+intel.counter.WeatherClock	赤相降热、青相主动换道、白相保留破甲或高伤害。	LOWER HEAT IN RED, MOVE IN CYAN, AND SAVE ARMOR BREAK OR HEAVY DAMAGE FOR WHITE.
+intel.counter.CourierZero	控制出牌与手牌规模，并保留至少1点能量避免其强化。	CONTROL CARDS PLAYED AND HAND SIZE, AND KEEP AT LEAST 1 ENERGY TO DENY ITS UPGRADE.
+intel.counter.InvertedSkyWhale	第一阶段避开标记；第二阶段必须进入标记安全航道。	AVOID THE MARK IN PHASE ONE; IN PHASE TWO, MOVE INTO THE MARKED SAFE LANE.
 pause.restart	重新开始本次配送	RESTART DELIVERY
 pause.title_button	返回标题	RETURN TO TITLE
 archive.title	群岛邮政档案	ARCHIPELAGO POSTAL ARCHIVE
@@ -347,6 +475,49 @@ enemy.HeatSeeker	热寻隼	HEAT-SEEKER
 enemy.SignalHijacker	协议劫持机	SIGNAL HIJACKER
 enemy.CurtainHerald	雷幕先导	CURTAIN HERALD
 enemy.FluxSkimmer	磁针鳐卫	FLUX SKIMMER
+enemy.TimeLagJelly	时差水母	TIME-LAG JELLY
+enemy.SalvageCorvid	拾荒鸦艇	SALVAGE CORVID
+enemy.LaneTailor	航道裁缝	LANE TAILOR
+enemy.NullBeacon	空白信标	NULL BEACON
+enemy.PrismStowaway	折光寄舱蟹	PRISM STOWAWAY
+enemy.DebtCollector	债务清算官	DEBT COLLECTOR
+enemy.ThunderChoir	雷鸣唱诗班	THUNDER CHOIR
+enemy.MobiusHangar	莫比乌斯机库	MOBIUS HANGAR
+enemy.CrateHive	万箱母巢	CRATE HIVE
+enemy.WeatherClock	三相气象钟	TRIPHASE WEATHER CLOCK
+enemy.CourierZero	零号邮差	COURIER ZERO
+enemy.InvertedSkyWhale	倒悬天穹鲸	INVERTED SKY WHALE
+
+intent.time_lag.fire	时差脉冲 {0} / 已出牌 {1} · 第4张后触发	TIME PULSE {0} / {1} CARDS · TRIGGERS AFTER FOURTH
+intent.time_lag.watch	观测节拍 / 已出牌 {0} · 第4张后触发	WATCH RHYTHM / {0} CARDS · TRIGGERS AFTER FOURTH
+intent.salvage.escape	掠夺倒计时 {0} / 逃离将减少战后邮票	LOOT COUNTDOWN {0} / ESCAPE REDUCES REWARD
+intent.tailor.stitch	缝合航道 {0}-{1} / 穿越后航迹+1	STITCH LANES {0}-{1} / CROSSING ADDS EXPOSURE
+intent.beacon.solo	空白放电 {0} / 同航道攻击	NULL DISCHARGE {0} / SAME-LANE ATTACK
+intent.beacon.guard	协议庇护 / {0}装甲+3	PROTOCOL GUARD / {0} ARMOR +3
+intent.prism.record	记录首击 / 下回合折射受击航道	RECORD FIRST HIT / REFRACT THAT LANE NEXT TURN
+intent.prism.fire	折射炮 {0} / 航道 {1}	REFRACTION CANNON {0} / LANE {1}
+intent.debt.audit	资源审计 / 第4张牌后累积债务	RESOURCE AUDIT / DEBT AFTER FOURTH CARD
+intent.debt.collect	债务清算 {0} / 超额出牌 {1}	COLLECT DEBT {0} / EXCESS CARDS {1}
+intent.choir.broken	和声破坏 / 已命中两条航道	HARMONY BROKEN / TWO LANES HIT
+intent.choir.resonate	雷鸣共振 {0} / 需命中两条航道	THUNDER RESONANCE {0} / HIT TWO LANES
+intent.mobius.rotate	莫比乌斯折叠 / 全体敌军航道旋转	MOBIUS FOLD / ROTATE ALL ENEMY LANES
+intent.hive.rebuild	母巢调度 {0} / 存活功能舱 {1}	HIVE DISPATCH {0} / LIVE PODS {1}
+intent.hive.exposed	核心暴露 {0} / 全航道反扑	CORE EXPOSED {0} / ALL-LANE RETALIATION
+intent.weather.red_strike	赤相热灾 {0} / 热量4+触发	RED HEATSTORM {0} / TRIGGERS AT 4+ HEAT
+intent.weather.red_rise	赤相升温 / 热量+2	RED PHASE / HEAT +2
+intent.weather.cyan_safe	青相顺流 / 已换道 · 航迹-1	CYAN FLOW / SHIFTED · EXPOSURE -1
+intent.weather.cyan_strike	青相锁航 {0} / 未换道触发	CYAN LOCK {0} / TRIGGERS WITHOUT SHIFT
+intent.weather.white	白相结晶 / 装甲+6	WHITE CRYSTAL / ARMOR +6
+intent.zero.transition	阶段转换 / 航线复制上线	PHASE SHIFT / ROUTE COPY ONLINE
+intent.zero.scan	构筑审计 / 重新扫描常用航道	BUILD AUDIT / RESCAN COMMON LANE
+intent.zero.interrupted	退件失败 / 核心暂时离线	RETURN FAILED / CORE OFFLINE
+intent.zero.audit	构筑审计 {0} / 航道 {1} · 打断 {2}/{3}	BUILD AUDIT {0} / LANE {1} · BREAK {2}/{3}
+intent.zero.return	最终退件 {0} / 航道 {1} · 手牌4+追加审计	FINAL RETURN {0} / LANE {1} · 4+ HELD ADDS AUDIT
+intent.whale.transition	阶段转换 / 环城重力翻转	PHASE SHIFT / CITY GRAVITY INVERTED
+intent.whale.rotate	鲸背旋航 / 重绘环城航道	WHALEBACK TURN / REDRAW CITY LANES
+intent.whale.interrupted	浮力囊破裂 / 鲸落延迟	FLOAT BLADDER BROKEN / FALL DELAYED
+intent.whale.cannon	外环城炮 {0} / 轰击航道 {1}	OUTER CITY CANNON {0} / STRIKE LANE {1}
+intent.whale.fall	鲸落 {0} / 仅航道 {1} 安全	WHALEFALL {0} / ONLY LANE {1} SAFE
 event.open.FragileMedicine.title	失压医疗驳船	DEPRESSURIZED MEDICAL BARGE
 event.open.CryoSerum.title	冻裂冷却塔	FRACTURED COOLING TOWER
 event.open.StormCore.title	雷暴走私信标	STORM SMUGGLER BEACON
@@ -409,10 +580,38 @@ event.confirm	确认选择	CONFIRM
 map.route_status	区域 {0}/{1} // 情报范围 2 // 信标纪事：{2}	SECTOR {0}/{1} // INTEL RANGE 2 // SIGNAL THREAD: {2}
 map.title	风车群岛分支航线	WINDMILL ARCHIPELAGO ROUTE
 map.act_status	第 {0} 幕 / 3 · {1}　//　区域 {2}/{3}　//　信标纪事：{4}	ACT {0} / 3 · {1}  //  SECTOR {2}/{3}  //  SIGNAL THREAD: {4}
+map.floor_status	第 {0} 层 / 5 · {1}　//　区域 {2}/{3}　//　信标纪事：{4}	FLOOR {0} / 5 · {1}  //  SECTOR {2}/{3}  //  SIGNAL THREAD: {4}
 map.node_detail	{0}\n预期产出：{1}　//　空域：{2}	{0}\nEXPECTED: {1}  //  AIRSPACE: {2}
 map.enter_boss	挑战首领	CHALLENGE BOSS
+map.enter_midboss	挑战中阶首领	CHALLENGE MID-BOSS
+map.risk.checkpoint	阶段考核	FLOOR CHECK
+map.reward.midboss	稀有模块与层级补给	RARE MODULE AND FLOOR SUPPLIES
+encounter.midboss.name	层级考核空域	FLOOR CHECK AIRSPACE
+encounter.zero.name	零号邮局	POST OFFICE ZERO
+encounter.whale.name	倒悬天穹城	INVERTED SKY CITY
+boss.transition.zero	THREAT 03 // 零号邮差	THREAT 03 // COURIER ZERO
+boss.transition.whale	THREAT 04 // 倒悬天穹鲸	THREAT 04 // INVERTED SKY WHALE
+boss.transition.zero_rule	退件审计已上线 // 控制出牌与手牌	RETURN AUDIT ONLINE // CONTROL CARDS PLAYED AND HELD
+boss.transition.whale_rule	重力规则将在第二阶段翻转	GRAVITY RULE INVERTS IN PHASE TWO
+dossier.CourierZero.rule	零号邮差审计高频出牌。第二阶段还会检查手牌与剩余能量。	Courier Zero audits high-frequency play, then checks held cards and remaining energy.
+dossier.InvertedSkyWhale.rule	第一阶段轰击危险航道，第二阶段规则翻转为唯一安全航道。	Phase one strikes a danger lane; phase two inverts it into the only safe lane.
 map.enter_node	前往 {0}	ENTER {0}
-map.scroll_help	滚轮 / 航标拖动浏览路线	WHEEL / ROUTE BAR TO BROWSE
+map.scroll_help	按住航图拖动 / 滚轮浏览全航线	HOLD AND DRAG MAP / WHEEL TO BROWSE FULL ROUTE
+map.unresolved	航路情报未解析	ROUTE INTEL UNRESOLVED
+map.signal_unresolved	信号未解析	SIGNAL UNRESOLVED
+map.status.done	完成	DONE
+map.status.current	当前	CURRENT
+map.status.open	可进入	OPEN
+map.status.closed	已错过	CLOSED
+map.status.scan	待解析	SCANNING
+map.kind.skirmish	普通战	SKIRMISH
+map.kind.elite	精英战	ELITE
+map.kind.hunt	追猎战	HUNT
+map.kind.shop	补给站	SUPPLY
+map.kind.event	航线事件	ROUTE EVENT
+map.kind.rest	维修坞	REPAIR DOCK
+map.kind.midboss	中阶首领	MID-BOSS
+map.kind.boss	首领	BOSS
 map.risk.low	低风险	LOW RISK
 map.risk.variable	风险交易	RISK TRADE
 map.risk.standard	标准威胁	STANDARD
@@ -764,13 +963,13 @@ card.ReserveCapacitor.rules	获得5点护盾；支付后剩1点能量时再获�
 card.ScheduledShot.rules	对同航道造成6点伤害；支付后剩1点能量时额外造成3点。	DEAL 6 DAMAGE IN YOUR LANE, PLUS 3 IF PAYMENT LEAVES 1 ENERGY.
 card.DispatchLoop.rules	抽1张牌；支付后剩1点能量时改为抽2张。	DRAW 1 CARD, OR 2 IF PAYMENT LEAVES 1 ENERGY.
 card.LockVoucher.rules	消耗1层锁定并抽1张牌；支付后剩1点能量时获得1点能量并再抽1张。	SPEND 1 LOCK-ON AND DRAW 1. IF PAYMENT LEAVES 1 ENERGY, GAIN 1 ENERGY AND DRAW 1 MORE.
-card.DeferredVolley.rules	对所有敌人造成3点伤害；支付后剩1点能量时改为5点。	DEAL 3 DAMAGE TO ALL ENEMIES, OR 5 IF PAYMENT LEAVES 1 ENERGY.
+card.DeferredVolley.rules	预定下回合开始时对所有敌人造成5点伤害；支付后剩1点能量时改为7点。	SCHEDULE 5 DAMAGE TO ALL ENEMIES AT THE START OF NEXT TURN, OR 7 IF PAYMENT LEAVES 1 ENERGY.
 card.BudgetThruster.rules	切换至对侧外航道并获得3点护盾；支付后剩1点能量时返还1点。	SHIFT TO THE OPPOSITE OUTER LANE AND GAIN 3 SHIELD. REFUND 1 ENERGY IF PAYMENT LEAVES 1.
 card.SpareChannel.rules	抽1张牌；支付后剩1点能量时，本回合保留其余手牌。	DRAW 1. IF PAYMENT LEAVES 1 ENERGY, RETAIN THE REST OF YOUR HAND THIS TURN.
-card.ExactChange.rules	将超过1点的能量全部转化为护盾，每转化1点获得4点护盾。	CONVERT ALL ENERGY ABOVE 1 INTO 4 SHIELD EACH.
-card.QueueCollapse.rules	追踪最低耐久敌人，手牌越多伤害越高；支付后剩1点能量时抽1张。	TRACK THE LOWEST-HEALTH ENEMY; DEAL MORE DAMAGE WITH A LARGER HAND. DRAW 1 IF PAYMENT LEAVES 1 ENERGY.
-card.FinalAllocation.rules	获得6点加支付后剩余能量四倍的护盾。	GAIN 6 SHIELD PLUS 4 TIMES YOUR ENERGY REMAINING AFTER PAYMENT.
-card.PostalOverdrive.rules	追踪最低耐久敌人造成18点伤害；支付后剩1点能量时额外造成8点。	TRACK THE LOWEST-HEALTH ENEMY FOR 18 DAMAGE, PLUS 8 IF PAYMENT LEAVES 1 ENERGY.
+card.ExactChange.rules	将超过1点的能量全部托管，下回合返还；每托管1点立即获得2点护盾。	ESCROW ALL ENERGY ABOVE 1 FOR NEXT TURN. GAIN 2 SHIELD FOR EACH ENERGY ESCROWED.
+card.QueueCollapse.rules	追踪最低耐久敌人，当前手牌与上回合保留手牌越多伤害越高；剩1点能量时抽1张。	TRACK THE LOWEST-HEALTH ENEMY. CURRENT AND PREVIOUSLY RETAINED CARDS INCREASE DAMAGE. DRAW 1 AT 1 ENERGY.
+card.FinalAllocation.rules	获得6点护盾；本回合每点已返还的托管能量再获得6点护盾。	GAIN 6 SHIELD, PLUS 6 FOR EACH ESCROWED ENERGY RETURNED THIS TURN.
+card.PostalOverdrive.rules	追踪最低耐久敌人造成18点伤害；剩1点能量时额外造成8点，每点已返还托管能量再造成4点。	TRACK THE LOWEST-HEALTH ENEMY FOR 18 DAMAGE, PLUS 8 AT 1 ENERGY AND 4 PER ESCROWED ENERGY RETURNED THIS TURN.
 boss.protocol.contract.ReserveSiphon.name	余量虹吸	RESERVE SIPHON
 boss.protocol.contract.ReserveSiphon.rule	敌方阶段开始时若恰好保留1点能量，首领获得3点装甲。	If exactly 1 Energy remains when the enemy phase begins, the boss gains 3 Armor.
 event.open.SignalSeed.title	休眠信标苗圃	DORMANT BEACON NURSERY
@@ -937,3 +1136,33 @@ card.ExactChange.name	精确找零	EXACT CHANGE
 card.QueueCollapse.name	队列坍缩	QUEUE COLLAPSE
 card.FinalAllocation.name	最终分配	FINAL ALLOCATION
 card.PostalOverdrive.name	邮路超频	POSTAL OVERDRIVE
+card.EscortAnchor.name	护航锚点	ESCORT ANCHOR
+card.EscortAnchor.rules	获得4点护盾，在当前航道部署锚点；下次进入或回合开始于此处时，获得6点护盾与1层锁定。	GAIN 4 SHIELD AND DEPLOY AN ANCHOR IN THIS LANE. NEXT ENTRY OR TURN START HERE GRANTS 6 SHIELD AND 1 LOCK.
+card.PrismReticle.name	棱镜准星	PRISM RETICLE
+card.PrismReticle.rules	获得1层锁定；已有至少6点护盾时抽1张牌，否则获得4点护盾。	GAIN 1 LOCK. DRAW 1 WITH AT LEAST 6 SHIELD; OTHERWISE GAIN 4 SHIELD.
+card.AegisRicochet.name	神盾跳弹	AEGIS RICOCHET
+card.AegisRicochet.rules	对同航道造成5点加当前护盾三分之一的伤害；有锁定时再获得4点护盾。	DEAL 5 PLUS ONE THIRD OF YOUR SHIELD IN YOUR LANE. GAIN 4 SHIELD IF YOU HAVE LOCK.
+card.CondenserBeacon.name	冷凝航标	CONDENSER BEACON
+card.CondenserBeacon.rules	降低1点热量并在当前航道部署冷凝区；下次进入或回合开始于此处时降低3点热量并校准暴击。	REMOVE 1 HEAT AND DEPLOY A CONDENSER HERE. NEXT ENTRY OR TURN START REMOVES 3 HEAT AND ARMS A CRITICAL HIT.
+card.ThermalPendulum.name	热摆回路	THERMAL PENDULUM
+card.ThermalPendulum.rules	热量不高于2时增加3点热量并获得1点能量；否则降低3点热量并抽1张牌。	AT 2 OR LESS HEAT, GAIN 3 HEAT AND 1 ENERGY. OTHERWISE REMOVE 3 HEAT AND DRAW 1.
+card.QuenchDetonation.name	淬火爆破	QUENCH DETONATION
+card.QuenchDetonation.rules	对同航道造成10点伤害；低热时增加3点热量，否则降低3点热量。	DEAL 10 DAMAGE IN YOUR LANE. GAIN 3 HEAT WHILE COOL; OTHERWISE REMOVE 3 HEAT.
+card.SlipstreamGate.name	尾流门	SLIPSTREAM GATE
+card.SlipstreamGate.rules	在当前航道部署尾流，穿越至对侧外航道并获得1层动量；再次进入尾流时获得能量与动量。	DEPLOY A SLIPSTREAM HERE, CROSS TO THE OPPOSITE OUTER LANE, AND GAIN 1 MOMENTUM. RE-ENTRY GRANTS ENERGY AND MOMENTUM.
+card.OrbitSalvo.name	环航齐射	ORBIT SALVO
+card.OrbitSalvo.rules	对所有敌人造成2点加当前动量的伤害；本回合换过航道时校准下一张齐射。	DEAL 2 PLUS MOMENTUM TO ALL ENEMIES. IF YOU CHANGED LANES THIS TURN, PRIME YOUR NEXT VOLLEY.
+card.VectorMinefield.name	矢量雷区	VECTOR MINEFIELD
+card.VectorMinefield.rules	在当前航道部署6点加动量两倍的雷区，再穿越至对侧外航道；雷区会在回合结束时攻击留在其中的敌人。	DEPLOY A 6 PLUS TWICE MOMENTUM MINEFIELD HERE, THEN CROSS LANES. IT STRIKES ENEMIES LEFT IN THAT LANE AT TURN END.
+card.GhostCorridor.name	幽灵走廊	GHOST CORRIDOR
+card.GhostCorridor.rules	获得1层航迹暴露并抽1张牌，在当前航道部署幽灵走廊；再次进入时清除2层航迹并获得1层锁定。	GAIN 1 TRACE AND DRAW 1, THEN DEPLOY A GHOST CORRIDOR HERE. RE-ENTRY CLEARS 2 TRACE AND GRANTS 1 LOCK.
+card.DecoyMinefield.name	诱饵雷区	DECOY MINEFIELD
+card.DecoyMinefield.rules	按5点加航迹两倍部署当前航道雷区，穿越至对侧外航道，然后获得1层航迹暴露。	DEPLOY A 5 PLUS TWICE TRACE MINEFIELD HERE, CROSS LANES, THEN GAIN 1 TRACE.
+card.SilentLedger.name	静默账本	SILENT LEDGER
+card.SilentLedger.rules	没有航迹时获得1层锁定并抽1张牌；否则清除1层航迹并获得6点护盾。	WITH NO TRACE, GAIN 1 LOCK AND DRAW 1. OTHERWISE CLEAR 1 TRACE AND GAIN 6 SHIELD.
+card.EscrowProtocol.name	托管协议	ESCROW PROTOCOL
+card.EscrowProtocol.rules	将1点当前能量存入托管，下回合返还2点；仅在拥有至少2点能量时可用。	ESCROW 1 CURRENT ENERGY AND RECEIVE 2 NEXT TURN. REQUIRES AT LEAST 2 CURRENT ENERGY.
+card.QueueCache.name	队列缓存	QUEUE CACHE
+card.QueueCache.rules	保留其余手牌，并按最多3张手牌在当前航道部署缓存；下次进入时获得对应护盾并抽1张牌。	RETAIN YOUR OTHER CARDS AND CACHE UP TO 3 HERE. NEXT ENTRY GRANTS 2 SHIELD PER CACHED CARD AND DRAWS 1.
+card.DeferredStrike.name	延迟投递	DEFERRED STRIKE
+card.DeferredStrike.rules	预定下回合开始时追踪最低耐久敌人造成10点伤害；支付后剩1点能量时追加4点。	SCHEDULE 10 TRACKING DAMAGE TO THE LOWEST-HEALTH ENEMY NEXT TURN, PLUS 4 IF PAYMENT LEAVES 1 ENERGY.

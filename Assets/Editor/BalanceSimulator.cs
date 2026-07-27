@@ -596,14 +596,24 @@ namespace SkyCourierEditor
 
         private static EnemyKind BossKindForVariant(int variant)
         {
-            return Math.Abs(variant) % EncounterCatalog.BossVariantCount == 0
-                ? EnemyKind.StormManta
-                : EnemyKind.CloudWyrm;
+            return (Math.Abs(variant) % EncounterCatalog.BossVariantCount) switch
+            {
+                1 => EnemyKind.CloudWyrm,
+                2 => EnemyKind.CourierZero,
+                3 => EnemyKind.InvertedSkyWhale,
+                _ => EnemyKind.StormManta
+            };
         }
 
         private static string BossLabel(EnemyKind boss)
         {
-            return boss == EnemyKind.CloudWyrm ? "雷幕云龙" : "磁暴鳐";
+            return boss switch
+            {
+                EnemyKind.CloudWyrm => "雷幕云龙",
+                EnemyKind.CourierZero => "零号邮差",
+                EnemyKind.InvertedSkyWhale => "倒悬天穹鲸",
+                _ => "磁暴鳐"
+            };
         }
 
         private static ModuleId BuildModule(string name)

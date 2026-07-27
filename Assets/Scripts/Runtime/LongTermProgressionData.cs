@@ -174,7 +174,8 @@ namespace SkyCourier
                 AchievementId.FirstChallenge => data.ChallengeProgress.Any(record => record.Completions > 0),
                 AchievementId.FiveContracts => ContractCatalog.All.All(contract =>
                     data.ContractMastery.Any(record => record.Contract == (int)contract && record.Deliveries > 0)),
-                AchievementId.TwinBossArchive => new[] { EnemyKind.StormManta, EnemyKind.CloudWyrm }.All(boss =>
+                AchievementId.TwinBossArchive => new[] { EnemyKind.StormManta, EnemyKind.CloudWyrm,
+                    EnemyKind.CourierZero, EnemyKind.InvertedSkyWhale }.All(boss =>
                     data.BossDossiers.Any(record => record.Boss == (int)boss && record.Victories > 0)),
                 AchievementId.SixEndings => data.DiscoveredEndings.Count >=
                     Enum.GetValues(typeof(FinaleEnding)).Length - 1,
@@ -205,10 +206,11 @@ namespace SkyCourier
                     Target = ContractCatalog.All.Count
                 });
 
-            int bossVictories = new[] { EnemyKind.StormManta, EnemyKind.CloudWyrm }.Count(boss =>
+            int bossVictories = new[] { EnemyKind.StormManta, EnemyKind.CloudWyrm,
+                EnemyKind.CourierZero, EnemyKind.InvertedSkyWhale }.Count(boss =>
                 data.BossDossiers.Any(record => record.Boss == (int)boss && record.Victories > 0));
-            if (bossVictories < 2)
-                goals.Add(new ProgressGoal { Id = "bosses", Current = bossVictories, Target = 2 });
+            if (bossVictories < 4)
+                goals.Add(new ProgressGoal { Id = "bosses", Current = bossVictories, Target = 4 });
 
             int endingTotal = Enum.GetValues(typeof(FinaleEnding)).Length - 1;
             if (data.DiscoveredEndings.Count < endingTotal)
